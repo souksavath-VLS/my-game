@@ -1,0 +1,6 @@
+body { background-color: #121212; color: #fff; }
+.sidebar { height: 100vh; background: #1e1e1e; padding-top: 20px; }
+.sidebar a { color: #ccc; text-decoration: none; display: block; padding: 10px 20px; }
+.sidebar a:hover { background: #333; color: #fff; }
+.content { padding: 40px; }
+.form-box { background: #1e1e1e; padding: 30px; border-radius: 8px; max-width: 400px; margin: auto; }
