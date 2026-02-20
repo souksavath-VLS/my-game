@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมนับจำนวนผลไม้</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .fruit-grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; margin: 2rem 0; }
+    .fruit-item { display: flex; flex-direction: column; align-items: center; }
+    .fruit-icon { width: 80px; height: 80px; }
+    .question { font-size: 1.4rem; font-weight: bold; margin-bottom: 1.2rem; }
+    .answer-btn { font-size: 1.2rem; padding: 0.7rem 1.2rem; border-radius: 8px; border: 2px solid #1976d2; background: #fff; color: #1976d2; margin: 0.5rem; font-weight: bold; }
+    .answer-btn.correct { background: #4caf50; color: #fff; border-color: #4caf50; }
+    .answer-btn.wrong { background: #f44336; color: #fff; border-color: #f44336; }
+    .result { font-size: 1.2rem; margin-top: 1rem; min-height: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมนับจำนวนผลไม้</div>
+  <div class="container" style="max-width:500px;margin:auto;padding:2rem 0;">
+    <div style="margin-bottom:1.2rem;">
+      <label for="fruit-level" style="font-size:1.1rem;font-weight:bold;color:#1976d2;">ระดับความยาก:</label>
+      <select id="fruit-level" style="font-size:1.1rem;padding:0.3rem 0.7rem;border-radius:8px;border:2px solid #1976d2;font-weight:bold;margin-left:0.7rem;">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div class="question" id="fruit-question"></div>
+    <div class="fruit-grid" id="fruit-grid"></div>
+    <div id="answer-buttons"></div>
+    <div class="result" id="fruit-result"></div>
+    <div class="menu" style="margin-top:2rem;">
+      <a href="index.html" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
+      <button onclick="restartFruitGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
+    </div>
+  </div>
+  <audio id="soundCorrect" src="assets/sound/color-game/correct.wav" preload="auto"></audio>
+  <audio id="soundWrong" src="assets/sound/color-game/wrong.wav" preload="auto"></audio>
+  <audio id="soundWin" src="assets/sound/color-game/win.wav" preload="auto"></audio>
+  <script src="js/fruit-game.js"></script>
+</body>
+</html>

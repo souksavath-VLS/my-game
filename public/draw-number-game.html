@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมลากเส้นตัวเลข 1-10</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .draw-header { font-size: 1.5rem; font-weight: bold; color: #1976d2; margin-bottom: 1.2rem; }
+    .draw-canvas-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 1.2rem; }
+    .draw-char { font-size: 7.5rem; font-weight: bold; color: #1976d2; margin-bottom: 0.5rem; }
+    .draw-result { font-size: 1.2rem; min-height: 2rem; margin-top: 1rem; }
+    .draw-level { font-size: 1.1rem; font-weight: bold; color: #1976d2; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมลากเส้นตัวเลข 1-10</div>
+  <div class="container" style="max-width:500px;margin:auto;padding:2rem 0;">
+    <div class="draw-header" id="draw-header"></div>
+    <div class="draw-canvas-wrap">
+      <div class="draw-char" id="draw-char"></div>
+      <canvas id="draw-canvas" class="draw-canvas" width="320" height="320" style="border:2px solid #1976d2;border-radius:16px;background:#fff;box-shadow:0 2px 8px rgba(25,118,210,0.08);"></canvas>
+    </div>
+    <div style="display:flex;gap:1rem;margin-bottom:1.2rem;">
+      <button onclick="clearDrawCanvas()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">ลบเส้น</button>
+      <button onclick="checkDraw()" class="menu-btn" style="background:#4caf50;color:#fff;">ตรวจสอบ</button>
+    </div>
+    <div class="draw-result" id="draw-result"></div>
+    <div class="menu" style="margin-top:2rem;">
+      <a href="index.html" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
+      <button onclick="restartDrawGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
+    </div>
+  </div>
+  <audio id="soundCorrect" src="assets/sound/color-game/correct.wav" preload="auto"></audio>
+  <audio id="soundWrong" src="assets/sound/color-game/wrong.wav" preload="auto"></audio>
+  <audio id="soundWin" src="assets/sound/color-game/win.wav" preload="auto"></audio>
+  <script src="js/draw-number-game.js"></script>
+</body>
+</html>
