@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมฟังเสียงสำหรับเด็ก</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">เกมฟังเสียง</div>
+  <div class="container py-4">
+    <div id="sound-question" class="text-center mb-4" style="font-size:2rem;"></div>
+    <div class="text-center mb-3">
+      <button id="playSoundBtn" class="menu-btn" style="background:#e3f2fd;color:#1976d2;font-size:1.2rem;">🔊 ฟังเสียง</button>
+    </div>
+    <div id="sound-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
+    <div id="sound-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
+    <div class="text-center mt-4">
+      <button id="restartSoundBtn" class="menu-btn">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+    </div>
+  </div>
+  <audio id="soundCorrect" src="assets/sound/correct.wav"></audio>
+  <audio id="soundWrong" src="assets/sound/wrong.wav"></audio>
+  <audio id="soundWin" src="assets/sound/win.wav"></audio>
+  <audio id="soundCongrats" src="assets/sound/congrats.wav"></audio>
+  <audio id="gameSound" src=""></audio>
+  <script src="js/sound-game.js"></script>
+</body>
+</html>

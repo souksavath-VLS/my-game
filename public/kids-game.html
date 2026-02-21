@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมจับคู่ภาพสำหรับเด็ก</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">เกมจับคู่ภาพ</div>
+  <div class="container py-4">
+    <div id="game-board" class="row justify-content-center"></div>
+    <div class="text-center mt-4">
+      <button id="restartBtn" class="menu-btn">เริ่มใหม่</button>
+    </div>
+    <div id="reward" class="text-center mt-4" style="font-size:2rem;color:#ff9800;"></div>
+    <div id="timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
+  </div>
+  <audio id="correctSound" src="assets/sound/color-game/correct.wav"></audio> <!-- SFX: correct answer -->
+  <audio id="congratsSound" src="assets/sound/color-game/congrats.wav"></audio> <!-- SFX: short success -->
+  <audio id="wrongSound" src="assets/sound/color-game/wrong.wav"></audio> <!-- SFX: wrong answer -->
+  <audio id="winSound" src="assets/sound/color-game/win.wav"></audio> <!-- SFX: win/celebrate -->
+  <script src="js/kids-game.js"></script>
+</body>
+</html>
