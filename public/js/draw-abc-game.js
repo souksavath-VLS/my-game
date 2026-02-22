@@ -54,14 +54,55 @@ function showDrawChar(idx) {
   const chPair = ABC[idx];
   document.getElementById('draw-char').textContent = chPair;
   clearDrawCanvas();
+  drawAbcShadow(chPair);
   // เล่นเสียงเฉพาะตัวพิมพ์ใหญ่ เช่น A.mp3
   playAbcSound(chPair.split(' ')[0]);
+}
+
+function drawAbcShadow(chPair) {
+  const canvas = document.getElementById('draw-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  // เพิ่มขนาด font ให้ใหญ่ขึ้น
+  ctx.font = 'bold 120px Arial, Noto Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1976d2';
+  const [upper, lower] = chPair.split(' ');
+  // วาดตัวพิมพ์ใหญ่ทางซ้าย และตัวพิมพ์เล็กทางขวา
+  const leftX = canvas.width/2 - 80;
+  const rightX = canvas.width/2 + 80;
+  const centerY = canvas.height/2;
+  ctx.fillText(upper, leftX, centerY);
+  ctx.font = 'bold 95px Arial, Noto Sans, sans-serif';
+  ctx.fillText(lower, rightX, centerY);
+  // วาดลูกศรแสดงทิศทางจากซ้ายไปขวา
+  ctx.globalAlpha = 0.32;
+  ctx.strokeStyle = '#1976d2';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(leftX + 60, centerY);
+  ctx.lineTo(rightX - 60, centerY);
+  ctx.stroke();
+  // วาดหัวลูกศร
+  ctx.beginPath();
+  ctx.moveTo(rightX - 70, centerY - 18);
+  ctx.lineTo(rightX - 60, centerY);
+  ctx.lineTo(rightX - 70, centerY + 18);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function clearDrawCanvas() {
   const canvas = document.getElementById('draw-canvas');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // วาดเงาตัวอย่างใหม่ถ้ามีตัวอักษรปัจจุบัน
+  if (typeof currentIndex === 'number' && currentIndex >= 0 && currentIndex < ABC.length && document.getElementById('draw-char').textContent) {
+    drawAbcShadow(ABC[currentIndex]);
+  }
 }
 
 function checkDraw() {

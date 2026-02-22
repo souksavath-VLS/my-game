@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมหาตัวเลขที่ขาด 1-10</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container py-4" style="max-width:600px;margin:auto;">
+    <h2 class="text-center mb-4">เกมหาตัวเลขที่ขาด 1-10</h2>
+    <div id="missing-number-timer" class="mb-3" style="font-size:1.2rem;color:#1976d2;"></div>
+    <div id="missing-number-question" class="mb-4" style="font-size:2rem;font-weight:bold;text-align:center;"></div>
+    <div id="missing-number-options" class="d-flex justify-content-center flex-wrap mb-4"></div>
+    <div id="missing-number-result" class="text-center mb-3" style="font-size:1.3rem;font-weight:bold;"></div>
+    <div class="text-center">
+      <button id="restartMissingNumberBtn" class="menu-btn" style="background:#1976d2;color:#fff;">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
+    </div>
+    <audio id="missingNumberCorrectSound" src="assets/sound/correct.wav"></audio>
+    <audio id="missingNumberWrongSound" src="assets/sound/wrong.wav"></audio>
+    <audio id="missingNumberWinSound" src="assets/sound/win.wav"></audio>
+  </div>
+  <script src="js/missing-number-game.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมวางรูปร่าง</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container py-4" style="max-width:600px;margin:auto;">
+    <h2 class="text-center mb-4">เกมวางรูปร่าง</h2>
+    <div id="shape-puzzle-timer" class="mb-3" style="font-size:1.2rem;color:#1976d2;"></div>
+    <div class="mb-4 d-flex justify-content-center align-items-center" style="gap:32px;flex-wrap:wrap;">
+      <div id="shape-shadow" style="width:100px;height:100px;font-size:4rem;opacity:0.25;display:flex;align-items:center;justify-content:center;border:2px dashed #aaa;border-radius:18px;background:#f7f7f7;" ondragover="event.preventDefault()" ondrop="onDropShape(event)"></div>
+      <div id="shape-puzzle-options" class="d-flex justify-content-center flex-wrap"></div>
+    </div>
+    <div id="shape-puzzle-result" class="text-center mb-3" style="font-size:1.3rem;font-weight:bold;"></div>
+    <div class="text-center">
+      <button id="restartShapePuzzleBtn" class="menu-btn" style="background:#1976d2;color:#fff;">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
+    </div>
+    <audio id="shapeCorrectSound" src="assets/sound/correct.wav"></audio>
+    <audio id="shapeWrongSound" src="assets/sound/wrong.wav"></audio>
+    <audio id="shapeWinSound" src="assets/sound/win.wav"></audio>
+  </div>
+  <script src="js/shape-puzzle-game.js"></script>
+</body>
+</html>

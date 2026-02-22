@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมหาสิ่งของในบ้าน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">เกมหาสิ่งของในบ้าน</div>
+  <div class="container py-4">
+    <div id="find-object-timer" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
+    <div id="find-object-question" class="text-center mb-4" style="font-size:2rem;"></div>
+    <div id="find-object-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
+    <div id="find-object-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
+    <div class="text-center mt-4">
+      <button id="restartFindObjectBtn" class="menu-btn">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+    </div>
+  </div>
+  <audio id="findObjectCorrectSound" src="assets/sound/correct.wav"></audio>
+  <audio id="findObjectWrongSound" src="assets/sound/wrong.wav"></audio>
+  <audio id="findObjectWinSound" src="assets/sound/win.wav"></audio>
+  <script src="js/find-object-game.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมเรียงสีตามลำดับ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">เกมเรียงสีตามลำดับ</div>
+  <div class="container py-4">
+    <div id="color-order-timer" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
+    <div id="color-order-question" class="text-center mb-4" style="font-size:2rem;"></div>
+    <div id="color-order-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
+    <div id="color-order-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
+    <div class="text-center mt-4">
+      <button id="restartColorOrderBtn" class="menu-btn">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+    </div>
+  </div>
+  <audio id="colorOrderCorrectSound" src="assets/sound/color-game/correct.wav"></audio>
+  <audio id="colorOrderWrongSound" src="assets/sound/color-game/wrong.wav"></audio>
+  <audio id="colorOrderWinSound" src="assets/sound/color-game/win.wav"></audio>
+  <audio id="colorOrderCongratsSound" src="assets/sound/color-game/congrats.wav"></audio>
+  <script src="js/color-order-game.js"></script>
+</body>
+</html>

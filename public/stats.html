@@ -45,12 +45,87 @@
 <body>
   <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">โหมดผู้ปกครอง - สถิติและพัฒนาการ</div>
   <div class="container py-4" style="max-width:600px;margin:auto;">
-    <div id="game-menu" style="display:flex;flex-direction:column;gap:1.5rem;margin-bottom:2.5rem;align-items:center;">
-      <button class="menu-btn" style="width:90%;max-width:340px;padding:1.2rem 0;font-size:1.2rem;background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);" onclick="showStats('memory')">เกมจับคู่ภาพ</button>
-      <button class="menu-btn" style="width:90%;max-width:340px;padding:1.2rem 0;font-size:1.2rem;background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);" onclick="showStats('fruit')">เกมนับจำนวนผลไม้</button>
-      <button class="menu-btn" style="width:90%;max-width:340px;padding:1.2rem 0;font-size:1.2rem;background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);" onclick="showStats('drawnumber')">เกมลากเส้นตัวเลข 1-10</button>
-      <button class="menu-btn" style="width:90%;max-width:340px;padding:1.2rem 0;font-size:1.2rem;background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(56,142,60,0.08);" onclick="showStats('color')">เกมเลือกสี</button>
-      <button class="menu-btn" style="width:90%;max-width:340px;padding:1.2rem 0;font-size:1.2rem;background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);" onclick="showStats('sound')">เกมฟังเสียง</button>
+    <div id="game-menu" class="flag-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:18px;margin:2rem 0;">
+      <button class="menu-btn" onclick="showStats('color')" style="background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(56,142,60,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Color Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมเลือกสี</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('colororder')" style="background:#fff;color:#7c4dff;border:2px solid #7c4dff;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(124,77,255,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135765.png" alt="Color Order Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมเรียงสีตามลำดับ</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('bigsmall')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" alt="Big Small Icon" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมใหญ่-เล็ก</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('sound')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/727/727245.png" alt="Sound Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมฟังเสียง</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('fruit')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/590/590685.png" alt="Fruit Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมนับจำนวน</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('drawabc')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมลากเส้น A-Z</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('drawnumber')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167750.png" alt="Draw Number" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมลากเส้นตัวเลข 1-10</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('findobject')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Find Object Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมหาสิ่งของในบ้าน</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('missingnumber')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167749.png" alt="Missing Number Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมหาตัวเลขที่ขาด</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('matchicon')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Match Icon Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกม Match icon</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('kids')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="Kids Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมจับคู่ภาพ</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('shapepuzzle')" style="background:#fff;color:#616494;border:2px solid #616494;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(97,100,148,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/616/616494.png" alt="Shape Puzzle Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมวางรูปร่าง</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('azmatch')" style="background:#fff;color:#167707;border:2px solid #167707;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(22,119,7,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="AZ Match Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมจับคู่ตัวอักษร A-Z</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('watertree')" style="background:#fff;color:#42a5f5;border:2px solid #42a5f5;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(66,165,245,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917242.png" alt="Water Tree Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมรดน้ำต้นไม้</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('weekdays')" style="background:#fff;color:#ffb300;border:2px solid #ffb300;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(255,179,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917243.png" alt="Weekdays Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมวันในสัปดาห์</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('months')" style="background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(56,142,60,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917244.png" alt="Months Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมเดือนในปี</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('tower')" style="background:#fff;color:#616494;border:2px solid #616494;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(97,100,148,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Tower Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมหอคอย</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('hideseek')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Hide and Seek Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมซ่อนหา</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('drawlaoabc')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw Lao ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมลากเส้นภาษาลาว ກ-ຮ</div>
+      </button>
+      <button class="menu-btn" onclick="showStats('drawlaovowel')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw Lao Vowel" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">เกมลากเส้นภาษาลาว สระ</div>
+      </button>
     </div>
     <div id="stats-summary" style="display:none;flex-direction:column;gap:2rem;"></div>
     <div id="chart-container" style="display:none;background:#fff;border-radius:12px;padding:1.2rem 1rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:2rem;">

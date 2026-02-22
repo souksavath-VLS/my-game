@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมวันในสัปดาห์</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .weekdays-board {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 18px;
+      margin: 32px 0 16px 0;
+    }
+    .weekdays-card {
+      width: 90px;
+      height: 90px;
+      perspective: 600px;
+      cursor: pointer;
+    }
+    .weekdays-card-inner {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.5s;
+      transform-style: preserve-3d;
+      position: relative;
+    }
+    .weekdays-card.flipped .weekdays-card-inner,
+    .weekdays-card.matched .weekdays-card-inner {
+      transform: rotateY(180deg);
+    }
+    .weekdays-card-front, .weekdays-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: bold;
+      background: #fffbe7;
+      border: 3px solid #ffd54f;
+      box-shadow: 0 2px 8px rgba(255,213,79,0.10);
+    }
+    .weekdays-card-front {
+      background: #ffe082;
+      border: 3px solid #ffd54f;
+    }
+    .weekdays-card-back {
+      transform: rotateY(180deg);
+      flex-direction: column;
+      font-size: 2.2rem;
+      color: #1976d2;
+      background: #fffbe7;
+    }
+    .weekdays-card-back span {
+      font-size: 1.1rem;
+      color: #616161;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">เกมวันในสัปดาห์</div>
+  <div class="container py-4">
+    <div class="text-center mt-3">
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
+      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+    </div>
+    <div id="weekdays-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
+    <div id="weekdays-game-board" class="weekdays-board"></div>
+    <div id="weekdays-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+  </div>
+  <script src="js/weekdays-game.js"></script>
+  <script>
+    document.getElementById('restartBtn').onclick = function() { startWeekdaysGame(); };
+    window.onload = function() { startWeekdaysGame(); };
+  </script>
+</body>
+</html>

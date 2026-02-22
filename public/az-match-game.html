@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมจับคู่ตัวอักษร A-Z</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .az-match-upper, .az-match-lower {
+      display: inline-block;
+      width: 48px;
+      height: 48px;
+      font-size: 2rem;
+      margin: 4px;
+      text-align: center;
+      line-height: 48px;
+      border-radius: 8px;
+      border: 2px solid #aaa;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    .az-match-lower {
+      opacity: 0.5;
+      background: #f7f7f7;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">เกมจับคู่ตัวอักษร A-Z</div>
+  <div class="container py-4">
+    <div class="text-center mt-3">
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
+      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+    </div>
+    <div id="az-match-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
+    <div id="az-match-shadow" style="margin: 16px 0; min-height: 60px;"></div>
+    <div id="az-match-options" style="margin: 16px 0;"></div>
+    <div id="az-match-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+  </div>
+  <script src="js/az-match-game.js"></script>
+  <script>
+    document.getElementById('restartBtn').onclick = function() { startAZMatchGame(); };
+    window.onload = function() { startAZMatchGame(); };
+  </script>
+</body>
+</html>

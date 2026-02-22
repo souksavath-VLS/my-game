@@ -45,6 +45,17 @@ function showDrawNumber(idx) {
   const num = NUMBERS[idx];
   document.getElementById('draw-char').textContent = num;
   clearDrawCanvas();
+  // วาดเงาตัวอย่างบน canvas
+  const canvas = document.getElementById('draw-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.font = 'bold 120px Arial, Noto Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#1976d2';
+  ctx.fillText(num, canvas.width/2, canvas.height/2+10);
+  ctx.restore();
   playNumberSound(num);
 }
 

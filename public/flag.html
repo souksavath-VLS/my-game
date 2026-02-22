@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flag Game - 150 Flags</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .flag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 18px; margin: 2rem 0; }
+    .flag-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(25,118,210,0.08); padding: 1rem 0.5rem; transition: box-shadow 0.18s; }
+    .flag-item:hover { box-shadow: 0 4px 16px rgba(25,118,210,0.18); background: #e3f2fd; }
+    .flag-icon { width: 48px; height: 32px; object-fit: contain; margin-bottom: 0.5rem; border-radius: 4px; border: 1px solid #eee; }
+    .flag-name { font-size: 1rem; color: #1976d2; font-weight: bold; text-align: center; }
+    .header { background: #1976d2; color: #fff; border-radius: 12px 12px 0 0; padding: 1.2rem 0; font-size: 1.5rem; font-weight: bold; text-align: center; box-shadow: 0 2px 8px rgba(25,118,210,0.12); letter-spacing: 0.5px; }
+    .container { max-width: 700px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 1.2rem 1rem; }
+  </style>
+</head>
+<body>
+  <div class="header">เกมธงประเทศ (150 Flags)</div>
+  <div class="container">
+    <div class="flag-grid" id="flag-grid"></div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a href="index.html" class="menu-btn">กลับหน้าแรก</a>
+    </div>
+  </div>
+  <script src="js/flag-game.js"></script>
+</body>
+</html>

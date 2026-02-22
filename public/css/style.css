@@ -1,4 +1,158 @@
+/* Responsive grid for stats & index */
+.flag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 18px;
+  margin: 2rem 0;
+}
+@media (max-width: 600px) {
+  .flag-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+/* Google Login Button */
+.google-login-btn {
+  background: #fff;
+  color: #444;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.35rem 1.1rem 0.35rem 0.7rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.18s, box-shadow 0.18s, color 0.18s;
+}
+.google-login-btn:hover {
+  background: #f5f5f5;
+  color: #b31412;
+  box-shadow: 0 4px 16px rgba(66,133,244,0.10);
+}
+/* Grid สำหรับปุ่มเกมหน้าแรก */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem 1.5rem;
+  justify-items: center;
+}
+@media (max-width: 900px) {
+  .game-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .game-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 /* ปุ่มสีสำหรับเกมเลือกสี */
+/* ปุ่มเมนูเกมและ layout สำหรับเกมเด็ก */
+.header {
+  background: #1976d2;
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 1.2rem 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.12);
+  letter-spacing: 0.5px;
+}
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.2rem 1rem;
+}
+body {
+  background: linear-gradient(135deg, #f7f7f7 0%, #ffe082 100%);
+  font-family: 'Mali', 'Prompt', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+.header {
+  background: #1976d2;
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 1.2rem 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.12);
+  letter-spacing: 0.5px;
+}
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.2rem 1rem;
+}
+.menu-btn {
+  background: #1976d2;
+  color: #fff;
+  border: 2px solid #1976d2;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 0.8rem 1.5rem;
+  margin: 0.5rem;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.menu-btn:hover {
+  background: #fff;
+  color: #1976d2;
+  box-shadow: 0 4px 16px rgba(25,118,210,0.12);
+}
+.az-match-upper, .az-match-lower {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  font-size: 2rem;
+  margin: 4px;
+  text-align: center;
+  line-height: 48px;
+  border-radius: 8px;
+  border: 2px solid #aaa;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.18s, border-color 0.18s;
+}
+.az-match-upper:active {
+  background: #e3f2fd;
+  border-color: #1976d2;
+}
+.az-match-lower {
+  opacity: 0.5;
+  background: #f7f7f7;
+}
+#az-match-result {
+  font-size: 1.2rem;
+  color: #ff9800;
+  font-weight: bold;
+  margin-top: 16px;
+}
+#az-match-timer {
+  font-size: 1.2rem;
+  color: #4caf50;
+  margin-bottom: 8px;
+}
+@media (max-width: 600px) {
+  .container { padding: 0.7rem 0.5rem; }
+  .az-match-upper, .az-match-lower { width: 36px; height: 36px; font-size: 1.3rem; }
+  .header { font-size: 1.1rem; padding: 0.7rem 0; }
+}
 .color-btn {
   width: 80px;
   height: 80px;
@@ -15,21 +169,86 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 body {
-  background: #f7f7f7;
+  background: linear-gradient(135deg, #f7f7f7 0%, #ffe082 100%);
   font-family: 'Mali', 'Prompt', 'Segoe UI', Arial, sans-serif;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
 }
 .header {
-  background: #4caf50;
+  background: linear-gradient(90deg, #4caf50 60%, #8bc34a 100%);
   color: #fff;
-  padding: 1.5rem 0 1rem 0;
+  padding: 0.5rem 0 0.5rem 0;
   text-align: center;
   font-size: 2.2rem;
   font-weight: bold;
   letter-spacing: 1px;
-  border-radius: 0 0 24px 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(76,175,80,0.15);
+  margin-bottom: 0;
+}
+.lang-flags {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+  align-items: center;
+}
+.lang-flag {
+  width: 20px;
+  height: 14px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  transition: border-color 0.2s;
+}
+ .lang-flag.active {
+  border-color: #4caf50;
+}
+
+/* ปุ่มเกมหน้าแรก */
+.game-card {
+  background: #fffbe7;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(255,193,7,0.13);
+  padding: 1.2rem 0.5rem 1rem 0.5rem;
+  transition: box-shadow 0.2s, transform 0.18s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 10px;
+  border: 2px solid #ffe082;
+}
+.game-card:hover {
+  box-shadow: 0 8px 32px rgba(255,193,7,0.22);
+  transform: translateY(-6px) scale(1.04);
+  border-color: #ffd54f;
+}
+.game-card img {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 2px 8px rgba(255,193,7,0.13));
+}
+.game-card .mt-2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ff9800;
+  letter-spacing: 0.5px;
+}
+.btn.btn-warning {
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.7rem 2.2rem;
+  background: linear-gradient(90deg, #ffe082 60%, #ffd54f 100%);
+  color: #b31412;
+  border: none;
+  box-shadow: 0 2px 8px rgba(255,193,7,0.13);
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.btn.btn-warning:hover {
+  background: linear-gradient(90deg, #ffd54f 60%, #ffe082 100%);
+  color: #ff9800;
+  transform: scale(1.04);
 }
 .menu {
   display: flex;
@@ -43,7 +262,7 @@ body {
   color: #333;
   border: none;
   border-radius: 18px;
-  font-size: 1.5rem;
+  font-size: 1rem;
   font-weight: bold;
   padding: 1.2rem 3.5rem;
   box-shadow: 0 2px 8px rgba(255,193,7,0.15);
@@ -94,7 +313,6 @@ body {
 }
 @media (max-width: 600px) {
   .header { font-size: 1.3rem; padding: 1rem 0; }
-  .menu-btn { font-size: 1.1rem; padding: 0.8rem 1.5rem; }
-  .card { width: 70px; height: 70px; }
-  #game-board { gap: 0.5rem; }
+  .game-card img { width: 60px; height: 60px; }
+  .game-card { min-height: 120px; padding: 0.7rem 0.2rem 0.7rem 0.2rem; }
 }

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมใหญ่-เล็ก บน-ล่าง ซ้าย-ขวา</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">เกมใหญ่-เล็ก</div>
+  <div class="container py-4">
+    <div id="bigsmall-question" class="text-center mb-4" style="font-size:2rem;"></div>
+    <div id="bigsmall-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
+    <div id="bigsmall-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
+    <div class="text-center mt-4">
+      <button id="restartBigSmallBtn" class="menu-btn">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+    </div>
+  </div>
+  <audio id="bigSmallCorrectSound" src="assets/sound/sound-game/correct.wav"></audio>
+  <audio id="bigSmallWrongSound" src="assets/sound/sound-game/wrong.wav"></audio>
+  <audio id="bigSmallWinSound" src="assets/sound/sound-game/win.wav"></audio>
+  <script src="js/big-small-game.js"></script>
+</body>
+</html>

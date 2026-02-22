@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <title>เกมลากเส้นภาษาลาว ກ-ຮ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .draw-lao-area { display: flex; flex-direction: column; align-items: center; gap: 24px; margin: 32px 0; }
+    .draw-lao-char { font-size: 2.5rem; font-weight: bold; color: #1976d2; margin-bottom: 12px; }
+    .draw-lao-canvas { border: 2px solid #1976d2; border-radius: 12px; background: #fff; }
+    .draw-lao-btn { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">เกมลากเส้นภาษาลาว ກ-ຮ</div>
+  <div class="container py-4">
+    <div class="text-center mt-3">
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
+      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+    </div>
+    <div id="draw-lao-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
+    <div id="draw-lao-game-area" class="draw-lao-area"></div>
+    <div id="draw-lao-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+  </div>
+  <script src="js/draw-lao-abc-game.js"></script>
+  <script>
+    document.getElementById('restartBtn').onclick = function() { startDrawLaoABCGame(); };
+    window.onload = function() { startDrawLaoABCGame(); };
+  </script>
+</body>
+</html>
