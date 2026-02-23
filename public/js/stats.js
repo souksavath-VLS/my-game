@@ -1,6 +1,26 @@
 
 // --- ฟังก์ชันแสดงสถิติแต่ละเกม ---
 function showStats(game) {
+    if (game === 'worldmap') {
+      const stats = JSON.parse(localStorage.getItem('worldMapPuzzleStats') || '[]');
+      if (Array.isArray(stats) && stats.length) {
+        const totalPlay = stats.length;
+        const bestTime = Math.min(...stats.map(s => s.time));
+        html += `<div style='margin-bottom:2.5rem;'>
+          <b>เกม:</b> World Map Puzzle<br>
+          <b>จำนวนครั้งที่เล่น:</b> ${totalPlay}<br>
+          <b>เวลาที่ดีที่สุด:</b> ${bestTime === Infinity ? '-' : bestTime + ' วินาที'}<br>
+          <details style='margin-top:0.5rem;'>
+            <summary>ดูรายละเอียดแต่ละรอบ</summary>
+            <ul style='text-align:left;font-size:1rem;'>
+              ${stats.map((s,i) => `<li>ครั้งที่ ${i+1}: ${s.time} วินาที | ถูก ${s.correct} | ผิด ${s.wrong} | ${new Date(s.date).toLocaleString('th-TH')}</li>`).join('')}
+            </ul>
+          </details>
+        </div>`;
+      } else {
+        html = '<div>ยังไม่มีข้อมูลสถิติสำหรับเกมนี้</div>';
+      }
+    } else 
   document.getElementById('game-menu').style.display = 'none';
   document.getElementById('stats-summary').style.display = 'flex';
   document.getElementById('backToMenuBtn').style.display = '';
