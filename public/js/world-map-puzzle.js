@@ -60,28 +60,28 @@ const COUNTRIES = [
     label: 'อังกฤษ',
     flag: 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
     color: 'rgb(0, 36, 125)',
-    outline: 'https://www.flaticon.com/free-icon/united-kingdom_7715638?term=uk&page=1&position=20&origin=search&related_id=7715638'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715638.png'
   },
   {
     key: 'germany',
     label: 'เยอรมนี',
     flag: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg',
     color: 'rgb(0, 0, 0)',
-    outline: 'https://www.flaticon.com/free-icon/germany_7715639?term=germany&page=1&position=21&origin=search&related_id=7715639'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715639.png'
   },
   {
     key: 'italy',
     label: 'อิตาลี',
     flag: 'https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg',
     color: 'rgb(0, 146, 70)',
-    outline: 'https://www.flaticon.com/free-icon/italy_7715640?term=italy&page=1&position=22&origin=search&related_id=7715640'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715640.png'
   },
   {
     key: 'spain',
     label: 'สเปน',
     flag: 'https://upload.wikimedia.org/wikipedia/en/9/9a/Flag_of_Spain.svg',
     color: 'rgb(170, 28, 57)',
-    outline: 'https://www.flaticon.com/free-icon/spain_7715641?term=spain&page=1&position=23&origin=search&related_id=7715641'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715641.png'
   }
 ];
 
@@ -90,8 +90,14 @@ let wrongCount = 0;
 let startTime = null;
 let timerInterval = null;
 let selectedCountryIdx = null;
+let gameCount = 0;
+let maxGames = 10;
+let totalTime = 0;
 
 function renderMapPuzzle() {
+    // ปิดปุ่มเริ่มใหม่ถ้ายังไม่ครบ 10 เกม
+    const btn = document.querySelector('button[onclick="resetGame()"]');
+    if (btn) btn.disabled = gameCount < maxGames;
   const board = document.getElementById('map-board');
   const piecesRow = document.getElementById('pieces-row');
   const outlineImg = document.getElementById('map-outline');
@@ -108,34 +114,38 @@ function renderMapPuzzle() {
   const target = COUNTRIES[selectedCountryIdx];
   // แสดง outline ของประเทศเป้าหมาย
   outlineImg.src = target.outline;
-  // สร้าง drop zone ใหญ่กลางหน้าจอ
+  // สร้าง drop zone ใหญ่กลางหน้าจอ พร้อมข้อความ
   const dz = document.createElement('div');
   dz.className = 'drop-zone';
   dz.style.position = 'absolute';
   dz.style.left = '50%';
   dz.style.top = '50%';
   dz.style.transform = 'translate(-50%, -50%)';
-  dz.style.width = '220px';
-  dz.style.height = '140px';
+  dz.style.width = '300px';
+  dz.style.height = '200px';
   dz.style.background = target.color + '22';
-  dz.style.border = '2px solid ' + target.color;
-  dz.style.borderRadius = '16px';
+  dz.style.border = '3px dashed ' + target.color;
+  dz.style.borderRadius = '28px';
   dz.style.display = 'flex';
   dz.style.alignItems = 'center';
   dz.style.justifyContent = 'center';
-  dz.style.fontSize = '22px';
+  dz.style.fontSize = '26px';
   dz.style.fontWeight = 'bold';
   dz.style.color = target.color;
+  dz.style.transition = 'background 0.2s, border 0.2s';
   dz.dataset.key = target.key;
-  dz.ondragover = e => { e.preventDefault(); dz.classList.add('active'); };
-  dz.ondragleave = e => dz.classList.remove('active');
+  dz.innerHTML = '<span style="opacity:0.7;">ลากธงมาวางที่นี่</span>';
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('active'); dz.style.border = '3px solid ' + target.color; dz.style.background = '#e3f2fd'; };
+  dz.ondragleave = e => { dz.classList.remove('active'); dz.style.border = '3px dashed ' + target.color; dz.style.background = target.color + '22'; };
   dz.ondrop = function(e) {
     e.preventDefault();
     dz.classList.remove('active');
+    dz.style.border = '3px dashed ' + target.color;
+    dz.style.background = target.color + '22';
     const draggedKey = e.dataTransfer.getData('text/plain');
     if (draggedKey === target.key) {
       dz.style.background = target.color;
-      dz.innerHTML = `<img src="${target.flag}" alt="flag" style="width:40px;height:28px;vertical-align:middle;margin-right:10px;border:1px solid #ccc;border-radius:3px;"> <span>${target.label}</span>`;
+      dz.innerHTML = `<img src="${target.flag}" alt="flag" style="width:56px;height:38px;vertical-align:middle;margin-right:10px;border:1.5px solid #fff;border-radius:5px;box-shadow:0 2px 8px #0002;"> <span>${target.label}</span>`;
       dz.style.color = '#fff';
       dz.style.opacity = 1;
       correctCount++;
@@ -165,50 +175,93 @@ function renderMapPuzzle() {
   shuffled.forEach(p => {
     const piece = document.createElement('div');
     piece.className = 'puzzle-piece';
-    piece.style.width = '90px';
-    piece.style.height = '60px';
+    piece.style.width = '110px';
+    piece.style.height = '74px';
     piece.style.display = 'flex';
     piece.style.alignItems = 'center';
     piece.style.justifyContent = 'center';
-    piece.style.margin = '0 16px';
+    piece.style.margin = '0 18px';
     piece.style.background = '#fff';
-    piece.style.border = '2px solid #1976d2';
-    piece.style.borderRadius = '10px';
-    piece.style.boxShadow = '0 2px 8px rgba(25,118,210,0.10)';
-    piece.innerHTML = `<img src="${p.flag}" alt="flag" style="width:64px;height:40px;object-fit:contain;display:block;">`;
+    piece.style.border = '2.5px solid #1976d2';
+    piece.style.borderRadius = '12px';
+    piece.style.boxShadow = '0 2px 12px rgba(25,118,210,0.13)';
+    piece.style.transition = 'box-shadow 0.2s, border 0.2s';
+    piece.innerHTML = `<img src="${p.flag}" alt="flag" style="width:80px;height:52px;object-fit:contain;display:block;">`;
     piece.draggable = true;
     piece.dataset.piece = p.key;
     piece.ondragstart = e => {
       e.dataTransfer.setData('text/plain', p.key);
+      piece.style.boxShadow = '0 4px 24px #1976d288';
+      piece.style.border = '2.5px solid #388e3c';
     };
+    piece.ondragend = e => {
+      piece.style.boxShadow = '0 2px 12px rgba(25,118,210,0.13)';
+      piece.style.border = '2.5px solid #1976d2';
+    };
+    piece.onmouseover = () => { piece.style.boxShadow = '0 4px 24px #1976d288'; };
+    piece.onmouseout = () => { piece.style.boxShadow = '0 2px 12px rgba(25,118,210,0.13)'; };
     piecesRow.appendChild(piece);
   });
   // แสดงชื่อประเทศใต้ drop zone
   countryName.textContent = '';
-  // timer
-  if (timerInterval) clearInterval(timerInterval);
-  startTime = Date.now();
-  document.getElementById('timer').textContent = 'เวลา: 0 วินาที';
-  timerInterval = setInterval(() => {
-    const sec = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById('timer').textContent = 'เวลา: ' + sec + ' วินาที';
-  }, 500);
+  // timer (เริ่มใหม่เฉพาะเกมแรก)
+  if (gameCount === 0) {
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = Date.now();
+    document.getElementById('timer').textContent = 'เวลา: 0 วินาที';
+    timerInterval = setInterval(() => {
+      const sec = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('timer').textContent = 'เวลา: ' + sec + ' วินาที';
+    }, 500);
+  }
 }
 
 function checkWin() {
   if (correctCount === 1) {
-    clearInterval(timerInterval);
-    document.getElementById('result').textContent = 'เก่งมาก! จบเกมใน ' + Math.floor((Date.now() - startTime) / 1000) + ' วินาที';
-    // เก็บสถิติใน localStorage
-    let stats = JSON.parse(localStorage.getItem('worldMapPuzzleStats') || '[]');
-    stats.push({
-      time: Math.floor((Date.now() - startTime) / 1000),
-      correct: correctCount,
-      wrong: wrongCount,
-      date: new Date().toISOString()
-    });
-    localStorage.setItem('worldMapPuzzleStats', JSON.stringify(stats));
+    gameCount++;
+    totalTime = Date.now() - startTime;
+    if (gameCount < maxGames) {
+      // ไปเกมถัดไป (สุ่มประเทศใหม่)
+      correctCount = 0;
+      wrongCount = 0;
+      selectedCountryIdx = null;
+      setTimeout(() => {
+        renderMapPuzzle();
+      }, 800);
+      document.getElementById('result').textContent = 'ผ่าน ' + gameCount + ' / ' + maxGames + ' เกม';
+    } else {
+      // จบครบ 10 เกม
+      if (timerInterval) clearInterval(timerInterval);
+      document.getElementById('result').textContent = 'จบครบ 10 เกม! ใช้เวลา ' + Math.floor(totalTime / 1000) + ' วินาที';
+      // เปิดปุ่มเริ่มใหม่
+      const btn = document.querySelector('button[onclick="resetGame()"]');
+      if (btn) btn.disabled = false;
+      // เก็บสถิติใน localStorage
+      let stats = JSON.parse(localStorage.getItem('worldMapPuzzleStats') || '[]');
+      stats.push({
+        time: Math.floor(totalTime / 1000),
+        correct: gameCount,
+        wrong: wrongCount,
+        date: new Date().toISOString()
+      });
+      localStorage.setItem('worldMapPuzzleStats', JSON.stringify(stats));
+    }
   }
+
 }
+
+// ปุ่มเริ่มใหม่ (global)
+function resetGame() {
+  correctCount = 0;
+  wrongCount = 0;
+  gameCount = 0;
+  totalTime = 0;
+  selectedCountryIdx = null;
+  document.getElementById('correct').textContent = 'ถูก: 0';
+  document.getElementById('wrong').textContent = 'ผิด: 0';
+  document.getElementById('result').textContent = '';
+  renderMapPuzzle();
+}
+
 
 document.addEventListener('DOMContentLoaded', renderMapPuzzle);

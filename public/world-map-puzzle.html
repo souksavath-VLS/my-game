@@ -76,9 +76,8 @@
     
     <h1 style="text-align:center;">World Map Puzzle</h1>
     <div id="pieces-row" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;"></div>
-    <div id="map-board" class="map-board" style="margin-bottom:16px;">
-      <img id="map-outline" class="map-outline" src="assets/outline-thailand.png" alt="World Map Outline">
-      <!-- Drop zone will be rendered here -->
+    <div class="map-board" id="map-board">
+      <img id="map-outline" class="map-outline" src="" alt="World Map Outline">
     </div>
     <div id="country-name" style="text-align:center;font-size:1.2rem;color:#1976d2;margin-bottom:12px;"></div>
     <div class="stats">
@@ -89,6 +88,7 @@
     <div id="result" style="text-align:center;font-size:1.2rem;color:#388e3c;margin-top:10px;"></div>
     <div style="text-align:center;margin-top:18px;">
       <button onclick="window.location.href='index.html'" style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#fffbe7;color:#1976d2;border:1.5px solid #1976d2;">ย้อนกลับหน้าแรก</button>
+      <button onclick="resetGame()" disabled style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#e3f2fd;color:#1976d2;border:1.5px solid #1976d2;margin-left:12px;">เริ่มใหม่</button>
     </div>
   </div>
   <script src="js/world-map-puzzle.js"></script>
