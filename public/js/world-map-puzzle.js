@@ -1,102 +1,181 @@
-// world-map-puzzle.js
-// World Map Puzzle: Drag & Drop ทวีป/ประเทศ ลงบนแผนที่โลก
-
-const LEVELS = {
-  1: {
-    name: 'ทวีป',
-    pieces: [
-      { key: 'asia', label: 'เอเชีย', x: 520, y: 140, w: 120, h: 80 },
-      { key: 'europe', label: 'ยุโรป', x: 410, y: 70, w: 80, h: 60 },
-      { key: 'africa', label: 'แอฟริกา', x: 410, y: 210, w: 90, h: 100 },
-      { key: 'north-america', label: 'อเมริกาเหนือ', x: 120, y: 80, w: 120, h: 90 },
-      { key: 'south-america', label: 'อเมริกาใต้', x: 180, y: 260, w: 80, h: 90 },
-      { key: 'australia', label: 'ออสเตรเลีย', x: 650, y: 300, w: 70, h: 60 },
-      { key: 'antarctica', label: 'แอนตาร์กติกา', x: 350, y: 360, w: 200, h: 30 }
-    ],
-    outline: 'assets/world-outline-continents.png'
+const COUNTRIES = [
+  {
+    key: 'thailand',
+    label: 'ประเทศไทย',
+    flag: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_Thailand.svg',
+    color: 'rgb(0, 102, 204)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/14093/14093403.png'
   },
-  2: {
-    name: 'ประเทศใหญ่',
-    pieces: [
-      { key: 'thailand', label: 'ประเทศไทย', x: 540, y: 180, w: 40, h: 40 },
-      { key: 'china', label: 'จีน', x: 600, y: 120, w: 80, h: 60 },
-      { key: 'japan', label: 'ญี่ปุ่น', x: 700, y: 120, w: 30, h: 30 },
-      { key: 'usa', label: 'สหรัฐอเมริกา', x: 120, y: 120, w: 120, h: 60 },
-      { key: 'brazil', label: 'บราซิล', x: 220, y: 260, w: 60, h: 70 },
-      { key: 'russia', label: 'รัสเซีย', x: 480, y: 40, w: 180, h: 60 },
-      { key: 'india', label: 'อินเดีย', x: 570, y: 200, w: 60, h: 40 },
-      { key: 'australia', label: 'ออสเตรเลีย', x: 650, y: 300, w: 70, h: 60 },
-      { key: 'egypt', label: 'อียิปต์', x: 420, y: 200, w: 40, h: 40 },
-      { key: 'uk', label: 'อังกฤษ', x: 390, y: 80, w: 30, h: 30 }
-    ],
-    outline: 'assets/world-outline-countries.png'
+  {
+    key: 'japan',
+    label: 'ญี่ปุ่น',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/9/9e/Flag_of_Japan.svg',
+    color: 'rgb(220, 0, 0)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/12659/12659726.png'
+  },
+  {
+    key: 'france',
+    label: 'ฝรั่งเศส',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg',
+    color: 'rgb(0, 85, 164)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/3199/3199868.png'
+  },
+  {
+    key: 'usa',
+    label: 'สหรัฐอเมริกา',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
+    color: 'rgb(60, 59, 110)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/14093/14093404.png'
+  },
+  {
+    key: 'china',
+    label: 'จีน',
+    flag: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg',
+    color: 'rgb(222, 41, 16)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715634.png'
+  },
+  {
+    key: 'india',
+    label: 'อินเดีย',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg',
+    color: 'rgb(255, 153, 51)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715635.png'
+  },
+  {
+    key: 'brazil',
+    label: 'บราซิล',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg',
+    color: 'rgb(0, 156, 59)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715636.png'
+  },
+  {
+    key: 'russia',
+    label: 'รัสเซีย',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg',
+    color: 'rgb(0, 57, 166)',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715637.png'
+  },
+  {
+    key: 'uk',
+    label: 'อังกฤษ',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
+    color: 'rgb(0, 36, 125)',
+    outline: 'https://www.flaticon.com/free-icon/united-kingdom_7715638?term=uk&page=1&position=20&origin=search&related_id=7715638'
+  },
+  {
+    key: 'germany',
+    label: 'เยอรมนี',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg',
+    color: 'rgb(0, 0, 0)',
+    outline: 'https://www.flaticon.com/free-icon/germany_7715639?term=germany&page=1&position=21&origin=search&related_id=7715639'
+  },
+  {
+    key: 'italy',
+    label: 'อิตาลี',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg',
+    color: 'rgb(0, 146, 70)',
+    outline: 'https://www.flaticon.com/free-icon/italy_7715640?term=italy&page=1&position=22&origin=search&related_id=7715640'
+  },
+  {
+    key: 'spain',
+    label: 'สเปน',
+    flag: 'https://upload.wikimedia.org/wikipedia/en/9/9a/Flag_of_Spain.svg',
+    color: 'rgb(170, 28, 57)',
+    outline: 'https://www.flaticon.com/free-icon/spain_7715641?term=spain&page=1&position=23&origin=search&related_id=7715641'
   }
-};
+];
 
-let currentLevel = 1;
 let correctCount = 0;
 let wrongCount = 0;
 let startTime = null;
 let timerInterval = null;
+let selectedCountryIdx = null;
 
 function renderMapPuzzle() {
   const board = document.getElementById('map-board');
   const piecesRow = document.getElementById('pieces-row');
   const outlineImg = document.getElementById('map-outline');
-  const levelData = LEVELS[currentLevel];
-  correctCount = 0;
-  wrongCount = 0;
-  document.getElementById('correct').textContent = 'ถูก: 0';
-  document.getElementById('wrong').textContent = 'ผิด: 0';
-  document.getElementById('result').textContent = '';
-  outlineImg.src = levelData.outline;
-
-  // ลบ drop zones เดิม
+  const countryName = document.getElementById('country-name');
+  // ลบ drop zone เดิม
   Array.from(board.querySelectorAll('.drop-zone')).forEach(e => e.remove());
   // ลบชิ้น puzzle เดิม
   piecesRow.innerHTML = '';
-
-  // สร้าง drop zones
-  levelData.pieces.forEach((p, i) => {
-    const dz = document.createElement('div');
-    dz.className = 'drop-zone';
-    dz.style.left = p.x + 'px';
-    dz.style.top = p.y + 'px';
-    dz.style.width = p.w + 'px';
-    dz.style.height = p.h + 'px';
-    dz.dataset.key = p.key;
-    dz.ondragover = e => { e.preventDefault(); dz.classList.add('active'); };
-    dz.ondragleave = e => dz.classList.remove('active');
-    dz.ondrop = function(e) {
-      e.preventDefault();
-      dz.classList.remove('active');
-      const draggedKey = e.dataTransfer.getData('text/plain');
-      if (draggedKey === p.key) {
-        dz.style.background = '#c8e6c9';
-        dz.textContent = p.label;
-        dz.style.color = '#1976d2';
-        dz.style.fontWeight = 'bold';
-        dz.style.opacity = 1;
-        correctCount++;
-        document.getElementById('correct').textContent = 'ถูก: ' + correctCount;
-        document.querySelector(`[data-piece='${draggedKey}']`).remove();
-        checkWin();
-      } else {
-        dz.style.background = '#ffcdd2';
-        setTimeout(() => { dz.style.background = ''; }, 700);
-        wrongCount++;
-        document.getElementById('wrong').textContent = 'ผิด: ' + wrongCount;
-      }
-    };
-    board.appendChild(dz);
-  });
-
-  // สุ่มชิ้น puzzle
-  const shuffled = levelData.pieces.slice().sort(() => Math.random() - 0.5);
+  countryName.textContent = '';
+  // สุ่มประเทศเป้าหมาย
+  if (selectedCountryIdx === null) {
+    selectedCountryIdx = Math.floor(Math.random() * COUNTRIES.length);
+  }
+  const target = COUNTRIES[selectedCountryIdx];
+  // แสดง outline ของประเทศเป้าหมาย
+  outlineImg.src = target.outline;
+  // สร้าง drop zone ใหญ่กลางหน้าจอ
+  const dz = document.createElement('div');
+  dz.className = 'drop-zone';
+  dz.style.position = 'absolute';
+  dz.style.left = '50%';
+  dz.style.top = '50%';
+  dz.style.transform = 'translate(-50%, -50%)';
+  dz.style.width = '220px';
+  dz.style.height = '140px';
+  dz.style.background = target.color + '22';
+  dz.style.border = '2px solid ' + target.color;
+  dz.style.borderRadius = '16px';
+  dz.style.display = 'flex';
+  dz.style.alignItems = 'center';
+  dz.style.justifyContent = 'center';
+  dz.style.fontSize = '22px';
+  dz.style.fontWeight = 'bold';
+  dz.style.color = target.color;
+  dz.dataset.key = target.key;
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('active'); };
+  dz.ondragleave = e => dz.classList.remove('active');
+  dz.ondrop = function(e) {
+    e.preventDefault();
+    dz.classList.remove('active');
+    const draggedKey = e.dataTransfer.getData('text/plain');
+    if (draggedKey === target.key) {
+      dz.style.background = target.color;
+      dz.innerHTML = `<img src="${target.flag}" alt="flag" style="width:40px;height:28px;vertical-align:middle;margin-right:10px;border:1px solid #ccc;border-radius:3px;"> <span>${target.label}</span>`;
+      dz.style.color = '#fff';
+      dz.style.opacity = 1;
+      correctCount++;
+      document.getElementById('correct').textContent = 'ถูก: ' + correctCount;
+      document.querySelector(`[data-piece='${draggedKey}']`).remove();
+      countryName.textContent = target.label;
+      checkWin();
+    } else {
+      dz.style.background = '#ffcdd2';
+      setTimeout(() => { dz.style.background = target.color + '22'; }, 700);
+      wrongCount++;
+      document.getElementById('wrong').textContent = 'ผิด: ' + wrongCount;
+    }
+  };
+  board.appendChild(dz);
+  // สุ่มตัวเลือกธง 3 อัน (รวม target)
+  let options = [target];
+  // เพิ่มอีก 2 ตัวเลือกที่ไม่ซ้ำ target
+  const others = COUNTRIES.filter(c => c.key !== target.key);
+  while (options.length < 3 && others.length > 0) {
+    const idx = Math.floor(Math.random() * others.length);
+    options.push(others[idx]);
+    others.splice(idx, 1);
+  }
+  // สุ่มตำแหน่ง
+  const shuffled = options.sort(() => Math.random() - 0.5);
   shuffled.forEach(p => {
     const piece = document.createElement('div');
     piece.className = 'puzzle-piece';
-    piece.textContent = p.label;
+    piece.style.width = '90px';
+    piece.style.height = '60px';
+    piece.style.display = 'flex';
+    piece.style.alignItems = 'center';
+    piece.style.justifyContent = 'center';
+    piece.style.margin = '0 16px';
+    piece.style.background = '#fff';
+    piece.style.border = '2px solid #1976d2';
+    piece.style.borderRadius = '10px';
+    piece.style.boxShadow = '0 2px 8px rgba(25,118,210,0.10)';
+    piece.innerHTML = `<img src="${p.flag}" alt="flag" style="width:64px;height:40px;object-fit:contain;display:block;">`;
     piece.draggable = true;
     piece.dataset.piece = p.key;
     piece.ondragstart = e => {
@@ -104,8 +183,9 @@ function renderMapPuzzle() {
     };
     piecesRow.appendChild(piece);
   });
-
-  // จับเวลา
+  // แสดงชื่อประเทศใต้ drop zone
+  countryName.textContent = '';
+  // timer
   if (timerInterval) clearInterval(timerInterval);
   startTime = Date.now();
   document.getElementById('timer').textContent = 'เวลา: 0 วินาที';
@@ -116,14 +196,12 @@ function renderMapPuzzle() {
 }
 
 function checkWin() {
-  const levelData = LEVELS[currentLevel];
-  if (correctCount === levelData.pieces.length) {
+  if (correctCount === 1) {
     clearInterval(timerInterval);
     document.getElementById('result').textContent = 'เก่งมาก! จบเกมใน ' + Math.floor((Date.now() - startTime) / 1000) + ' วินาที';
     // เก็บสถิติใน localStorage
     let stats = JSON.parse(localStorage.getItem('worldMapPuzzleStats') || '[]');
     stats.push({
-      level: currentLevel,
       time: Math.floor((Date.now() - startTime) / 1000),
       correct: correctCount,
       wrong: wrongCount,
@@ -132,10 +210,5 @@ function checkWin() {
     localStorage.setItem('worldMapPuzzleStats', JSON.stringify(stats));
   }
 }
-
-document.getElementById('level-select').onchange = function() {
-  currentLevel = parseInt(this.value);
-  renderMapPuzzle();
-};
 
 document.addEventListener('DOMContentLoaded', renderMapPuzzle);
