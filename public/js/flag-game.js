@@ -1,6 +1,6 @@
 // รายชื่อประเทศและ path ธง (ใช้ emoji เป็น placeholder, สามารถเปลี่ยนเป็น path รูปจริงได้)
 const FLAGS = [
-  { name: "Afghanistan", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Afghanistan.svg" },
+  { name: "Afghanistan", icon: "https://cdn-icons-png.flaticon.com/512/206/206741.png" },
   { name: "Albania", icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/Flag_of_Albania.svg" },
   { name: "Algeria", icon: "https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Algeria.svg" },
   { name: "Andorra", icon: "https://upload.wikimedia.org/wikipedia/commons/1/19/Flag_of_Andorra.svg" },
@@ -8,7 +8,7 @@ const FLAGS = [
   { name: "Antigua and Barbuda", icon: "https://upload.wikimedia.org/wikipedia/commons/8/89/Flag_of_Antigua_and_Barbuda.svg" },
   { name: "Argentina", icon: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_Argentina.svg" },
   { name: "Armenia", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Flag_of_Armenia.svg" },
-  { name: "Australia", icon: "https://upload.wikimedia.org/wikipedia/commons/8/88/Flag_of_Australia.svg" },
+  { name: "Australia", icon: "https://cdn-icons-png.flaticon.com/512/206/206618.png" },
   { name: "Austria", icon: "https://upload.wikimedia.org/wikipedia/commons/4/41/Flag_of_Austria.svg" },
   { name: "Azerbaijan", icon: "https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Azerbaijan.svg" },
   { name: "Bahamas", icon: "https://upload.wikimedia.org/wikipedia/commons/9/93/Flag_of_the_Bahamas.svg" },
@@ -16,17 +16,17 @@ const FLAGS = [
   { name: "Bangladesh", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Flag_of_Bangladesh.svg" },
   { name: "Barbados", icon: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Flag_of_Barbados.svg" },
   { name: "Belarus", icon: "https://upload.wikimedia.org/wikipedia/commons/8/85/Flag_of_Belarus.svg" },
-  { name: "Belgium", icon: "https://upload.wikimedia.org/wikipedia/commons/6/6a/Flag_of_Belgium.svg" },
+  { name: "Belgium", icon: "https://cdn-icons-png.flaticon.com/512/555/555625.png" },
   { name: "Belize", icon: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Flag_of_Belize.svg" },
   { name: "Benin", icon: "https://upload.wikimedia.org/wikipedia/commons/0/0a/Flag_of_Benin.svg" },
   { name: "Bhutan", icon: "https://upload.wikimedia.org/wikipedia/commons/9/91/Flag_of_Bhutan.svg" },
   { name: "Bolivia", icon: "https://upload.wikimedia.org/wikipedia/commons/4/48/Flag_of_Bolivia.svg" },
-  { name: "Bosnia and Herzegovina", icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Flag_of_Bosnia_and_Herzegovina.svg" },
+  { name: "Bosnia and Herzegovina", icon: "https://cdn-icons-png.flaticon.com/512/206/206720.png" },
   { name: "Botswana", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_Botswana.svg" },
   { name: "Brazil", icon: "https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg" },
   { name: "Brunei", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9c/Flag_of_Brunei.svg" },
   { name: "Bulgaria", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Bulgaria.svg" },
-  { name: "Burkina Faso", icon: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Flag_of_Burkina_Faso.svg" },
+  { name: "Burkina Faso", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009896.png" },
   { name: "Burundi", icon: "https://upload.wikimedia.org/wikipedia/commons/5/50/Flag_of_Burundi.svg" },
   { name: "Cabo Verde", icon: "https://upload.wikimedia.org/wikipedia/commons/3/38/Flag_of_Cape_Verde.svg" },
   { name: "Cambodia", icon: "https://upload.wikimedia.org/wikipedia/commons/8/83/Flag_of_Cambodia.svg" },
@@ -39,7 +39,7 @@ const FLAGS = [
   { name: "Colombia", icon: "https://upload.wikimedia.org/wikipedia/commons/2/21/Flag_of_Colombia.svg" },
   { name: "Comoros", icon: "https://upload.wikimedia.org/wikipedia/commons/9/94/Flag_of_the_Comoros.svg" },
   { name: "Congo", icon: "https://upload.wikimedia.org/wikipedia/commons/9/92/Flag_of_the_Republic_of_the_Congo.svg" },
-  { name: "Costa Rica", icon: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Costa_Rica.svg" },
+  { name: "Costa Rica", icon: "https://cdn-icons-png.flaticon.com/512/5119/5119159.png" },
   { name: "Croatia", icon: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Flag_of_Croatia.svg" },
   { name: "Cuba", icon: "https://upload.wikimedia.org/wikipedia/commons/b/bd/Flag_of_Cuba.svg" },
   { name: "Cyprus", icon: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Cyprus.svg" },
@@ -50,13 +50,13 @@ const FLAGS = [
   { name: "Dominican Republic", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Flag_of_the_Dominican_Republic.svg" },
   { name: "Ecuador", icon: "https://upload.wikimedia.org/wikipedia/commons/e/e8/Flag_of_Ecuador.svg" },
   { name: "Egypt", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_Egypt.svg" },
-  { name: "El Salvador", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2d/Flag_of_El_Salvador.svg" },
-  { name: "Equatorial Guinea", icon: "https://upload.wikimedia.org/wikipedia/commons/3/30/Flag_of_Equatorial_Guinea.svg" },
+  { name: "El Salvador", icon: "https://cdn-icons-png.flaticon.com/512/14010/14010015.png" },
+  { name: "Equatorial Guinea", icon: "https://cdn-icons-png.flaticon.com/512/330/330496.png" },
   { name: "Eritrea", icon: "https://upload.wikimedia.org/wikipedia/commons/2/29/Flag_of_Eritrea.svg" },
   { name: "Estonia", icon: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Flag_of_Estonia.svg" },
   { name: "Eswatini", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fb/Flag_of_Eswatini.svg" },
   { name: "Ethiopia", icon: "https://upload.wikimedia.org/wikipedia/commons/7/71/Flag_of_Ethiopia.svg" },
-  { name: "Fiji", icon: "https://upload.wikimedia.org/wikipedia/commons/0/0a/Flag_of_Fiji.svg" },
+  { name: "Fiji", icon: "https://cdn-icons-png.flaticon.com/512/206/206715.png" },
   { name: "Finland", icon: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Finland.svg" },
   { name: "France", icon: "https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg" },
   { name: "Gabon", icon: "https://upload.wikimedia.org/wikipedia/commons/0/04/Flag_of_Gabon.svg" },
@@ -67,11 +67,11 @@ const FLAGS = [
   { name: "Greece", icon: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_of_Greece.svg" },
   { name: "Grenada", icon: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Grenada.svg" },
   { name: "Guatemala", icon: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Flag_of_Guatemala.svg" },
-  { name: "Guinea", icon: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Flag_of_Guinea.svg" },
-  { name: "Guinea-Bissau", icon: "https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Guinea-Bissau.svg" },
+  { name: "Guinea", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009672.png" },
+  { name: "Guinea-Bissau", icon: "https://cdn-icons-png.flaticon.com/512/14010/14010001.png" },
   { name: "Guyana", icon: "https://upload.wikimedia.org/wikipedia/commons/9/99/Flag_of_Guyana.svg" },
   { name: "Haiti", icon: "https://upload.wikimedia.org/wikipedia/commons/5/56/Flag_of_Haiti.svg" },
-  { name: "Honduras", icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Flag_of_Honduras.svg" },
+  { name: "Honduras", icon: "https://cdn-icons-png.flaticon.com/512/206/206828.png" },
   { name: "Hungary", icon: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Flag_of_Hungary.svg" },
   { name: "Iceland", icon: "https://upload.wikimedia.org/wikipedia/commons/c/ce/Flag_of_Iceland.svg" },
   { name: "India", icon: "https://upload.wikimedia.org/wikipedia/commons/4/41/Flag_of_India.svg" },
@@ -103,14 +103,14 @@ const FLAGS = [
   { name: "Malaysia", icon: "https://upload.wikimedia.org/wikipedia/commons/6/66/Flag_of_Malaysia.svg" },
   { name: "Maldives", icon: "https://upload.wikimedia.org/wikipedia/commons/0/0f/Flag_of_Maldives.svg" },
   { name: "Mali", icon: "https://upload.wikimedia.org/wikipedia/commons/9/92/Flag_of_Mali.svg" },
-  { name: "Malta", icon: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Flag_of_Malta.svg" },
-  { name: "Marshall Islands", icon: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Flag_of_the_Marshall_Islands.svg" },
+  { name: "Malta", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009729.png" },
+  { name: "Marshall Islands", icon: "https://cdn-icons-png.flaticon.com/512/206/206749.png" },
   { name: "Mauritania", icon: "https://upload.wikimedia.org/wikipedia/commons/4/43/Flag_of_Mauritania.svg" },
   { name: "Mauritius", icon: "https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Mauritius.svg" },
   { name: "Mexico", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Mexico.svg" },
-  { name: "Micronesia", icon: "https://upload.wikimedia.org/wikipedia/commons/4/48/Flag_of_the_Federated_States_of_Micronesia.svg" },
+  { name: "Micronesia", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009979.png" },
   { name: "Moldova", icon: "https://upload.wikimedia.org/wikipedia/commons/2/27/Flag_of_Moldova.svg" },
-  { name: "Monaco", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9c/Flag_of_Monaco.svg" },
+  { name: "Monaco", icon: "https://cdn-icons-png.flaticon.com/512/555/555636.png" },
   { name: "Mongolia", icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Flag_of_Mongolia.svg" },
   { name: "Montenegro", icon: "https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Montenegro.svg" },
   { name: "Morocco", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Flag_of_Morocco.svg" },
@@ -125,7 +125,7 @@ const FLAGS = [
   { name: "Niger", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Flag_of_Niger.svg" },
   { name: "Nigeria", icon: "https://upload.wikimedia.org/wikipedia/commons/7/79/Flag_of_Nigeria.svg" },
   { name: "North Korea", icon: "https://upload.wikimedia.org/wikipedia/commons/5/51/Flag_of_North_Korea.svg" },
-  { name: "North Macedonia", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f8/Flag_of_North_Macedonia.svg" },
+  { name: "North Macedonia", icon: "https://cdn-icons-png.flaticon.com/512/8603/8603388.png" },
   { name: "Norway", icon: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Norway.svg" },
   { name: "Oman", icon: "https://upload.wikimedia.org/wikipedia/commons/d/dd/Flag_of_Oman.svg" },
   { name: "Pakistan", icon: "https://upload.wikimedia.org/wikipedia/commons/3/32/Flag_of_Pakistan.svg" },
@@ -142,19 +142,19 @@ const FLAGS = [
   { name: "Romania", icon: "https://upload.wikimedia.org/wikipedia/commons/7/73/Flag_of_Romania.svg" },
   { name: "Russia", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Russia.svg" },
   { name: "Rwanda", icon: "https://upload.wikimedia.org/wikipedia/commons/1/17/Flag_of_Rwanda.svg" },
-  { name: "Saint Kitts and Nevis", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Saint_Kitts_and_Nevis.svg" },
+  { name: "Saint Kitts and Nevis", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009772.png" },
   { name: "Saint Lucia", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Flag_of_Saint_Lucia.svg" },
-  { name: "Saint Vincent and the Grenadines", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Flag_of_Saint_Vincent_and_the_Grenadines.svg" },
-  { name: "Samoa", icon: "https://upload.wikimedia.org/wikipedia/commons/3/3e/Flag_of_Samoa.svg" },
+  { name: "Saint Vincent and the Grenadines", icon: "https://cdn-icons-png.flaticon.com/512/5327/5327376.png" },
+  { name: "Samoa", icon: "https://cdn-icons-png.flaticon.com/512/555/555431.png" },
   { name: "San Marino", icon: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Flag_of_San_Marino.svg" },
-  { name: "Sao Tome and Principe", icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Flag_of_Sao_Tome_and_Principe.svg" },
+  { name: "Sao Tome and Principe", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009776.png" },
   { name: "Saudi Arabia", icon: "https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg" },
   { name: "Senegal", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fd/Flag_of_Senegal.svg" },
   { name: "Serbia", icon: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Flag_of_Serbia.svg" },
   { name: "Seychelles", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Seychelles.svg" },
   { name: "Sierra Leone", icon: "https://upload.wikimedia.org/wikipedia/commons/1/17/Flag_of_Sierra_Leone.svg" },
   { name: "Singapore", icon: "https://upload.wikimedia.org/wikipedia/commons/4/48/Flag_of_Singapore.svg" },
-  { name: "Slovakia", icon: "https://upload.wikimedia.org/wikipedia/commons/6/65/Flag_of_Slovakia.svg" },
+  { name: "Slovakia", icon: "https://cdn-icons-png.flaticon.com/512/555/555634.png" },
   { name: "Slovenia", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Flag_of_Slovenia.svg" },
   { name: "Solomon Islands", icon: "https://upload.wikimedia.org/wikipedia/commons/7/74/Flag_of_the_Solomon_Islands.svg" },
   { name: "Somalia", icon: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Flag_of_Somalia.svg" },
@@ -164,11 +164,11 @@ const FLAGS = [
   { name: "Spain", icon: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Spain.svg" },
   { name: "Sri Lanka", icon: "https://upload.wikimedia.org/wikipedia/commons/1/11/Flag_of_Sri_Lanka.svg" },
   { name: "Sudan", icon: "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_Sudan.svg" },
-  { name: "Suriname", icon: "https://upload.wikimedia.org/wikipedia/commons/4/47/Flag_of_Suriname.svg" },
+  { name: "Suriname", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009808.png" },
   { name: "Sweden", icon: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Flag_of_Sweden.svg" },
-  { name: "Switzerland", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Switzerland.svg" },
-  { name: "Syria", icon: "https://upload.wikimedia.org/wikipedia/commons/5/53/Flag_of_Syria.svg" },
-  { name: "Taiwan", icon: "https://upload.wikimedia.org/wikipedia/commons/7/7e/Flag_of_the_Republic_of_China.svg" },
+  { name: "Switzerland", icon: "https://cdn-icons-png.flaticon.com/512/555/555582.png" },
+  { name: "Syria", icon: "https://cdn-icons-png.flaticon.com/512/555/555640.png" },
+  { name: "Taiwan", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009816.png" },
   { name: "Tajikistan", icon: "https://upload.wikimedia.org/wikipedia/commons/d/d0/Flag_of_Tajikistan.svg" },
   { name: "Tanzania", icon: "https://upload.wikimedia.org/wikipedia/commons/3/38/Flag_of_Tanzania.svg" },
   { name: "Thailand", icon: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_Thailand.svg" },
@@ -182,18 +182,19 @@ const FLAGS = [
   { name: "Uganda", icon: "https://upload.wikimedia.org/wikipedia/commons/4/4e/Flag_of_Uganda.svg" },
   { name: "Ukraine", icon: "https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Ukraine.svg" },
   { name: "United Arab Emirates", icon: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_the_United_Arab_Emirates.svg" },
-  { name: "United Kingdom", icon: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Flag_of_the_United_Kingdom.svg" },
+  { name: "United Kingdom", icon: "https://cdn-icons-png.flaticon.com/512/5111/5111640.png" },
   { name: "United States", icon: "https://upload.wikimedia.org/wikipedia/commons/a/a4/Flag_of_the_United_States.svg" },
   { name: "Uruguay", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_Uruguay.svg" },
   { name: "Uzbekistan", icon: "https://upload.wikimedia.org/wikipedia/commons/8/84/Flag_of_Uzbekistan.svg" },
   { name: "Vanuatu", icon: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Vanuatu.svg" },
-  { name: "Vatican City", icon: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Flag_of_the_Vatican_City.svg" },
-  { name: "Venezuela", icon: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Flag_of_Venezuela.svg" },
+  { name: "Vatican City", icon: "https://cdn-icons-png.flaticon.com/512/14009/14009924.png" },
+  { name: "Venezuela", icon: "https://upload.wikimedia.org/wikipedia/commons/0/06/Flag_of_Venezuela.svg" },
   { name: "Vietnam", icon: "https://upload.wikimedia.org/wikipedia/commons/2/21/Flag_of_Vietnam.svg" },
   { name: "Yemen", icon: "https://upload.wikimedia.org/wikipedia/commons/8/89/Flag_of_Yemen.svg" },
   { name: "Zambia", icon: "https://upload.wikimedia.org/wikipedia/commons/0/06/Flag_of_Zambia.svg" },
   { name: "Zimbabwe", icon: "https://upload.wikimedia.org/wikipedia/commons/6/6a/Flag_of_Zimbabwe.svg" }
 ];
+
 
 function speakCountry(name) {
   if ('speechSynthesis' in window) {
@@ -205,25 +206,60 @@ function speakCountry(name) {
   }
 }
 
-function renderFlags() {
-  const grid = document.getElementById('flag-grid');
-  grid.innerHTML = '';
-  FLAGS.forEach(flag => {
-    const item = document.createElement('div');
-    item.className = 'flag-item';
-    item.onclick = () => speakCountry(flag.name);
-    // ใช้รูป Flaticon เป็น icon
-    const icon = document.createElement('img');
-    icon.className = 'flag-icon';
-    icon.src = flag.icon;
-    icon.alt = flag.name + ' flag';
-    item.appendChild(icon);
-    const name = document.createElement('div');
-    name.className = 'flag-name';
-    name.textContent = flag.name;
-    item.appendChild(name);
-    grid.appendChild(item);
-  });
+let currentFlagIndex = 0;
+function getRandomFlagIndex() {
+  return Math.floor(Math.random() * FLAGS.length);
 }
 
-window.onload = renderFlags;
+function renderSingleFlag() {
+  const container = document.getElementById('flag-single');
+  container.innerHTML = '';
+  const flag = FLAGS[currentFlagIndex];
+  const item = document.createElement('div');
+  item.className = 'flag-item';
+  item.style.background = '#fff';
+  item.style.borderRadius = '18px';
+  item.style.boxShadow = '0 2px 16px rgba(25,118,210,0.18)';
+  item.style.padding = '2.5rem 2rem';
+  item.style.display = 'flex';
+  item.style.flexDirection = 'column';
+  item.style.alignItems = 'center';
+  item.style.marginBottom = '1.5rem';
+  item.onclick = () => speakCountry(flag.name);
+  const icon = document.createElement('img');
+  icon.className = 'flag-icon';
+  icon.src = flag.icon;
+  icon.alt = flag.name + ' flag';
+  icon.style.width = '180px';
+  icon.style.height = '120px';
+  icon.style.objectFit = 'contain';
+  icon.style.marginBottom = '1.2rem';
+  icon.style.borderRadius = '8px';
+  icon.style.border = '2px solid #1976d2';
+  item.appendChild(icon);
+  const name = document.createElement('div');
+  name.className = 'flag-name';
+  name.textContent = flag.name;
+  name.style.fontSize = '2.2rem';
+  name.style.color = '#1976d2';
+  name.style.fontWeight = 'bold';
+  name.style.textAlign = 'center';
+  name.style.letterSpacing = '1px';
+  item.appendChild(name);
+  container.appendChild(item);
+}
+
+window.onload = () => {
+  currentFlagIndex = getRandomFlagIndex();
+  renderSingleFlag();
+  speakCountry(FLAGS[currentFlagIndex].name);
+  document.getElementById('nextFlagBtn').onclick = () => {
+    let nextIndex;
+    do {
+      nextIndex = getRandomFlagIndex();
+    } while (nextIndex === currentFlagIndex && FLAGS.length > 1);
+    currentFlagIndex = nextIndex;
+    renderSingleFlag();
+    speakCountry(FLAGS[currentFlagIndex].name);
+  };
+};

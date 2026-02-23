@@ -3,13 +3,13 @@
 
 const SOUNDS = [
   { name: 'แมว', file: 'cat.wav', img: 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'หมา', file: 'dog.wav', img: 'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'วัว', file: 'cow.wav', img: 'https://images.pexels.com/photos/691583/pexels-photo-691583.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'เป็ด', file: 'duck.wav', img: 'https://images.pexels.com/photos/162140/duckling-bird-yellow-cute-162140.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'ไก่', file: 'chicken.wav', img: 'https://images.pexels.com/photos/162240/chicken-cock-hen-animal-162240.jpeg?auto=compress&w=120&h=120&fit=crop' },
+  { name: 'หมา', file: 'dog.wav', img: 'https://images.pexels.com/photos/3361739/pexels-photo-3361739.jpeg?auto=compress&w=120&h=120&fit=crop' },
+  { name: 'วัว', file: 'cow.wav', img: 'https://images.pexels.com/photos/5770400/pexels-photo-5770400.jpeg?auto=compress&w=120&h=120&fit=crop' },
+  { name: 'เป็ด', file: 'duck.wav', img: 'https://images.pexels.com/photos/28849120/pexels-photo-28849120.jpeg?auto=compress&w=120&h=120&fit=crop' },
+  { name: 'ไก่', file: 'chicken.wav', img: 'https://images.pexels.com/photos/4554155/pexels-photo-4554155.jpeg?auto=compress&w=120&h=120&fit=crop' },
   { name: 'ช้าง', file: 'elephant.wav', img: 'https://images.pexels.com/photos/667205/pexels-photo-667205.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'ม้า', file: 'horse.wav', img: 'https://images.pexels.com/photos/52500/horse-herd-fog-nature-52500.jpeg?auto=compress&w=120&h=120&fit=crop' },
-  { name: 'แกะ', file: 'sheep.wav', img: 'https://images.pexels.com/photos/45851/sheep-animal-farm-agriculture-45851.jpeg?auto=compress&w=120&h=120&fit=crop' }
+  { name: 'ม้า', file: 'horse.wav', img: 'https://images.pexels.com/photos/209065/pexels-photo-209065.jpeg?auto=compress&w=120&h=120&fit=crop' },
+  { name: 'แกะ', file: 'sheep.wav', img: 'https://images.pexels.com/photos/14635235/pexels-photo-14635235.jpeg?auto=compress&w=120&h=120&fit=crop' }
 ];
 
 
@@ -74,15 +74,24 @@ function renderSoundOptions(answerSound) {
   options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'color-btn';
-    btn.innerText = opt.name;
     btn.style.background = '#fff';
     btn.style.border = '2px solid #eee';
-    btn.style.fontWeight = 'bold';
-    btn.style.fontSize = '1.2rem';
-    btn.style.width = '110px';
-    btn.style.height = '70px';
+    btn.style.width = '120px';
+    btn.style.height = '120px';
     btn.style.margin = '16px';
+    btn.style.padding = '0';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
     btn.onclick = () => handleSoundSelect(opt);
+    const img = document.createElement('img');
+    img.src = opt.img;
+    img.alt = opt.name;
+    img.style.width = '100px';
+    img.style.height = '100px';
+    img.style.objectFit = 'cover';
+    img.style.borderRadius = '50%';
+    btn.appendChild(img);
     container.appendChild(btn);
   });
 }

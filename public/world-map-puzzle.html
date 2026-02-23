@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>World Map Puzzle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .map-board {
+      position: relative;
+      width: 700px;
+      height: 400px;
+      margin: 24px auto 12px auto;
+      background: #e3f2fd;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .map-outline {
+      width: 100%;
+      height: 100%;
+      opacity: 0.7;
+      pointer-events: none;
+      position: absolute;
+      left: 0; top: 0;
+    }
+    .puzzle-piece {
+      width: 90px;
+      height: 60px;
+      border: 2px solid #1976d2;
+      border-radius: 10px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #1976d2;
+      margin: 0 10px 0 0;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(25,118,210,0.10);
+      transition: background 0.3s;
+      position: relative;
+    }
+    .drop-zone {
+      position: absolute;
+      border: 2px dashed #1976d2;
+      border-radius: 10px;
+      opacity: 0.3;
+      transition: background 0.2s;
+    }
+    .drop-zone.active {
+      background: #c8e6c9;
+      opacity: 0.7;
+    }
+    .stats {
+      text-align: center;
+      margin: 10px 0 0 0;
+      font-size: 1.1rem;
+      color: #1976d2;
+    }
+    .level-select {
+      display: block;
+      margin: 0 auto 18px auto;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      padding: 0.3rem 1.2rem;
+      background: #fffbe7;
+      color: #1976d2;
+      border: 1.5px solid #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="text-align:center;">World Map Puzzle</h1>
+    <select id="level-select" class="level-select">
+      <option value="1">Level 1: ทวีป</option>
+      <option value="2">Level 2: ประเทศใหญ่</option>
+    </select>
+    <div id="map-board" class="map-board">
+      <img id="map-outline" class="map-outline" src="assets/world-outline-continents.png" alt="World Map Outline">
+      <!-- Drop zones will be rendered here -->
+    </div>
+    <div id="pieces-row" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;"></div>
+    <div class="stats">
+      <span id="timer">เวลา: 0 วินาที</span> |
+      <span id="correct">ถูก: 0</span> |
+      <span id="wrong">ผิด: 0</span>
+    </div>
+    <div id="result" style="text-align:center;font-size:1.2rem;color:#388e3c;margin-top:10px;"></div>
+    <div style="text-align:center;margin-top:18px;">
+      <button onclick="window.location.href='index.html'" style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#fffbe7;color:#1976d2;border:1.5px solid #1976d2;">ย้อนกลับหน้าแรก</button>
+    </div>
+  </div>
+  <script src="js/world-map-puzzle.js"></script>
+</body>
+</html>

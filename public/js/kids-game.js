@@ -18,7 +18,7 @@ let startTime = null;
 let timerInterval = null;
 
 // --- เพิ่มตัวแปรระดับความยาก ---
-let level = 4; // เริ่มต้น 4 คู่ (8 ใบ)
+let level = 1; // เริ่มต้น 1 คู่ (4 ใบ)
 
 // --- เพิ่มฟังก์ชันสร้าง images ตามระดับ ---
 function getLevelImages() {

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Flag Game</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Match Flag Game</h1>
+    <div id="match-flag-board">
+      <div id="flag-row" style="display:flex;justify-content:center;gap:18px;margin-bottom:28px;"></div>
+      <div id="name-row" style="display:flex;justify-content:center;gap:18px;"></div>
+    </div>
+    <div style="margin: 18px 0; display: flex; gap: 12px;">
+      <button id="backBtn">ย้อนกลับหน้าแรก</button>
+      <button id="nextBtn">สุ่มใหม่</button>
+    </div>
+    <div id="timer" style="font-size:1.2rem; color:#1976d2; margin-bottom:10px;"></div>
+    <div id="result"></div>
+  </div>
+  <script src="js/country-list.js"></script>
+  <script src="js/match-flag-game.js"></script>
+</body>
+</html>

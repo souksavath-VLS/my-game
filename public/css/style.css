@@ -39,6 +39,15 @@
   gap: 2rem 1.5rem;
   justify-items: center;
 }
+
+/* Grid สำหรับปุ่มเลือกเสียงสัตว์ในเกมฟังเสียง */
+#sound-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  justify-items: center;
+}
+}
 @media (max-width: 900px) {
   .game-grid {
     grid-template-columns: repeat(3, 1fr);
