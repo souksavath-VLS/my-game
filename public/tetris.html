@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Tetris Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+        body.theme-wood {
+          background: #bfa16b !important;
+        }
+        .theme-wood .tetris-container {
+          background: linear-gradient(135deg,#e0c28c 0%,#bfa16b 100%) !important;
+          box-shadow: 0 8px 32px #bfa16b88, 0 1.5px 0 #fff inset;
+        }
+        .theme-wood #tetris-board {
+          background: #d2b48c !important;
+          border-color: #8d6e3c !important;
+        }
+        .theme-wood .tetris-cell {
+          background: linear-gradient(135deg,#e0c28c 60%,#bfa16b 100%) !important;
+          border-color: #8d6e3c !important;
+        }
+        .theme-wood .tetris-cell.active {
+          background: linear-gradient(135deg,#bc8f4a 60%,#ffe0b2 100%) !important;
+          border-color: #8d6e3c !important;
+        }
+        .theme-wood .tetris-cell.fixed {
+          background: linear-gradient(135deg,#8d6e3c 60%,#ffe0b2 100%) !important;
+          border-color: #5d4037 !important;
+        }
+        .theme-wood .tetris-score, .theme-wood #timer {
+          background: #ffe0b2 !important;
+          color: #8d6e3c !important;
+          border-color: #8d6e3c !important;
+          box-shadow: 0 2px 8px #bfa16b88, 0 1px 0 #fff inset !important;
+        }
+        .theme-wood .arrow-btn {
+          background: #ffe0b2 !important;
+          color: #8d6e3c !important;
+          border-color: #8d6e3c !important;
+        }
+        .theme-wood .arrow-btn:active {
+          background: #bc8f4a !important;
+          color: #fff !important;
+        }
+        .theme-wood #start-btn {
+          background: #bc8f4a !important;
+          color: #fff !important;
+          border-color: #8d6e3c !important;
+        }
+        body.theme-galaxy {
+          background: radial-gradient(ellipse at top,#222 0%,#0d133d 100%) !important;
+        }
+        .theme-galaxy .tetris-container {
+          background: linear-gradient(135deg,#232526 0%,#2b2e4a 100%) !important;
+          box-shadow: 0 8px 32px #2b2e4a88, 0 1.5px 0 #fff inset;
+        }
+        .theme-galaxy #tetris-board {
+          background: linear-gradient(160deg,#222 60%,#2b2e4a 100%) !important;
+          border-color: #7c4dff !important;
+        }
+        .theme-galaxy .tetris-cell {
+          background: linear-gradient(135deg,#333 60%,#7c4dff 100%) !important;
+          border-color: #7c4dff !important;
+        }
+        .theme-galaxy .tetris-cell.active {
+          background: linear-gradient(135deg,#7c4dff 60%,#00e5ff 100%) !important;
+          border-color: #00e5ff !important;
+        }
+        .theme-galaxy .tetris-cell.fixed {
+          background: linear-gradient(135deg,#00e5ff 60%,#7c4dff 100%) !important;
+          border-color: #7c4dff !important;
+        }
+        .theme-galaxy .tetris-score, .theme-galaxy #timer {
+          background: #232526 !important;
+          color: #7c4dff !important;
+          border-color: #7c4dff !important;
+          box-shadow: 0 2px 8px #7c4dff88, 0 1px 0 #fff inset !important;
+        }
+        .theme-galaxy .arrow-btn {
+          background: #232526 !important;
+          color: #7c4dff !important;
+          border-color: #7c4dff !important;
+        }
+        .theme-galaxy .arrow-btn:active {
+          background: #7c4dff !important;
+          color: #fff !important;
+        }
+        .theme-galaxy #start-btn {
+          background: #7c4dff !important;
+          color: #fff !important;
+          border-color: #00e5ff !important;
+        }
+    .arrow-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    @media (max-width: 600px) {
+      .arrow-btn-row {
+        gap: 4px;
+      }
+      .arrow-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem !important;
+        margin: 0 1px;
+      }
+      #tetris-board {
+        width: 120px;
+        height: 240px;
+        grid-template-rows: repeat(20, 12px);
+        grid-template-columns: repeat(10, 12px);
+      }
+      .tetris-container {
+        padding: 1rem 0.5rem 1.5rem 0.5rem;
+      }
+    }
+    @media (min-width: 601px) and (max-width: 900px) {
+      .arrow-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.7rem !important;
+        margin: 0 2px;
+      }
+      #tetris-board {
+        width: 160px;
+        height: 320px;
+        grid-template-rows: repeat(20, 16px);
+        grid-template-columns: repeat(10, 16px);
+      }
+      .tetris-container {
+        padding: 1.5rem 1rem 2rem 1rem;
+      }
+    }
+        #start-btn {
+          font-size: 1.3rem;
+          padding: 0.7rem 2.2rem;
+          border-radius: 16px;
+          background: linear-gradient(90deg,#1976d2 60%,#64b5f6 100%);
+          color: #fff;
+          border: none;
+          box-shadow: 0 4px 16px rgba(25,118,210,0.12), 0 1px 0 #fff inset;
+          font-weight: bold;
+          letter-spacing: 1px;
+          margin: 1.2rem 0 0.8rem 0;
+          transition: background 0.2s, color 0.2s, transform 0.1s;
+          cursor: pointer;
+        }
+        #start-btn:hover, #start-btn:active {
+          background: linear-gradient(90deg,#64b5f6 60%,#1976d2 100%);
+          color: #fff;
+          transform: scale(0.98);
+        }
+    .tetris-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 2rem;
+      background: linear-gradient(135deg, #232526 0%, #414345 100%);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 1.5px 0 #fff inset;
+      padding: 2rem 1.5rem 2.5rem 1.5rem;
+    }
+    #tetris-board {
+      background: linear-gradient(160deg, #222 60%, #444 100%);
+      border: 6px solid #1976d2;
+      border-radius: 16px;
+      width: 250px;
+      height: 480px;
+      display: grid;
+      grid-template-rows: repeat(20, 22px);
+      grid-template-columns: repeat(10, 22px);
+      gap: 2px;
+      box-shadow: 0 4px 24px rgba(25,118,210,0.18), 0 1px 0 #fff inset;
+      margin-bottom: 1.2rem;
+    }
+    .tetris-cell {
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, #333 60%, #555 100%);
+      border-radius: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 1px 0 #fff inset;
+      border: 1.5px solid #222;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .tetris-cell.active {
+      background: linear-gradient(135deg, #4caf50 60%, #81c784 100%);
+      box-shadow: 0 2px 12px #4caf50aa, 0 1px 0 #fff inset;
+      border: 1.5px solid #388e3c;
+    }
+    .tetris-cell.fixed {
+      background: linear-gradient(135deg, #1976d2 60%, #64b5f6 100%);
+      box-shadow: 0 2px 12px #1976d2aa, 0 1px 0 #fff inset;
+      border: 1.5px solid #0d47a1;
+    }
+    .tetris-score {
+      color: #fff;
+      font-size: 1.4rem;
+      margin: 1.2rem 0;
+      padding: 0.5rem 1.2rem;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #1976d2 60%, #64b5f6 100%);
+      box-shadow: 0 2px 8px #1976d2aa, 0 1px 0 #fff inset;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border: 2px solid #fff;
+      display: inline-block;
+      transition: color 0.2s, background 0.2s;
+    }
+    .tetris-controls {
+      margin-top: 1.2rem;
+      color: #fff;
+      font-size: 1.1rem;
+      text-shadow: 0 1px 2px #1976d2;
+    }
+    .arrow-btn {
+      width: 64px;
+      height: 64px;
+      font-size: 2.5rem !important;
+      border-radius: 50%;
+      border: 2px solid #1976d2;
+      background: linear-gradient(135deg, #fff 60%, #e3f2fd 100%);
+      color: #1976d2;
+      box-shadow: 0 4px 16px rgba(25,118,210,0.12), 0 1px 0 #fff inset;
+      transition: background 0.2s, color 0.2s, transform 0.1s, border 0.2s;
+      margin: 0 4px;
+      cursor: pointer;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      font-weight: bold;
+    }
+    .arrow-btn:active {
+      background: linear-gradient(135deg, #1976d2 60%, #64b5f6 100%);
+      color: #fff;
+      border: 2px solid #fff;
+      transform: scale(0.96);
+    }
+  </style>
+</head>
+<body>
+  <div class="tetris-container">
+     
+    <h2 style="color:#fff;">Tetris</h2>
+    <div style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;margin-bottom:0.8rem;gap:18px;">
+      <div id="tetris-board"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="color:#fff;font-size:1.1rem;margin-bottom:0.3rem;">ชิ้นถัดไป</div>
+        <div id="next-preview" style="background:linear-gradient(135deg,#222 60%,#444 100%);border-radius:10px;border:2px solid #1976d2;box-shadow:0 2px 8px #1976d2aa;padding:8px 12px;min-width:60px;min-height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;"></div>
+        <div class="tetris-score" style="margin-top:1.2rem;">คะแนน: <span id="score">0</span></div>
+        <div id="timer" style="margin-top:0.7rem;font-size:1.1rem;color:#fff;background:rgba(25,118,210,0.13);border-radius:8px;padding:4px 16px;box-shadow:0 1px 4px #1976d244;">เวลา: <span id="time">0:00</span></div>
+        <button id="start-btn">เริ่มเกม</button>
+        <div style="display:flex;justify-content:center;width:100%;margin:1rem 0 0.5rem 0;">
+          <button id="theme-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;padding:0.4rem 1.2rem;box-shadow:0 2px 8px rgba(25,118,210,0.08);cursor:pointer;">Change Theme</button>
+        </div>
+    </div>
+    </div>
+    <div class="tetris-controls">
+      <div class="arrow-btn-row">
+        <button class="arrow-btn" id="left-btn" aria-label="ซ้าย">⬅️</button>
+        <button class="arrow-btn" id="rotate-btn" aria-label="หมุน">⟳</button>
+        <button class="arrow-btn" id="right-btn" aria-label="ขวา">➡️</button>
+        <button class="arrow-btn" id="down-btn" aria-label="ลง">⬇️</button>
+        <button class="arrow-btn" id="drop-btn" aria-label="วางทันที">⏬</button>
+      </div>
+      <div style="font-size:0.95rem;opacity:0.8;">หรือใช้แป้นพิมพ์ ⬅️ ➡️ ⬆️ ⬇️ Spacebar</div>
+    </div>
+  </div>
+  <script src="js/tetris.js"></script>
+  <script src="js/tetris-sound.js"></script>
+</body>
+</html>

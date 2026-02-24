@@ -1,6 +1,35 @@
 
 // --- ฟังก์ชันแสดงสถิติแต่ละเกม ---
 function showStats(game) {
+      let html = '';
+      if (game === 'tetris') {
+        const stats = JSON.parse(localStorage.getItem('tetrisStats') || '[]');
+        if (Array.isArray(stats) && stats.length) {
+          const totalPlay = stats.length;
+          const bestScore = Math.max(...stats.map(s => s.score));
+          const bestTime = Math.min(...stats.map(s => s.time));
+          html += `<div style='margin-bottom:2.5rem;'>
+            <b>เกม:</b> Tetris<br>
+            <b>จำนวนครั้งที่เล่น:</b> ${totalPlay}<br>
+            <b>คะแนนสูงสุด:</b> ${bestScore}<br>
+            <b>เวลาที่ดีที่สุด:</b> ${bestTime === Infinity ? '-' : bestTime + ' วินาที'}<br>
+            <details style='margin-top:0.5rem;'>
+              <summary>ดูรายละเอียดแต่ละรอบ</summary>
+              <ul style='text-align:left;font-size:1rem;'>
+                ${stats.map((s,i) => `<li>ครั้งที่ ${i+1}: ${s.score} คะแนน | ${s.time} วินาที | ${new Date(s.date).toLocaleString('th-TH')}</li>`).join('')}
+              </ul>
+            </details>
+          </div>`;
+        } else {
+          html = '<div>ยังไม่มีข้อมูลสถิติสำหรับเกมนี้</div>';
+        }
+        document.getElementById('game-menu').style.display = 'none';
+        document.getElementById('stats-summary').style.display = 'flex';
+        document.getElementById('backToMenuBtn').style.display = '';
+        document.getElementById('chart-container').style.display = 'none';
+        document.getElementById('stats-summary').innerHTML = html;
+        return;
+      }
     if (game === 'worldmap') {
       const stats = JSON.parse(localStorage.getItem('worldMapPuzzleStats') || '[]');
       if (Array.isArray(stats) && stats.length) {
@@ -20,12 +49,19 @@ function showStats(game) {
       } else {
         html = '<div>ยังไม่มีข้อมูลสถิติสำหรับเกมนี้</div>';
       }
-    } else 
-  document.getElementById('game-menu').style.display = 'none';
-  document.getElementById('stats-summary').style.display = 'flex';
-  document.getElementById('backToMenuBtn').style.display = '';
-  let html = '';
-  document.getElementById('chart-container').style.display = 'none';
+    } else {
+      document.getElementById('game-menu').style.display = 'none';
+      document.getElementById('stats-summary').style.display = 'flex';
+      document.getElementById('backToMenuBtn').style.display = '';
+      document.getElementById('chart-container').style.display = 'none';
+    }
+  // --- ปุ่มย้อนกลับเมนู ---
+  function backToMenu() {
+    document.getElementById('game-menu').style.display = '';
+    document.getElementById('stats-summary').style.display = 'none';
+    document.getElementById('backToMenuBtn').style.display = 'none';
+    document.getElementById('chart-container').style.display = 'none';
+  }
   if (game === 'memory') {
     let allStats = JSON.parse(localStorage.getItem('kidsGameStatsAll') || '{}');
     if (typeof allStats !== 'object' || allStats === null) allStats = {};
