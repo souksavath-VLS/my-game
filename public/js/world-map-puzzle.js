@@ -25,7 +25,7 @@ const COUNTRIES = [
     label: 'สหรัฐอเมริกา',
     flag: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg',
     color: 'rgb(60, 59, 110)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/14093/14093404.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/14421/14421468.png'
   },
   {
     key: 'china',
@@ -39,49 +39,70 @@ const COUNTRIES = [
     label: 'อินเดีย',
     flag: 'https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg',
     color: 'rgb(255, 153, 51)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715635.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715692.png'
   },
-  {
-    key: 'brazil',
-    label: 'บราซิล',
-    flag: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg',
-    color: 'rgb(0, 156, 59)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715636.png'
-  },
+  // {
+  //   key: 'brazil',
+  //   label: 'บราซิล',
+  //   flag: 'https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg',
+  //   color: 'rgb(0, 156, 59)',
+  //   outline: 'https://cdn-icons-png.flaticon.com/512/474/47442.png'
+  // },
   {
     key: 'russia',
     label: 'รัสเซีย',
     flag: 'https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg',
     color: 'rgb(0, 57, 166)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715637.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/14464/14464748.png'
   },
   {
-    key: 'uk',
+    key: 'united kingdom',
     label: 'อังกฤษ',
     flag: 'https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg',
     color: 'rgb(0, 36, 125)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715638.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/5866/5866447.png'
   },
   {
     key: 'germany',
     label: 'เยอรมนี',
     flag: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg',
     color: 'rgb(0, 0, 0)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715639.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715668.png'
   },
   {
     key: 'italy',
     label: 'อิตาลี',
     flag: 'https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg',
     color: 'rgb(0, 146, 70)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715640.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/5866/5866539.png'
   },
   {
     key: 'spain',
     label: 'สเปน',
     flag: 'https://upload.wikimedia.org/wikipedia/en/9/9a/Flag_of_Spain.svg',
     color: 'rgb(170, 28, 57)',
-    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715641.png'
+    outline: 'https://cdn-icons-png.flaticon.com/512/5880/5880890.png'
+  },
+  {
+    key: 'laos',
+    label: 'ลาว',
+    flag: 'https://upload.wikimedia.org/wikipedia/commons/5/56/Flag_of_Laos.svg',
+    color: '#002868',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715732.png'
+  },
+  {
+    key: 'vietnam',
+    label: 'เวียดนาม',
+    flag: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Flag_of_Vietnam.svg',
+    color: '#da251d',
+    outline: 'https://cdn-icons-png.flaticon.com/512/14464/14464785.png'
+  },
+  {
+    key: 'cambodia',
+    label: 'กัมพูชา',
+    flag: 'https://upload.wikimedia.org/wikipedia/commons/8/83/Flag_of_Cambodia.svg',
+    color: '#032ea1',
+    outline: 'https://cdn-icons-png.flaticon.com/512/7715/7715628.png'
   }
 ];
 
