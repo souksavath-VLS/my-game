@@ -1,8 +1,12 @@
 // เกมหาสิ่งของในบ้าน
 
-const OBJECTS = [
-  ...Array.from({length: 26}, (_, i) => ({ name: String.fromCharCode(65 + i), icon: String.fromCharCode(65 + i) }))
-];
+// Multi-language objects (A-Z, can be replaced with real objects)
+const OBJECTS_LANG = {
+  th: Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i)),
+  en: Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i)),
+  lao: Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i))
+};
+const OBJECTS = Array.from({length: 26}, (_, i) => ({ name: String.fromCharCode(65 + i), icon: String.fromCharCode(65 + i) }));
 
 let answer = null;
 let finished = false;
@@ -43,20 +47,38 @@ function endTimer() {
   document.getElementById('find-object-timer').textContent = 'ใช้เวลา: ' + elapsed + ' วินาที';
 }
 
-function renderQuestion() {
-  const qText = 'หา: ' + answer.name;
-  document.getElementById('find-object-question').textContent = qText;
-  speakThai(qText);
-// Text-to-speech (Thai)
-function speakThai(text) {
+function getFindObjectLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+
+function speakFindObject(text) {
   if ('speechSynthesis' in window) {
+    let lang = getFindObjectLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'th-TH';
+    utter.lang = voiceLang;
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
     utter.rate = 1.05;
-    window.speechSynthesis.cancel(); // stop previous
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
 }
+
+function renderQuestion() {
+  const lang = getFindObjectLang();
+  const d = window.findObjectLangData ? window.findObjectLangData[lang] : undefined;
+  let name = answer.name;
+  // ถ้ามี object name หลายภาษา ให้แปลงชื่อ
+  if (OBJECTS_LANG[lang]) {
+    name = OBJECTS_LANG[lang][currentIndex] || answer.name;
+  }
+  const qText = d && d.question ? d.question(name) : `Find: ${name}`;
+  document.getElementById('find-object-question').textContent = qText;
+  speakFindObject(qText);
 }
 
 function renderOptions() {
@@ -81,10 +103,12 @@ function selectObject(obj) {
   if (finished) return;
   finished = true;
   endTimer();
+  const lang = getFindObjectLang();
+  const d = window.findObjectLangData ? window.findObjectLangData[lang] : undefined;
   if (obj.name === answer.name) {
     playSound('findObjectCorrectSound');
     playSound('findObjectWinSound');
-    document.getElementById('find-object-result').textContent = 'ถูกต้อง!';
+    document.getElementById('find-object-result').textContent = d?.correct || 'Correct!';
     saveStats(true);
     totalCorrect++;
     setTimeout(() => {
@@ -93,7 +117,7 @@ function selectObject(obj) {
     }, 900);
   } else {
     playSound('findObjectWrongSound');
-    document.getElementById('find-object-result').textContent = 'ผิด ลองใหม่!';
+    document.getElementById('find-object-result').textContent = d?.wrong || 'Wrong!';
     saveStats(false);
   }
 }

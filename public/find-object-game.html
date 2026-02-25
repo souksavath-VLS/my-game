@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="header">เกมหาสิ่งของในบ้าน</div>
+  <div class="header" id="find-object-title">เกมหาสิ่งของในบ้าน</div>
   <div class="container py-4">
     <div id="find-object-timer" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
     <div id="find-object-question" class="text-center mb-4" style="font-size:2rem;"></div>
@@ -15,12 +15,63 @@
     <div id="find-object-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
     <div class="text-center mt-4">
       <button id="restartFindObjectBtn" class="menu-btn">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+      <button id="find-object-btn-exit" onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
     </div>
   </div>
   <audio id="findObjectCorrectSound" src="assets/sound/correct.wav"></audio>
   <audio id="findObjectWrongSound" src="assets/sound/wrong.wav"></audio>
   <audio id="findObjectWinSound" src="assets/sound/win.wav"></audio>
   <script src="js/find-object-game.js"></script>
+  <script>
+    // Multi-language UI update
+    const findObjectLangData = {
+      th: {
+        title: 'เกมหาสิ่งของในบ้าน',
+        btnRestart: 'เริ่มใหม่',
+        btnExit: 'ออกเกม',
+        correct: 'ถูกต้อง!',
+        wrong: 'ผิด ลองใหม่!',
+        finish: 'จบเกม! คุณหาตัวอักษรครบ A-Z แล้ว',
+        timer: 'เวลา:',
+        question: (name) => `หา: ${name}`,
+        result: (score) => `ทั้งหมด: ${score} / 26`
+      },
+      en: {
+        title: 'Find the Object in the House',
+        btnRestart: 'Restart',
+        btnExit: 'Exit',
+        correct: 'Correct!',
+        wrong: 'Wrong! Try again!',
+        finish: 'Finished! You found all A-Z',
+        timer: 'Time:',
+        question: (name) => `Find: ${name}`,
+        result: (score) => `Total: ${score} / 26`
+      },
+      lao: {
+        title: 'ເກມຫາສິ່ງຂອງໃນບ້ານ',
+        btnRestart: 'ເລີ່ມໃໝ່',
+        btnExit: 'ອອກເກມ',
+        correct: 'ຖືກຕ້ອງ!',
+        wrong: 'ຜິດ ລອງໃໝ່!',
+        finish: 'ສຳເລັດ! ທ່ານຫາຕົວອັກສອນ A-Z ຄົບ',
+        timer: 'ເວລາ:',
+        question: (name) => `ຫາ: ${name}`,
+        result: (score) => `ທັງໝົດ: ${score} / 26`
+      }
+    };
+    function getFindObjectLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setFindObjectLangUI() {
+      const lang = getFindObjectLang();
+      const d = findObjectLangData[lang];
+      document.getElementById('find-object-title').textContent = d.title;
+      document.getElementById('restartFindObjectBtn').textContent = d.btnRestart;
+      document.getElementById('find-object-btn-exit').textContent = d.btnExit;
+    }
+    document.addEventListener('DOMContentLoaded', setFindObjectLangUI);
+  </script>
 </body>
 </html>

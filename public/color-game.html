@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en" id="color-lang">
 <head>
   <meta charset="UTF-8">
-  <title>เกมเลือกสีสำหรับเด็ก</title>
+  <title id="color-title">Color Game for Kids</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="header">เกมเลือกสี</div>
+  <div class="header" id="color-header">Color Game</div>
   <div class="container py-4">
     <div id="color-stage-info" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
     <div id="color-question" class="text-center mb-4" style="font-size:2rem;"></div>
@@ -15,8 +15,8 @@
     <div id="color-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
     <!-- เวลาที่ใช้จะแสดงใน color-result เมื่อจบเกม -->
     <div class="text-center mt-4">
-      <button id="restartColorBtn" class="menu-btn">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+      <button id="restartColorBtn" class="menu-btn">Restart</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">Exit</button>
     </div>
   </div>
   <audio id="colorCorrectSound" src="assets/sound/color-game/correct.wav"></audio>
@@ -24,5 +24,46 @@
   <audio id="colorWinSound" src="assets/sound/color-game/win.wav"></audio>
   <audio id="colorCongratsSound" src="assets/sound/color-game/congrats.wav"></audio>
   <script src="js/color-game.js"></script>
+  <script>
+    // ภาษา: th/en/lao
+    const colorLangData = {
+      th: {
+        title: 'เกมเลือกสีสำหรับเด็ก',
+        header: 'เกมเลือกสี',
+        restart: 'เริ่มใหม่',
+        exit: 'ออกเกม',
+        colors: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล']
+      },
+      en: {
+        title: 'Color Game for Kids',
+        header: 'Color Game',
+        restart: 'Restart',
+        exit: 'Exit',
+        colors: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown']
+      },
+      lao: {
+        title: 'ເກມເລືອກສີ',
+        header: 'ເກມເລືອກສີ',
+        restart: 'ເລີ່ມໃໝ່',
+        exit: 'ອອກເກມ',
+        colors: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+      }
+    };
+    function getColorLang() {
+      // อ่านจาก localStorage หรือ default เป็น en
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setColorLangUI() {
+      const lang = getColorLang();
+      document.getElementById('color-title').textContent = colorLangData[lang].title;
+      document.getElementById('color-header').textContent = colorLangData[lang].header;
+      document.getElementById('restartColorBtn').textContent = colorLangData[lang].restart;
+      document.querySelector('button.menu-btn[onclick]').textContent = colorLangData[lang].exit;
+      document.getElementById('color-lang').setAttribute('lang', lang);
+    }
+    document.addEventListener('DOMContentLoaded', setColorLangUI);
+  </script>
 </body>
 </html>

@@ -2,6 +2,19 @@
 // ใช้ไอคอนจาก flaticon และเสียงแต่ละตัวอักษรจาก assets/sound/abc/
 
 
+
+// Multi-language A-Z
+const ABC_LANG = {
+  th: [
+    'เอ', 'บี', 'ซี', 'ดี', 'อี', 'เอฟ', 'จี', 'เฮช', 'ไอ', 'เจ', 'เค', 'แอล', 'เอ็ม', 'เอ็น', 'โอ', 'พี', 'คิว', 'อาร์', 'เอส', 'ที', 'ยู', 'วี', 'ดับเบิลยู', 'เอ็กซ์', 'วาย', 'แซด'
+  ],
+  en: [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+  ],
+  lao: [
+    'เอ', 'บี', 'ซี', 'ดี', 'อี', 'เอฟ', 'จี', 'เฮช', 'ไอ', 'เจ', 'เค', 'แอล', 'เอ็ม', 'เอ็น', 'โอ', 'พี', 'คิว', 'อาร์', 'เอส', 'ที', 'ยู', 'วี', 'ดับเบิลยู', 'เอ็กซ์', 'วาย', 'แซด'
+  ]
+};
 const ABC = [];
 for (let i = 0; i < 26; i++) {
   const upper = String.fromCharCode(65 + i);
@@ -27,24 +40,27 @@ function playSfx(id) {
   }
 }
 
-function playAbcSound(ch) {
+function getDrawAbcLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+
+function playAbcSound(ch, idx) {
   if ('speechSynthesis' in window) {
-    const utter = new SpeechSynthesisUtterance(ch);
-    utter.lang = 'en-US';
-    utter.rate = 0.8;
-    // เลือกเสียงเด็กหญิงถ้ามี
+    let lang = getDrawAbcLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    let text = '';
+    if (lang === 'en') {
+      text = ch;
+    } else {
+      text = ABC_LANG[lang][idx];
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
-    let femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('child'));
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.gender === 'female');
-    }
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'));
-    }
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('girl'));
-    }
-    if (femaleVoice) utter.voice = femaleVoice;
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
@@ -55,8 +71,8 @@ function showDrawChar(idx) {
   document.getElementById('draw-char').textContent = chPair;
   clearDrawCanvas();
   drawAbcShadow(chPair);
-  // เล่นเสียงเฉพาะตัวพิมพ์ใหญ่ เช่น A.mp3
-  playAbcSound(chPair.split(' ')[0]);
+  // เล่นเสียงตัวอักษรตามภาษา
+  playAbcSound(chPair.split(' ')[0], idx);
 }
 
 function drawAbcShadow(chPair) {
@@ -108,7 +124,10 @@ function clearDrawCanvas() {
 function checkDraw() {
   // สำหรับตัวอย่าง: ให้ผ่านทุกครั้ง (จริงควรมีตรวจจับเส้น)
   correctCount++;
-  document.getElementById('draw-result').textContent = 'เยี่ยมมาก!';
+  // Multi-language result
+  let lang = getDrawAbcLang();
+  let msg = drawAbcLangData[lang]?.result || 'Great!';
+  document.getElementById('draw-result').textContent = msg;
   playSfx('soundCorrect');
   setTimeout(nextDrawRound, 900);
 }
@@ -140,7 +159,10 @@ function restartDrawGame() {
   startTime = null;
   endTime = null;
   drawLevel = Number(document.getElementById('draw-level-select').value) || 1;
-  document.getElementById('draw-header').textContent = 'ลากเส้นตามตัวอักษรภาษาอังกฤษ';
+  // Multi-language header
+  let lang = getDrawAbcLang();
+  let header = drawAbcLangData[lang]?.header || 'Trace the English letters';
+  document.getElementById('draw-header').textContent = header;
   nextDrawRound();
 }
 

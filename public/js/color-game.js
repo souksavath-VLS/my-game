@@ -1,15 +1,19 @@
 // เกมเลือกสีสำหรับเด็ก 3-5 ปี
 
-const COLORS = [
-  { name: 'แดง', color: '#e53935' },
-  { name: 'เหลือง', color: '#fbc02d' },
-  { name: 'เขียว', color: '#43a047' },
-  { name: 'น้ำเงิน', color: '#1e88e5' },
-  { name: 'ส้ม', color: '#fb8c00' },
-  { name: 'ม่วง', color: '#8e24aa' },
-  { name: 'ชมพู', color: '#ec407a' },
-  { name: 'น้ำตาล', color: '#6d4c41' }
-];
+function getColorLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+const COLOR_NAMES = {
+  th: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล'],
+  en: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown'],
+  lao: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+};
+const COLORS = COLOR_NAMES[getColorLang()].map((name,i)=>{
+  const colorArr = ['#e53935','#fbc02d','#43a047','#1e88e5','#fb8c00','#8e24aa','#ec407a','#6d4c41'];
+  return { name, color: colorArr[i] };
+});
 
 let colorStage = 0; // 0: 3 สี, 1: 5 สี, 2: 8 สี
 let correctInStage = 0;
@@ -37,30 +41,19 @@ function shuffle(arr) {
 }
 
 function playColorNameSound(colorName) {
-  // ชื่อไฟล์เสียงต้องเป็น color-[ชื่อสีอังกฤษ].wav เช่น color-yellow.wav ในโฟลเดอร์ color-game
-  const colorMap = {
-    'แดง': 'red',
-    'เหลือง': 'yellow',
-    'เขียว': 'green',
-    'น้ำเงิน': 'blue',
-    'ส้ม': 'orange',
-    'ม่วง': 'purple',
-    'ชมพู': 'pink',
-    'น้ำตาล': 'brown'
-  };
-  const eng = colorMap[colorName];
-  if (!eng) return;
-  let audio = document.getElementById('colorNameSound');
-  if (!audio) {
-    audio = document.createElement('audio');
-    audio.id = 'colorNameSound';
-    document.body.appendChild(audio);
+  // ใช้ SpeechSynthesis API
+  if ('speechSynthesis' in window) {
+    let lang = localStorage.getItem('lang') || 'en';
+    if (!['th','en','lao'].includes(lang)) lang = 'en';
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    const utter = new SpeechSynthesisUtterance(colorName);
+    utter.lang = voiceLang;
+    // หา voice ที่ตรงกับ lang
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
+    window.speechSynthesis.speak(utter);
   }
-  audio.src = `assets/sound/color-game/color-${eng}.wav`;
-  audio.pause();
-  audio.currentTime = 0;
-  audio.volume = 1.0;
-  audio.play();
 }
 
 

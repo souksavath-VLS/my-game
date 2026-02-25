@@ -1,5 +1,11 @@
 // เกมหาตัวเลขที่ขาด 1-10
 
+// Multi-language numbers 1-10
+const NUMBER_LANG = {
+  th: ['หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า','สิบ'],
+  en: ['one','two','three','four','five','six','seven','eight','nine','ten'],
+  lao: ['หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า','สิบ']
+};
 const ALL_LEVELS = Array.from({length: 10}, (_, i) => i + 1);
 let currentLevel = 1;
 let missing = null;
@@ -33,9 +39,38 @@ function startGame() {
   startTimer();
 }
 
+function getMissingNumberLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+
+function speakMissingNumber(text) {
+  if ('speechSynthesis' in window) {
+    let lang = getMissingNumberLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = voiceLang;
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+}
+
 function renderQuestion(nums, missingIdx) {
-  const q = nums.map((n, i) => i === missingIdx ? '?' : n).join(' ');
-  document.getElementById('missing-number-question').textContent = `เลขที่ขาด: ${q}`;
+  const lang = getMissingNumberLang();
+  const d = typeof window.missingNumberLangData !== 'undefined' ? window.missingNumberLangData[lang] : undefined;
+  // ไทยให้แสดงตัวเลข 1-10, อื่นๆ ใช้เดิม
+  const q = nums.map((n, i) => {
+    if (i === missingIdx) return '?';
+    if (lang === 'en' || lang === 'th'|| lang === 'lao') return n;
+    return NUMBER_LANG[lang][n-1];
+  }).join(' ');
+  const qText = d && d.question ? d.question(q) : `Missing number: ${q}`;
+  document.getElementById('missing-number-question').textContent = qText;
+  speakMissingNumber(qText);
 }
 
 function renderOptions() {
@@ -57,10 +92,12 @@ function selectNumber(num) {
   if (finished) return;
   finished = true;
   endTimer();
+  const lang = getMissingNumberLang();
+  const d = typeof window.missingNumberLangData !== 'undefined' ? window.missingNumberLangData[lang] : undefined;
   if (num === missing) {
     playSound('missingNumberCorrectSound');
     playSound('missingNumberWinSound');
-    document.getElementById('missing-number-result').textContent = 'ถูกต้อง!';
+    document.getElementById('missing-number-result').textContent = d?.correct || 'Correct!';
     saveStats(true);
     totalCorrect++;
     setTimeout(() => {
@@ -69,7 +106,7 @@ function selectNumber(num) {
     }, 900);
   } else {
     playSound('missingNumberWrongSound');
-    document.getElementById('missing-number-result').textContent = 'ผิด ลองใหม่!';
+    document.getElementById('missing-number-result').textContent = d?.wrong || 'Wrong!';
     saveStats(false);
   }
 }
@@ -77,17 +114,21 @@ function selectNumber(num) {
 function startTimer() {
   startTime = Date.now();
   endTime = null;
+  const lang = getMissingNumberLang();
+  const d = typeof window.missingNumberLangData !== 'undefined' ? window.missingNumberLangData[lang] : undefined;
   timer = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById('missing-number-timer').textContent = 'เวลา: ' + elapsed + ' วินาที';
+    document.getElementById('missing-number-timer').textContent = (d?.timer || 'Time:') + ' ' + elapsed + ' วินาที';
   }, 500);
 }
 
 function endTimer() {
   endTime = Date.now();
   clearInterval(timer);
+  const lang = getMissingNumberLang();
+  const d = typeof window.missingNumberLangData !== 'undefined' ? window.missingNumberLangData[lang] : undefined;
   const elapsed = Math.floor((endTime - startTime) / 1000);
-  document.getElementById('missing-number-timer').textContent = 'ใช้เวลา: ' + elapsed + ' วินาที';
+  document.getElementById('missing-number-timer').textContent = (d?.used || 'Time used:') + ' ' + elapsed + ' วินาที';
 }
 
 function playSound(id) {
@@ -125,14 +166,14 @@ function getRandomOptions(exclude, count) {
   return res;
 }
 
-document.getElementById('restartMissingNumberBtn').onclick = startGame;
 document.getElementById('restartMissingNumberBtn').onclick = () => {
   currentLevel = 1;
   totalCorrect = 0;
   startGame();
 };
-window.onload = () => {
+
+document.addEventListener('DOMContentLoaded', function() {
   currentLevel = 1;
   totalCorrect = 0;
   startGame();
-};
+});

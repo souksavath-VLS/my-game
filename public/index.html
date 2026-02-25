@@ -1,6 +1,10 @@
+
+                       
+                
 <!DOCTYPE html>
 <html lang="th">
-<head>
+<head>    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
+    <style id="lang-font-style"></style>
   <meta charset="UTF-8">
   <title>เกมฝึกสมองสำหรับเด็ก 3-5 ปี</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,16 +42,17 @@
     <div class="d-flex align-items-center justify-content-between" style="padding: 0rem 0rem 0rem 0rem;">
       <div class="header" style="margin-bottom:0; flex:1; text-align:center;">
         <span style="font-size:1.1rem; color:#fff; opacity:0.85; vertical-align:middle;">เกมฝึกสมองสำหรับเด็ก 3-5 ปี</span>
-        <div style="font-size:0.95rem; color:#fff; opacity:0.7; font-weight:400; margin-top:2px;">เกมฝึกสมองสำหรับเด็ก</div>
+        
       </div>
       <div class="d-flex align-items-center gap-2" style="margin-left:16px;">
         <div class="lang-flags">
-          <img src="https://cdn-icons-png.flaticon.com/512/197/197452.png" alt="Thai" id="flag-th" class="lang-flag active">
-          <img src="https://cdn-icons-png.flaticon.com/512/197/197374.png" alt="English" id="flag-en" class="lang-flag">
+          <img src="https://flagcdn.com/th.svg" alt="Thai" id="flag-th" class="lang-flag active">
+          <img src="https://flagcdn.com/gb.svg" alt="English" id="flag-en" class="lang-flag">
+          <img src="https://flagcdn.com/la.svg" alt="Lao" id="flag-lao" class="lang-flag">
         </div>
-        <button class="google-login-btn" style="margin-left:10px;">
+        <!-- <button class="google-login-btn" style="margin-left:10px;">
           <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" style="width:22px; vertical-align:middle; margin-right:6px;"> Login with Google
-        </button>
+        </button> -->
       </div>
     </div>
   </header>
@@ -113,14 +118,6 @@
           <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="AZ Match Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
           <div class="flag-name">เกมจับคู่ตัวอักษร A-Z</div>
         </a>
-        <a href="human-body-puzzle.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/616/616494.png" alt="Human Body Puzzle" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Human Body Puzzle</div>
-        </a>
-        <a href="tetris.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/3522/3522096.png" alt="Tetris" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Tetris</div>
-        </a>
         <a href="water-tree-game.html" class="game-card">
           <img src="https://cdn-icons-png.flaticon.com/512/2917/2917242.png" alt="Water Tree Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
           <div class="flag-name">เกมรดน้ำต้นไม้</div>
@@ -161,6 +158,10 @@
           <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="World Map Puzzle" style="width:48px;height:32px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
           <div class="flag-name">World Map Puzzle</div>
         </a>
+        <a href="tetris.html" class="game-card">
+                  <img src="https://cdn-icons-png.flaticon.com/512/2772/2772140.png" alt="Tetris Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+                  <div class="flag-name">Tetris</div>
+                </a>
       </div>
         </div>
         <div class="text-center mt-4">
@@ -182,50 +183,87 @@
     </div>
   </div>
   <script>
+        function setLaoFont(active) {
+          const style = document.getElementById('lang-font-style');
+          if (active) {
+            style.textContent = `body, .header, .flag-name, .btn, .game-card, .navbar, .stats, .flag-grid { font-family: 'Noto Sans Lao', sans-serif !important; }`;
+          } else {
+            style.textContent = '';
+          }
+        }
     document.getElementById('help-btn').onclick = function() {
       document.getElementById('help-modal').style.display = 'flex';
     };
   </script>
   <script src="js/script.js"></script>
   <script>
-    // ภาษา: ไทย/อังกฤษ (ตัวอย่างเปลี่ยนเฉพาะข้อความหลัก)
+    // ภาษา: ไทย/อังกฤษ (เปลี่ยนชื่อเกมและปุ่มทั้งหมด)
     const langData = {
       th: {
         header: 'เกมฝึกสมองสำหรับเด็ก 3-5 ปี',
-        btnMemory: 'เกมจับคู่ภาพ',
-        btnColor: 'เกมเลือกสี',
-        btnSound: 'เกมฟังเสียง',
-        stats: 'ดูสถิติ/โหมดผู้ปกครอง',
-        help: '❓ วิธีเล่น/ช่วยเหลือ'
+        stats: 'ดูสถิติ / โหมดผู้ปกครอง',
+        help: '❓ วิธีเล่น/ช่วยเหลือ',
+        games: [
+          'เกมเลือกสี', 'เกมเรียงสีตามลำดับ', 'เกมใหญ่-เล็ก', 'เกมฟังเสียง', 'เกมนับจำนวน',
+          'เกมลากเส้น A-Z', 'เกมลากเส้นตัวเลข 1-10', 'เกมหาสิ่งของในบ้าน', 'เกมหาตัวเลขที่ขาด',
+          'เกม Match icon', 'เกมจับคู่ภาพ', 'เกมวางรูปร่าง', 'เกมจับคู่ตัวอักษร A-Z', 'เกมรดน้ำต้นไม้',
+          'เกมวันในสัปดาห์', 'เกมเดือนในปี', 'เกมหอคอย', 'เกมซ่อนหา',
+          'เกมลากเส้นภาษาลาว ກ-ຮ (พยัญชนะ)', 'เกมลากเส้นภาษาลาว สระ (สระ)',
+          'เกมธงประเทศ (195 Flags)', 'เกมจับคู่ธงกับชื่อประเทศ', 'World Map Puzzle', 'เกมเททริส'
+        ]
       },
       en: {
         header: 'Brain Games for Kids 3-5',
-        btnMemory: 'Memory Match',
-        btnColor: 'Color Picker',
-        btnSound: 'Sound Quiz',
         stats: 'Stats / Parent Mode',
-        help: '❓ Help / How to Play'
+        help: '❓ Help / How to Play',
+        games: [
+          'Color Game', 'Color Order Game', 'Big-Small Game', 'Sound Game', 'Fruit Counting',
+          'Draw ABC', 'Draw Numbers', 'Find Objects', 'Missing Number',
+          'Match Icon', 'Memory Match', 'Shape Puzzle', 'AZ Match', 'Water Tree',
+          'Weekdays', 'Months', 'Tower Game', 'Hide and Seek',
+          'Draw Lao ABC (Consonants)', 'Draw Lao Vowel (Vowels)',
+          'Country Flags (195 Flags)', 'Match Flag & Country', 'World Map Puzzle', 'Tetris'
+        ]
+      },
+      lao: {
+        header: 'ເກມຝຶກສະຫມອງ ສຳລັບເດັກ 3-5 ປີ',
+        stats: 'ສະຖິຕິ / ໂຫດຜູ້ປົກຄອງ',
+        help: '❓ ວິທີຫຼິ້ນ / ຊ່ວຍເຫຼືອ',
+        games: [
+          'ເກມເລືອກສີ', 'ເກມຮຽງສີ', 'ເກມໃຫຍ່-ນ້ອຍ', 'ເກມຟັງສຽງ', 'ເກມນັບຈຳນວນ',
+          'ເກມລາກເສັ້ນ A-Z', 'ເກມລາກເສັ້ນຕົວເລກ 1-10', 'ເກມຫາສິ່ງຂອງ', 'ເກມຫາຕົວເລກທີ່ຂາດ',
+          'ເກມ Match icon', 'ເກມຈັບຄູ່ພາບ', 'ເກມວາງຮູບຮ່າງ', 'ເກມຈັບຄູ່ອັກສອນ A-Z', 'ເກມລົດນ້ຳຕົ້ນໄມ້',
+          'ເກມວັນໃນອາທິດ', 'ເກມເດືອນ', 'ເກມຫໍຄອຍ', 'ເກມຊ່ອນຫາ',
+          'ເກມລາກເສັ້ນພະຍັນຊະນະລາວ ກ-ຮ', 'ເກມລາກເສັ້ນສະຫຼະ',
+          'ທຸງປະເທດ (195 Flags)', 'ເກມຈັບຄູ່ທຸງ-ຊື່ປະເທດ', 'World Map Puzzle', 'ເກມເທັດຣິສ'
+        ]
       }
     };
     // เปลี่ยนภาษาเมื่อคลิกไอคอนธง
-    document.getElementById('flag-th').onclick = function() {
-      document.getElementById('flag-th').classList.add('active');
-      document.getElementById('flag-en').classList.remove('active');
-      const l = 'th';
-      document.querySelector('.header').innerText = langData[l].header;
+    function setLanguage(lang) {
+      document.getElementById('flag-th').classList.toggle('active', lang === 'th');
+      document.getElementById('flag-en').classList.toggle('active', lang === 'en');
+      document.getElementById('flag-lao').classList.toggle('active', lang === 'lao');
+      document.querySelector('.header').innerText = langData[lang].header;
       const statsLink = document.getElementById('stats-link');
-      if (statsLink) statsLink.innerText = langData[l].stats;
-      document.getElementById('help-btn').innerText = langData[l].help;
-    };
-    document.getElementById('flag-en').onclick = function() {
-      document.getElementById('flag-en').classList.add('active');
-      document.getElementById('flag-th').classList.remove('active');
-      const l = 'en';
-      document.querySelector('.header').innerText = langData[l].header;
-      const statsLink = document.getElementById('stats-link');
-      if (statsLink) statsLink.innerText = langData[l].stats;
-      document.getElementById('help-btn').innerText = langData[l].help;
-    };
+      if (statsLink) statsLink.innerText = langData[lang].stats;
+      document.getElementById('help-btn').innerText = langData[lang].help;
+      // เปลี่ยนชื่อเกม
+      const cards = document.querySelectorAll('.flag-grid .game-card .flag-name');
+      cards.forEach((el, idx) => {
+        if (langData[lang].games[idx]) el.innerHTML = langData[lang].games[idx];
+      });
+      setLaoFont(lang === 'lao');
+      localStorage.setItem('lang', lang);
+    }
+    document.getElementById('flag-th').onclick = function() { setLanguage('th'); };
+    document.getElementById('flag-en').onclick = function() { setLanguage('en'); };
+    document.getElementById('flag-lao').onclick = function() { setLanguage('lao'); };
+    // default language: ใช้ค่าจาก localStorage ถ้ามี
+    document.addEventListener('DOMContentLoaded', function() {
+      const lang = localStorage.getItem('lang') || 'en';
+      setLanguage(lang);
+    });
   </script>
 </body>
 </html>

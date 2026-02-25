@@ -1,5 +1,11 @@
 // เกมลากเส้นตัวเลข 1-10 พร้อมเสียงและบันทึกสถิติ
 
+// Multi-language numbers 1-10
+const NUMBER_LANG = {
+  th: ['หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า','สิบ'],
+  en: ['one','two','three','four','five','six','seven','eight','nine','ten'],
+  lao: ['หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า','สิบ']
+};
 const NUMBERS = Array.from({length:10}, (_,i) => (i+1).toString());
 let currentIndex = 0;
 let startTime = null;
@@ -18,24 +24,22 @@ function playSfx(id) {
   }
 }
 
-function playNumberSound(num) {
+function getDrawNumberLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+
+function playNumberSound(num, idx) {
   if ('speechSynthesis' in window) {
-    const utter = new SpeechSynthesisUtterance(num);
-    utter.lang = 'en-US';
-    utter.rate = 0.9;
-    // เลือกเสียงเด็กหญิงถ้ามี
+    let lang = getDrawNumberLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    let text = lang === 'en' ? num : NUMBER_LANG[lang][idx];
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
-    let femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('child'));
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.gender === 'female');
-    }
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'));
-    }
-    if (!femaleVoice) {
-      femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('girl'));
-    }
-    if (femaleVoice) utter.voice = femaleVoice;
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
@@ -56,7 +60,7 @@ function showDrawNumber(idx) {
   ctx.fillStyle = '#1976d2';
   ctx.fillText(num, canvas.width/2, canvas.height/2+10);
   ctx.restore();
-  playNumberSound(num);
+  playNumberSound(num, idx);
 }
 
 function clearDrawCanvas() {
@@ -67,7 +71,10 @@ function clearDrawCanvas() {
 
 function checkDraw() {
   correctCount++;
-  document.getElementById('draw-result').textContent = 'เยี่ยมมาก!';
+  // Multi-language result
+  let lang = getDrawNumberLang();
+  let msg = drawNumberLangData[lang]?.result || 'Great!';
+  document.getElementById('draw-result').textContent = msg;
   playSfx('soundCorrect');
   setTimeout(nextDrawRound, 900);
 }
@@ -78,10 +85,13 @@ function nextDrawRound() {
   if (round > maxRounds) {
     endTime = Date.now();
     const timeUsed = ((endTime - startTime) / 1000).toFixed(1);
-    document.getElementById('draw-header').textContent = 'จบเกม! คุณลากเส้นครบ 1-10';
+    let lang = getDrawNumberLang();
+    let finish = drawNumberLangData[lang]?.finish || 'Finished! You traced 1-10';
+    let timeLabel = drawNumberLangData[lang]?.time || 'Time:';
+    document.getElementById('draw-header').textContent = finish;
     document.getElementById('draw-char').textContent = '';
     clearDrawCanvas();
-    document.getElementById('draw-result').innerHTML = `<b>ใช้เวลา:</b> ${timeUsed} วินาที`;
+    document.getElementById('draw-result').innerHTML = `<b>${timeLabel}</b> ${timeUsed} วินาที`;
     playSfx('soundWin');
     saveDrawNumberStat(timeUsed);
     return;
@@ -96,7 +106,9 @@ function restartDrawGame() {
   round = 0;
   startTime = null;
   endTime = null;
-  document.getElementById('draw-header').textContent = 'ลากเส้นตามตัวเลข';
+  let lang = getDrawNumberLang();
+  let header = drawNumberLangData[lang]?.header || 'Trace the numbers';
+  document.getElementById('draw-header').textContent = header;
   nextDrawRound();
 }
 

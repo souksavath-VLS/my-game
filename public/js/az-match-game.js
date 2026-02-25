@@ -1,13 +1,16 @@
 // เกมจับคู่ตัวอักษร A-Z (uppercase/lowercase)
 const AZ_UPPER = Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i));
 const AZ_LOWER = Array.from({length: 26}, (_, i) => String.fromCharCode(97 + i));
+
 let azGameTimer = null;
 let azGameStartTime = 0;
 let azGameCorrect = 0;
+let azGameWrong = 0;
 let azGameFinished = false;
 
 function startAZMatchGame() {
   azGameCorrect = 0;
+  azGameWrong = 0;
   azGameFinished = false;
   azGameStartTime = Date.now();
   renderAZMatch();
@@ -59,13 +62,14 @@ function azMatchDrop(e) {
       azGameFinished = true;
       playSound('win');
       endAZTimer();
-      document.getElementById('az-match-result').textContent = 'จบเกม! ถูกต้องครบ 26 ตัวอักษร';
+      document.getElementById('az-match-result').textContent = `จบเกม! ถูกต้องครบ 26 ตัวอักษร | ตอบผิด ${azGameWrong} ครั้ง`;
       saveAZStats(true);
     }
   } else {
     playSound('wrong');
+    azGameWrong++;
     e.target.style.background = '#fcc';
-    document.getElementById('az-match-result').textContent = 'ผิด ลองใหม่!';
+    document.getElementById('az-match-result').textContent = `ผิด ลองใหม่! (ผิด ${azGameWrong} ครั้ง)`;
   }
 }
 

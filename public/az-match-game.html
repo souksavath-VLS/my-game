@@ -5,37 +5,109 @@
   <title>เกมจับคู่ตัวอักษร A-Z</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
-    .az-match-upper, .az-match-lower {
-      display: inline-block;
-      width: 48px;
-      height: 48px;
-      font-size: 2rem;
-      margin: 4px;
-      text-align: center;
-      line-height: 48px;
-      border-radius: 8px;
-      border: 2px solid #aaa;
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #fffbe7 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Kanit', 'Prompt', 'Noto Sans Thai', 'Noto Sans Lao', Arial, sans-serif;
+    }
+    .az-match-card {
       background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 6px 32px 0 rgba(60,60,120,0.10), 0 1.5px 6px 0 rgba(60,60,120,0.08);
+      max-width: 480px;
+      margin: 40px auto 0 auto;
+      padding: 32px 24px 28px 24px;
+      position: relative;
+    }
+    .az-match-header {
+      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
+      color: #fff;
+      font-size: 2.1rem;
+      font-weight: bold;
+      border-radius: 14px 14px 0 0;
+      padding: 18px 0 14px 0;
+      text-align: center;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px 0 rgba(79,140,255,0.08);
+    }
+    .az-match-upper, .az-match-lower {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      font-size: 2.1rem;
+      margin: 6px;
+      text-align: center;
+      border-radius: 12px;
+      border: 2.5px solid #bdbdbd;
+      background: #f5f8ff;
       cursor: pointer;
       user-select: none;
+      transition: box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 1.5px 6px 0 rgba(60,60,120,0.07);
+      font-weight: 600;
+    }
+    .az-match-upper:hover {
+      background: #e3f2fd;
+      border-color: #4f8cff;
+      box-shadow: 0 4px 16px 0 rgba(79,140,255,0.13);
     }
     .az-match-lower {
-      opacity: 0.5;
-      background: #f7f7f7;
+      opacity: 0.7;
+      background: #f3e8ff;
+      border-color: #b39ddb;
+    }
+    .az-match-timer {
+      font-size: 1.2rem;
+      color: #4caf50;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .az-match-btn {
+      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 8px 12px 0;
+      cursor: pointer;
+      box-shadow: 0 1.5px 6px 0 rgba(60,60,120,0.07);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .az-match-btn:hover {
+      background: linear-gradient(90deg, #7f53ac 0%, #4f8cff 100%);
+      box-shadow: 0 4px 16px 0 rgba(127,83,172,0.13);
+    }
+    .az-match-result {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ff9800;
+      margin-top: 18px;
+      min-height: 32px;
+    }
+    @media (max-width: 600px) {
+      .az-match-card { padding: 16px 4px 18px 4px; }
+      .az-match-header { font-size: 1.3rem; padding: 12px 0 8px 0; }
+      .az-match-upper, .az-match-lower { width: 38px; height: 38px; font-size: 1.1rem; margin: 3px; }
     }
   </style>
 </head>
 <body>
-  <div class="header">เกมจับคู่ตัวอักษร A-Z</div>
-  <div class="container py-4">
+  <div class="az-match-card">
+    <div class="az-match-header">เกมจับคู่ตัวอักษร A-Z</div>
     <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
-      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+      <button onclick="window.location.href='index.html'" class="az-match-btn">ออกเกม</button>
+      <button id="restartBtn" class="az-match-btn">เริ่มใหม่</button>
     </div>
-    <div id="az-match-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
+    <div id="az-match-timer" class="az-match-timer text-center mt-2"></div>
     <div id="az-match-shadow" style="margin: 16px 0; min-height: 60px;"></div>
     <div id="az-match-options" style="margin: 16px 0;"></div>
-    <div id="az-match-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+    <div id="az-match-result" class="az-match-result text-center mt-4"></div>
   </div>
   <script src="js/az-match-game.js"></script>
   <script>

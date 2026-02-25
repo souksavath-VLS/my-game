@@ -1,15 +1,31 @@
+function playColorOrderNameSound(colorName) {
+  if ('speechSynthesis' in window) {
+    let lang = getColorOrderLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    const utter = new SpeechSynthesisUtterance(colorName);
+    utter.lang = voiceLang;
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
+    window.speechSynthesis.speak(utter);
+  }
+}
 // เกมเรียงสีตามลำดับ พร้อมจับเวลาและบันทึก stats
 
-const COLORS_ORDER = [
-  { name: 'แดง', color: '#e53935' },
-  { name: 'เหลือง', color: '#fbc02d' },
-  { name: 'เขียว', color: '#43a047' },
-  { name: 'น้ำเงิน', color: '#1e88e5' },
-  { name: 'ส้ม', color: '#fb8c00' },
-  { name: 'ม่วง', color: '#8e24aa' },
-  { name: 'ชมพู', color: '#ec407a' },
-  { name: 'น้ำตาล', color: '#6d4c41' }
-];
+function getColorOrderLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+const COLOR_ORDER_NAMES = {
+  th: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล'],
+  en: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown'],
+  lao: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+};
+const COLORS_ORDER = COLOR_ORDER_NAMES[getColorOrderLang()].map((name,i)=>{
+  const colorArr = ['#e53935','#fbc02d','#43a047','#1e88e5','#fb8c00','#8e24aa','#ec407a','#6d4c41'];
+  return { name, color: colorArr[i] };
+});
 
 let order = [];
 let userOrder = [];
@@ -23,14 +39,43 @@ function startGame() {
   userOrder = [];
   order = shuffle([...COLORS_ORDER]).slice(0, 4);
   renderQuestion();
+  playColorOrderInstructionSound();
   renderOptions();
   document.getElementById('color-order-result').textContent = '';
   startTimer();
 }
 
+// พูดคำแนะนำการเรียงสีตามภาษา
+function playColorOrderInstructionSound() {
+  if ('speechSynthesis' in window) {
+    let lang = getColorOrderLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    // ใช้ข้อความแนะนำจาก colorOrderLangData
+    let instruction = '';
+    let colorNames = '';
+    if (typeof colorOrderLangData !== 'undefined') {
+      instruction = colorOrderLangData[lang].question;
+    } else {
+      instruction = lang === 'th' ? 'เรียงสีตามลำดับนี้' : lang === 'lao' ? 'ຮຽງສີຕາມລຳດັບນີ້' : 'Order the colors';
+    }
+    // รวมชื่อสีใน order
+    if (typeof order !== 'undefined' && Array.isArray(order) && order.length > 0) {
+      colorNames = order.map(c => c.name).join(' ');
+    }
+    const fullText = instruction + (colorNames ? ' ' + colorNames : '');
+    const utter = new SpeechSynthesisUtterance(fullText);
+    utter.lang = voiceLang;
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
+    window.speechSynthesis.speak(utter);
+  }
+}
+
 function renderQuestion() {
+  const lang = getColorOrderLang();
   const q = order.map(c => c.name).join(' → ');
-  document.getElementById('color-order-question').textContent = 'เรียงสีตามลำดับนี้: ' + q;
+  document.getElementById('color-order-question').textContent = colorOrderLangData[lang].question + ' ' + q;
 }
 
 function renderOptions() {
@@ -50,7 +95,7 @@ function renderOptions() {
 function selectColor(idx, colorObj) {
   if (finished) return;
   userOrder.push(colorObj);
-  playColorNameSound(colorObj.name);
+  playColorOrderNameSound(colorObj.name);
   if (userOrder.length === order.length) {
     endTimer();
     checkResult();
@@ -63,13 +108,14 @@ function checkResult() {
   for (let i = 0; i < order.length; i++) {
     if (userOrder[i].name !== order[i].name) correct = false;
   }
+  const lang = getColorOrderLang();
   if (correct) {
     playColorSound('colorOrderCorrectSound');
-    document.getElementById('color-order-result').textContent = 'ถูกต้อง!';
+    document.getElementById('color-order-result').textContent = colorOrderLangData[lang].correct;
     saveStats(true);
   } else {
     playColorSound('colorOrderWrongSound');
-    document.getElementById('color-order-result').textContent = 'ผิด ลองใหม่!';
+    document.getElementById('color-order-result').textContent = colorOrderLangData[lang].wrong;
     saveStats(false);
   }
 }

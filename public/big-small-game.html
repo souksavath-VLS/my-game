@@ -7,19 +7,85 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="header">เกมใหญ่-เล็ก</div>
+  <div class="header" id="bigsmall-title">เกมใหญ่-เล็ก</div>
   <div class="container py-4">
     <div id="bigsmall-question" class="text-center mb-4" style="font-size:2rem;"></div>
     <div id="bigsmall-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
     <div id="bigsmall-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
     <div class="text-center mt-4">
       <button id="restartBigSmallBtn" class="menu-btn">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+      <button id="bigsmall-btn-exit" onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
     </div>
   </div>
   <audio id="bigSmallCorrectSound" src="assets/sound/sound-game/correct.wav"></audio>
   <audio id="bigSmallWrongSound" src="assets/sound/sound-game/wrong.wav"></audio>
   <audio id="bigSmallWinSound" src="assets/sound/sound-game/win.wav"></audio>
   <script src="js/big-small-game.js"></script>
+  <script>
+    // Multi-language UI update
+    const bigSmallLangData = {
+      th: {
+        title: 'เกมใหญ่-เล็ก',
+        btnRestart: 'เริ่มใหม่',
+        btnExit: 'ออกเกม',
+        correct: 'ถูกต้อง!',
+        wrong: 'ผิด ลองใหม่!',
+        questions: [
+          { type: 'size', question: 'เลือกภาพที่ใหญ่กว่า', options: ['big', 'small'], correct: 'big' },
+          { type: 'size', question: 'เลือกภาพที่เล็กกว่า', options: ['small', 'big'], correct: 'small' },
+          { type: 'position', question: 'เลือกภาพที่อยู่บน', options: ['top', 'bottom'], correct: 'top' },
+          { type: 'position', question: 'เลือกภาพที่อยู่ล่าง', options: ['bottom', 'top'], correct: 'bottom' },
+          { type: 'position', question: 'เลือกภาพที่อยู่ซ้าย', options: ['left', 'right'], correct: 'left' },
+          { type: 'position', question: 'เลือกภาพที่อยู่ขวา', options: ['right', 'left'], correct: 'right' }
+        ],
+        label: { big: 'ใหญ่', small: 'เล็ก', top: 'บน', bottom: 'ล่าง', left: 'ซ้าย', right: 'ขวา' }
+      },
+      en: {
+        title: 'Big-Small Game',
+        btnRestart: 'Restart',
+        btnExit: 'Exit',
+        correct: 'Correct!',
+        wrong: 'Wrong! Try again!',
+        questions: [
+          { type: 'size', question: 'Choose the bigger picture', options: ['big', 'small'], correct: 'big' },
+          { type: 'size', question: 'Choose the smaller picture', options: ['small', 'big'], correct: 'small' },
+          { type: 'position', question: 'Choose the top picture', options: ['top', 'bottom'], correct: 'top' },
+          { type: 'position', question: 'Choose the bottom picture', options: ['bottom', 'top'], correct: 'bottom' },
+          { type: 'position', question: 'Choose the left picture', options: ['left', 'right'], correct: 'left' },
+          { type: 'position', question: 'Choose the right picture', options: ['right', 'left'], correct: 'right' }
+        ],
+        label: { big: 'Big', small: 'Small', top: 'Top', bottom: 'Bottom', left: 'Left', right: 'Right' }
+      },
+      lao: {
+        title: 'ເກມໃຫຍ່-ນ້ອຍ',
+        btnRestart: 'ເລີ່ມໃໝ່',
+        btnExit: 'ອອກເກມ',
+        correct: 'ຖືກຕ້ອງ!',
+        wrong: 'ຜິດ ລອງໃໝ່!',
+        questions: [
+          { type: 'size', question: 'ເລືອກຮູບທີ່ໃຫຍ່ກວ່າ', options: ['big', 'small'], correct: 'big' },
+          { type: 'size', question: 'ເລືອກຮູບທີ່ນ້ອຍກວ່າ', options: ['small', 'big'], correct: 'small' },
+          { type: 'position', question: 'ເລືອກຮູບທີ່ຢູ່ຂ້າງເທິງ', options: ['top', 'bottom'], correct: 'top' },
+          { type: 'position', question: 'ເລືອກຮູບທີ່ຢູ່ຂ້າງລຸ່ມ', options: ['bottom', 'top'], correct: 'bottom' },
+          { type: 'position', question: 'ເລືອກຮູບທີ່ຢູ່ຊ້າຍ', options: ['left', 'right'], correct: 'left' },
+          { type: 'position', question: 'ເລືອກຮູບທີ່ຢູ່ຂວາ', options: ['right', 'left'], correct: 'right' }
+        ],
+        label: { big: 'ໃຫຍ່', small: 'ນ້ອຍ', top: 'ເທິງ', bottom: 'ລຸ່ມ', left: 'ຊ້າຍ', right: 'ຂວາ' }
+      }
+    };
+    function getBigSmallLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setBigSmallLangUI() {
+      const lang = getBigSmallLang();
+      const d = bigSmallLangData[lang];
+      document.getElementById('bigsmall-title').textContent = d.title;
+      document.getElementById('restartBigSmallBtn').textContent = d.btnRestart;
+      document.getElementById('bigsmall-btn-exit').textContent = d.btnExit;
+    }
+    document.addEventListener('DOMContentLoaded', setBigSmallLangUI);
+  </script>
 </body>
 </html>

@@ -14,7 +14,7 @@
   </style>
 </head>
 <body>
-  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมลากเส้นตัวเลข 1-10</div>
+  <div class="header" id="draw-number-title" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมลากเส้นตัวเลข 1-10</div>
   <div class="container" style="max-width:500px;margin:auto;padding:2rem 0;">
     <div class="draw-header" id="draw-header"></div>
     <div class="draw-canvas-wrap">
@@ -22,18 +22,72 @@
       <canvas id="draw-canvas" class="draw-canvas" width="320" height="320" style="border:2px solid #1976d2;border-radius:16px;background:#fff;box-shadow:0 2px 8px rgba(25,118,210,0.08);"></canvas>
     </div>
     <div style="display:flex;gap:1rem;margin-bottom:1.2rem;">
-      <button onclick="clearDrawCanvas()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">ลบเส้น</button>
-      <button onclick="checkDraw()" class="menu-btn" style="background:#4caf50;color:#fff;">ตรวจสอบ</button>
+      <button id="draw-number-btn-clear" onclick="clearDrawCanvas()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">ลบเส้น</button>
+      <button id="draw-number-btn-check" onclick="checkDraw()" class="menu-btn" style="background:#4caf50;color:#fff;">ตรวจสอบ</button>
     </div>
     <div class="draw-result" id="draw-result"></div>
     <div class="menu" style="margin-top:2rem;">
-      <a href="index.html" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
-      <button onclick="restartDrawGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
+      <a href="index.html" id="draw-number-btn-home" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
+      <button id="draw-number-btn-restart" onclick="restartDrawGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
     </div>
   </div>
   <audio id="soundCorrect" src="assets/sound/color-game/correct.wav" preload="auto"></audio>
   <audio id="soundWrong" src="assets/sound/color-game/wrong.wav" preload="auto"></audio>
   <audio id="soundWin" src="assets/sound/color-game/win.wav" preload="auto"></audio>
   <script src="js/draw-number-game.js"></script>
+  <script>
+    // Multi-language UI update
+    const drawNumberLangData = {
+      th: {
+        title: 'เกมลากเส้นตัวเลข 1-10',
+        btnClear: 'ลบเส้น',
+        btnCheck: 'ตรวจสอบ',
+        btnHome: 'กลับหน้าแรก',
+        btnRestart: 'เริ่มใหม่',
+        header: 'ลากเส้นตามตัวเลข',
+        result: 'เยี่ยมมาก!',
+        finish: 'จบเกม! คุณลากเส้นครบ 1-10',
+        time: 'ใช้เวลา:'
+      },
+      en: {
+        title: 'Trace the Numbers 1-10',
+        btnClear: 'Clear',
+        btnCheck: 'Check',
+        btnHome: 'Back to Home',
+        btnRestart: 'Restart',
+        header: 'Trace the numbers',
+        result: 'Great!',
+        finish: 'Finished! You traced 1-10',
+        time: 'Time:'
+      },
+      lao: {
+        title: 'ເກມລາກເສັ້ນຕົວເລກ 1-10',
+        btnClear: 'ລົບເສັ້ນ',
+        btnCheck: 'ກວດສອບ',
+        btnHome: 'ກັບໜ້າຫຼັກ',
+        btnRestart: 'ເລີ່ມໃໝ່',
+        header: 'ລາກເສັ້ນຕາມຕົວເລກ',
+        result: 'ດີຫຼາຍ!',
+        finish: 'ສຳເລັດ! ທ່ານລາກເສັ້ນ 1-10',
+        time: 'ໃຊ້ເວລາ:'
+      }
+    };
+    function getDrawNumberLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setDrawNumberLangUI() {
+      const lang = getDrawNumberLang();
+      const d = drawNumberLangData[lang];
+      document.getElementById('draw-number-title').textContent = d.title;
+      document.getElementById('draw-number-btn-clear').textContent = d.btnClear;
+      document.getElementById('draw-number-btn-check').textContent = d.btnCheck;
+      document.getElementById('draw-number-btn-home').textContent = d.btnHome;
+      document.getElementById('draw-number-btn-restart').textContent = d.btnRestart;
+      document.getElementById('draw-header').textContent = d.header;
+    }
+    document.addEventListener('DOMContentLoaded', setDrawNumberLangUI);
+  </script>
 </body>
 </html>

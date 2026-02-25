@@ -8,19 +8,73 @@
 </head>
 <body>
   <div class="container py-4" style="max-width:600px;margin:auto;">
-    <h2 class="text-center mb-4">เกมหาตัวเลขที่ขาด 1-10</h2>
+    <h2 class="text-center mb-4" id="missing-number-title">เกมหาตัวเลขที่ขาด 1-10</h2>
     <div id="missing-number-timer" class="mb-3" style="font-size:1.2rem;color:#1976d2;"></div>
     <div id="missing-number-question" class="mb-4" style="font-size:2rem;font-weight:bold;text-align:center;"></div>
     <div id="missing-number-options" class="d-flex justify-content-center flex-wrap mb-4"></div>
     <div id="missing-number-result" class="text-center mb-3" style="font-size:1.3rem;font-weight:bold;"></div>
     <div class="text-center">
       <button id="restartMissingNumberBtn" class="menu-btn" style="background:#1976d2;color:#fff;">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
+      <button id="missing-number-btn-home" onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
     </div>
     <audio id="missingNumberCorrectSound" src="assets/sound/correct.wav"></audio>
     <audio id="missingNumberWrongSound" src="assets/sound/wrong.wav"></audio>
     <audio id="missingNumberWinSound" src="assets/sound/win.wav"></audio>
   </div>
   <script src="js/missing-number-game.js"></script>
+  <script>
+    // Multi-language UI update
+    const missingNumberLangData = {
+      th: {
+        title: 'เกมหาตัวเลขที่ขาด 1-10',
+        btnRestart: 'เริ่มใหม่',
+        btnHome: 'กลับหน้าแรก',
+        correct: 'ถูกต้อง!',
+        wrong: 'ผิด ลองใหม่!',
+        finish: 'จบเกม! คุณหาตัวเลขครบ 10 ระดับ',
+        timer: 'เวลา:',
+        used: 'ใช้เวลา:',
+        question: (q) => `เลขที่ขาด: ${q}`,
+        result: (score) => `ทั้งหมด: ${score} / 10`
+      },
+      en: {
+        title: 'Find the Missing Number 1-10',
+        btnRestart: 'Restart',
+        btnHome: 'Back to Home',
+        correct: 'Correct!',
+        wrong: 'Wrong! Try again!',
+        finish: 'Finished! You found all 10',
+        timer: 'Time:',
+        used: 'Time used:',
+        question: (q) => `Missing number: ${q}`,
+        result: (score) => `Total: ${score} / 10`
+      },
+      lao: {
+        title: 'ເກມຫາຕົວເລກທີ່ຂາດ 1-10',
+        btnRestart: 'ເລີ່ມໃໝ່',
+        btnHome: 'ກັບໜ້າຫຼັກ',
+        correct: 'ຖືກຕ້ອງ!',
+        wrong: 'ຜິດ ລອງໃໝ່!',
+        finish: 'ສຳເລັດ! ທ່ານຫາຕົວເລກຄົບ 10',
+        timer: 'ເວລາ:',
+        used: 'ໃຊ້ເວລາ:',
+        question: (q) => `ຕົວເລກທີ່ຂາດ: ${q}`,
+        result: (score) => `ທັງໝົດ: ${score} / 10`
+      }
+    };
+    function getMissingNumberLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setMissingNumberLangUI() {
+      const lang = getMissingNumberLang();
+      const d = missingNumberLangData[lang];
+      document.getElementById('missing-number-title').textContent = d.title;
+      document.getElementById('restartMissingNumberBtn').textContent = d.btnRestart;
+      document.getElementById('missing-number-btn-home').textContent = d.btnHome;
+    }
+    document.addEventListener('DOMContentLoaded', setMissingNumberLangUI);
+  </script>
 </body>
 </html>

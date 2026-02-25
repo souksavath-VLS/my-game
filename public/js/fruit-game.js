@@ -25,6 +25,44 @@ function randomFruit() {
   return FRUITS[randomInt(0, FRUITS.length - 1)];
 }
 
+function getFruitLang() {
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  return lang;
+}
+
+const FRUIT_LANG_DATA = {
+  th: {
+    question: (fruit) => `มีผลไม้ ${fruit} กี่ลูก?`,
+    apple: 'แอปเปิ้ล', banana: 'ส้ม', orange: 'หมากแต่ง', grape: 'ขะหนมหวาน', strawberry: 'เค้ก',
+    tts: (fruit) => `มีผลไม้ ${fruit} กี่ลูก`
+  },
+  en: {
+    question: (fruit) => `How many ${fruit}s are there?`,
+    apple: 'apple', banana: 'orange', orange: 'melon', grape: 'sweeties', strawberry: 'cake',
+    tts: (fruit) => `How many ${fruit}s are there?`
+  },
+  lao: {
+    question: (fruit) => `ມີໝາກ${fruit}ຈຳນວນກີ່ຫຼຸດ?`,
+    apple: 'ແອັບເປິ້ນ', banana: 'ສົ້ມ', orange: 'ຫມາກແຈ່ງ', grape: 'ຂະຫນົມຫວານ', strawberry: 'ເຄັກ',
+    tts: (fruit) => `ມີໝາກ${fruit}ຈຳນວນກີ່ຫຼຸດ`
+  }
+};
+
+function playFruitQuestionTTS(fruitName) {
+  if ('speechSynthesis' in window) {
+    let lang = getFruitLang();
+    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    let text = FRUIT_LANG_DATA[lang].tts(fruitName);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = voiceLang;
+    const voices = window.speechSynthesis.getVoices();
+    const matchVoice = voices.find(v => v.lang === voiceLang);
+    if (matchVoice) utter.voice = matchVoice;
+    window.speechSynthesis.speak(utter);
+  }
+}
+
 function generateFruitQuestion() {
   currentFruit = randomFruit();
   // ปรับช่วงจำนวนผลไม้ตามระดับความยาก
@@ -39,7 +77,19 @@ function generateFruitQuestion() {
     item.innerHTML = `<img src="${currentFruit.icon}" class="fruit-icon" alt="${currentFruit.name}">`;
     fruitGrid.appendChild(item);
   }
-  document.getElementById('fruit-question').textContent = `มีผลไม้ ${currentFruit.name} กี่ลูก?`;
+  // แปลงชื่อผลไม้เป็นภาษาที่เลือก
+  let lang = getFruitLang();
+  let fruitName = '';
+  switch(currentFruit.name) {
+    case 'แอปเปิ้ล': fruitName = FRUIT_LANG_DATA[lang].apple; break;
+    case 'กล้วย': fruitName = FRUIT_LANG_DATA[lang].banana; break;
+    case 'ส้ม': fruitName = FRUIT_LANG_DATA[lang].orange; break;
+    case 'องุ่น': fruitName = FRUIT_LANG_DATA[lang].grape; break;
+    case 'สตรอเบอร์รี่': fruitName = FRUIT_LANG_DATA[lang].strawberry; break;
+    default: fruitName = currentFruit.name;
+  }
+  document.getElementById('fruit-question').textContent = FRUIT_LANG_DATA[lang].question(fruitName);
+  playFruitQuestionTTS(fruitName);
   renderAnswerButtons(count);
 }
 

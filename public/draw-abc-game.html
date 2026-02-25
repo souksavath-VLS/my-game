@@ -17,10 +17,10 @@
   </style>
 </head>
 <body>
-  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมลากเส้น A-Z</div>
+  <div class="header" id="draw-abc-title" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมลากเส้น A-Z</div>
   <div class="container" style="max-width:500px;margin:auto;padding:2rem 0;">
     <div class="draw-level">
-      <label for="draw-level-select">ระดับความยาก:</label>
+      <label id="draw-abc-label-level" for="draw-level-select">ระดับความยาก:</label>
       <select id="draw-level-select" style="font-size:1.1rem;padding:0.3rem 0.7rem;border-radius:8px;border:2px solid #1976d2;font-weight:bold;margin-left:0.7rem;">
         <option value="1">1</option>
       </select>
@@ -32,13 +32,13 @@
       <canvas id="draw-canvas" class="draw-canvas" width="320" height="320"></canvas>
     </div>
     <div class="draw-btns">
-      <button onclick="clearDrawCanvas()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">ลบเส้น</button>
-      <button onclick="checkDraw()" class="menu-btn" style="background:#4caf50;color:#fff;">ตรวจสอบ</button>
+      <button id="draw-abc-btn-clear" onclick="clearDrawCanvas()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">ลบเส้น</button>
+      <button id="draw-abc-btn-check" onclick="checkDraw()" class="menu-btn" style="background:#4caf50;color:#fff;">ตรวจสอบ</button>
     </div>
     <div class="draw-result" id="draw-result"></div>
     <div class="menu" style="margin-top:2rem;">
-      <a href="index.html" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
-      <button onclick="restartDrawGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
+      <a href="index.html" id="draw-abc-btn-home" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
+      <button id="draw-abc-btn-restart" onclick="restartDrawGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
     </div>
   </div>
   <audio id="soundCorrect" src="assets/sound/color-game/correct.wav" preload="auto"></audio>
@@ -46,5 +46,57 @@
   <audio id="soundWin" src="assets/sound/color-game/win.wav" preload="auto"></audio>
   <!-- เสียง A-Z จะเพิ่มใน assets/sound/abc/ -->
   <script src="js/draw-abc-game.js"></script>
+  <script>
+    // Multi-language UI update
+    const drawAbcLangData = {
+      th: {
+        title: 'เกมลากเส้น A-Z',
+        labelLevel: 'ระดับความยาก:',
+        btnClear: 'ลบเส้น',
+        btnCheck: 'ตรวจสอบ',
+        btnHome: 'กลับหน้าแรก',
+        btnRestart: 'เริ่มใหม่',
+        header: 'ลากเส้นตามตัวอักษรภาษาอังกฤษ',
+        result: 'เยี่ยมมาก!'
+      },
+      en: {
+        title: 'Trace the Letters A-Z',
+        labelLevel: 'Level:',
+        btnClear: 'Clear',
+        btnCheck: 'Check',
+        btnHome: 'Back to Home',
+        btnRestart: 'Restart',
+        header: 'Trace the English letters',
+        result: 'Great!'
+      },
+      lao: {
+        title: 'ເກມລາກເສັ້ນ A-Z',
+        labelLevel: 'ລະດັບ:',
+        btnClear: 'ລົບເສັ້ນ',
+        btnCheck: 'ກວດສອບ',
+        btnHome: 'ກັບໜ້າຫຼັກ',
+        btnRestart: 'ເລີ່ມໃໝ່',
+        header: 'ລາກເສັ້ນຕາມຕົວອັກສອນພາສາອັງກິດ',
+        result: 'ດີຫຼາຍ!'
+      }
+    };
+    function getDrawAbcLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setDrawAbcLangUI() {
+      const lang = getDrawAbcLang();
+      const d = drawAbcLangData[lang];
+      document.getElementById('draw-abc-title').textContent = d.title;
+      document.getElementById('draw-abc-label-level').textContent = d.labelLevel;
+      document.getElementById('draw-abc-btn-clear').textContent = d.btnClear;
+      document.getElementById('draw-abc-btn-check').textContent = d.btnCheck;
+      document.getElementById('draw-abc-btn-home').textContent = d.btnHome;
+      document.getElementById('draw-abc-btn-restart').textContent = d.btnRestart;
+      document.getElementById('draw-header').textContent = d.header;
+    }
+    document.addEventListener('DOMContentLoaded', setDrawAbcLangUI);
+  </script>
 </body>
 </html>

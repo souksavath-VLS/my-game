@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en" id="color-order-lang">
 <head>
   <meta charset="UTF-8">
-  <title>เกมเรียงสีตามลำดับ</title>
+  <title id="color-order-title">Color Order Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="header">เกมเรียงสีตามลำดับ</div>
+  <div class="header" id="color-order-header">Color Order Game</div>
   <div class="container py-4">
     <div id="color-order-timer" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
     <div id="color-order-question" class="text-center mb-4" style="font-size:2rem;"></div>
     <div id="color-order-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
     <div id="color-order-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
     <div class="text-center mt-4">
-      <button id="restartColorOrderBtn" class="menu-btn">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+      <button id="restartColorOrderBtn" class="menu-btn">Restart</button>
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">Exit</button>
     </div>
   </div>
   <audio id="colorOrderCorrectSound" src="assets/sound/color-game/correct.wav"></audio>
@@ -23,5 +23,54 @@
   <audio id="colorOrderWinSound" src="assets/sound/color-game/win.wav"></audio>
   <audio id="colorOrderCongratsSound" src="assets/sound/color-game/congrats.wav"></audio>
   <script src="js/color-order-game.js"></script>
+  <script>
+    // ภาษา: th/en/lao
+    const colorOrderLangData = {
+      th: {
+        title: 'เกมเรียงสีตามลำดับ',
+        header: 'เกมเรียงสีตามลำดับ',
+        restart: 'เริ่มใหม่',
+        exit: 'ออกเกม',
+        correct: 'ถูกต้อง!',
+        wrong: 'ผิด ลองใหม่!',
+        question: 'เรียงสีตามลำดับนี้:',
+        colors: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล']
+      },
+      en: {
+        title: 'Color Order Game',
+        header: 'Color Order Game',
+        restart: 'Restart',
+        exit: 'Exit',
+        correct: 'Correct!',
+        wrong: 'Wrong! Try again!',
+        question: 'Order the colors:',
+        colors: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown']
+      },
+      lao: {
+        title: 'ເກມຮຽງສີ',
+        header: 'ເກມຮຽງສີ',
+        restart: 'ເລີ່ມໃໝ່',
+        exit: 'ອອກເກມ',
+        correct: 'ຖືກຕ້ອງ!',
+        wrong: 'ຜິດ ລອງໃໝ່!',
+        question: 'ຮຽງສີຕາມລຳດັບນີ້:',
+        colors: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+      }
+    };
+    function getColorOrderLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setColorOrderLangUI() {
+      const lang = getColorOrderLang();
+      document.getElementById('color-order-title').textContent = colorOrderLangData[lang].title;
+      document.getElementById('color-order-header').textContent = colorOrderLangData[lang].header;
+      document.getElementById('restartColorOrderBtn').textContent = colorOrderLangData[lang].restart;
+      document.querySelector('button.menu-btn[onclick]').textContent = colorOrderLangData[lang].exit;
+      document.getElementById('color-order-lang').setAttribute('lang', lang);
+    }
+    document.addEventListener('DOMContentLoaded', setColorOrderLangUI);
+  </script>
 </body>
 </html>
