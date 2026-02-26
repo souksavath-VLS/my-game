@@ -1,4 +1,3 @@
-
 // --- ฟังก์ชันแสดงสถิติแต่ละเกม ---
 function showStats(game) {
       let html = '';
@@ -185,6 +184,25 @@ function showStats(game) {
         </details>
       </div>`;
 
+    } else {
+      html = '<div>ยังไม่มีข้อมูลสถิติสำหรับเกมนี้</div>';
+    }
+  } else if (game === 'pacman') {
+    const pacmanStats = JSON.parse(localStorage.getItem('pacmanStats') || '[]');
+    if (Array.isArray(pacmanStats) && pacmanStats.length) {
+      const totalPlay = pacmanStats.length;
+      const bestScore = Math.max(...pacmanStats.map(s => s.score));
+      html += `<div style='margin-bottom:2.5rem;'>
+        <b>เกม:</b> Pac-Man<br>
+        <b>จำนวนครั้งที่เล่น:</b> ${totalPlay}<br>
+        <b>คะแนนสูงสุด:</b> ${bestScore}<br>
+        <details style='margin-top:0.5rem;'>
+          <summary>ดูรายละเอียดแต่ละรอบ</summary>
+          <ul style='text-align:left;font-size:1rem;'>
+            ${pacmanStats.map((s,i) => `<li>ครั้งที่ ${i+1}: ${s.score} คะแนน | ${new Date(s.date).toLocaleString('th-TH')}</li>`).join('')}
+          </ul>
+        </details>
+      </div>`;
     } else {
       html = '<div>ยังไม่มีข้อมูลสถิติสำหรับเกมนี้</div>';
     }

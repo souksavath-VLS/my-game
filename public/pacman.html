@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Pac-Man Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: #222; }
+    .pacman-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 2rem;
+    }
+    #pacman-board {
+      background: #111;
+      border: 4px solid #ffd600;
+      border-radius: 16px;
+      width: 440px;
+      height: 440px;
+      display: grid;
+      grid-template-rows: repeat(21, 20px);
+      grid-template-columns: repeat(21, 20px);
+      gap: 1px;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 4px 24px #ffd60044;
+    }
+    .pacman-cell {
+      width: 20px;
+      height: 20px;
+      background: #222;
+      border-radius: 3px;
+      position: relative;
+    }
+    .pacman-cell.wall { background: #1976d2; }
+    .pacman-cell.dot { background: #222; }
+    .pacman-cell.dot:after {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      left: 7px; top: 7px;
+    }
+    .pacman-cell.power { background: #222; }
+    .pacman-cell.power:after {
+      content: '';
+      display: block;
+      width: 12px;
+      height: 12px;
+      background: #ffd600;
+      border-radius: 50%;
+      position: absolute;
+      left: 4px; top: 4px;
+    }
+    .pacman {
+      width: 18px;
+      height: 18px;
+      background: #ffd600;
+      border-radius: 50%;
+      position: absolute;
+      left: 1px; top: 1px;
+      z-index: 2;
+      box-shadow: 0 2px 8px #ffd60088;
+    }
+    .ghost {
+      width: 18px;
+      height: 18px;
+      border-radius: 50% 50% 8px 8px;
+      position: absolute;
+      left: 1px; top: 1px;
+      z-index: 2;
+      background: #e040fb;
+      box-shadow: 0 2px 8px #e040fb88;
+    }
+    .ghost.red { background: #f44336; }
+    .ghost.blue { background: #1976d2; }
+    .ghost.orange { background: #ff9800; }
+    .ghost.green { background: #4caf50; }
+    .pacman-score {
+      color: #ffd600;
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      font-weight: bold;
+    }
+    .pacman-lives {
+      color: #fff;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    #start-pacman-btn {
+      font-size: 1.1rem;
+      padding: 0.6rem 1.8rem;
+      border-radius: 12px;
+      background: linear-gradient(90deg,#ffd600 60%,#fffde7 100%);
+      color: #222;
+      border: none;
+      font-weight: bold;
+      margin-bottom: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #ffd60044;
+      transition: background 0.2s, color 0.2s, transform 0.1s;
+    }
+    #start-pacman-btn:hover, #start-pacman-btn:active {
+      background: linear-gradient(90deg,#fffde7 60%,#ffd600 100%);
+      color: #222;
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="pacman-container">
+    <h2 style="color:#ffd600;">Pac-Man Pro</h2>
+    <div class="pacman-score">คะแนน: <span id="pacman-score">0</span></div>
+    <div class="pacman-lives">ชีวิต: <span id="pacman-lives">3</span></div>
+    <div id="pacman-board"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.2rem;">
+      <button id="start-pacman-btn" style="margin-bottom:1rem;">เริ่มเกม</button>
+      <div style="display:flex;justify-content:center;margin-bottom:1rem;">
+        <button id="arrow-up" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▲</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-bottom:1rem;">
+        <button id="arrow-left" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">◀</button>
+        <button id="arrow-down" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▼</button>
+        <button id="arrow-right" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▶</button>
+      </div>
+    </div>
+  </div>
+  <script src="js/pacman.js"></script>
+  <script>
+    document.getElementById('arrow-up').onclick = ()=>movePacman('up');
+    document.getElementById('arrow-down').onclick = ()=>movePacman('down');
+    document.getElementById('arrow-left').onclick = ()=>movePacman('left');
+    document.getElementById('arrow-right').onclick = ()=>movePacman('right');
+  </script>
+</body>
+</html>
