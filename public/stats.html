@@ -142,6 +142,10 @@
         <img src="https://cdn-icons-png.flaticon.com/512/743/743007.png" alt="Pac-Man" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
         <div class="flag-name">Pac-Man</div>
       </button>
+      <button class="menu-btn" onclick="showStats('fps')" style="background:#fff;color:#00ff99;border:2px solid #00ff99;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px #00ff9944;padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="FPS Balloon Shooter" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
+        <div class="flag-name">FPS Balloon Shooter</div>
+      </button>
     </div>
     <div id="stats-summary" style="display:none;flex-direction:column;gap:2rem;"></div>
     <div id="chart-container" style="display:none;background:#fff;border-radius:12px;padding:1.2rem 1rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:2rem;">
@@ -153,6 +157,30 @@
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="js/stats.js"></script>
+  <script>
+    function showStats(game) {
+      const summary = document.getElementById('stats-summary');
+      summary.style.display = 'block';
+      summary.innerHTML = '';
+      if (game === 'fps') {
+        const stats = JSON.parse(localStorage.getItem('fpsGameStats') || '[]');
+        if (stats.length === 0) {
+          summary.innerHTML = '<div>ยังไม่มีสถิติ FPS Balloon Shooter</div>';
+        } else {
+          let html = '<div><b>FPS Balloon Shooter</b><ul>';
+          stats.slice().reverse().forEach(s => {
+            html += `<li>Score: ${s.score}, Time: ${s.time}s, Date: ${new Date(s.date).toLocaleString()}</li>`;
+          });
+          html += '</ul></div>';
+          summary.innerHTML = html;
+        }
+      } else {
+        // ...existing code for other games...
+      }
+    }
+    function backToMenu() {
+      document.getElementById('stats-summary').style.display = 'none';
+    }
+  </script>
 </body>
 </html>

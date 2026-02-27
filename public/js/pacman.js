@@ -1,5 +1,15 @@
-// js/pacman.js
-// Pac-Man Pro: โครงสร้างเริ่มต้น (UI, กระดาน, Pac-Man, ผี, ดอท, power-up)
+// --- Sound ---
+const gameOverSound = new Audio('assets/sound/pacman/gameover.wav');
+gameOverSound.volume = 0.8;
+// --- Sound ---
+const hurtSound = new Audio('assets/sound/pacman/hurt.wav');
+hurtSound.volume = 0.7;
+// --- Sound ---
+const moveSound = new Audio('assets/sound/tetris/move.wav');
+moveSound.volume = 0.5;
+const eatDotSound = new Audio('assets/sound/pacman/eat-dot.wav');
+eatDotSound.volume = 0.7;
+
 
 const ROWS = 21, COLS = 21;
 let board = [], pacman = {}, ghosts = [], score = 0, lives = 3, gameInterval, isGameOver = false;
@@ -126,6 +136,11 @@ function moveGhosts() {
     }
     // Check collision Pac-Man
     if(ghost.row===pacman.row && ghost.col===pacman.col) {
+      // เล่นเสียงชนผี
+      try {
+        if (!hurtSound.paused) hurtSound.currentTime = 0;
+        hurtSound.play();
+      } catch (e) {}
       lives--;
       document.getElementById('pacman-lives').innerText = lives;
       if(lives<=0) {
@@ -153,7 +168,12 @@ function gameOverPacman() {
   isGameOver = true;
   clearInterval(gameInterval);
   savePacmanStats(score);
-  alert('Game Over!');
+  // เล่นเสียงจบเกม
+  try {
+    if (!gameOverSound.paused) gameOverSound.currentTime = 0;
+    gameOverSound.play();
+  } catch (e) {}
+  // แสดงผลจบเกมด้วยเสียงเท่านั้น ไม่ต้อง alert
 }
 
 // Pac-Man movement
@@ -175,6 +195,9 @@ function movePacman(dir) {
   if(dir==='right') dc=1;
   const nr = pacman.row+dr, nc = pacman.col+dc;
   if(board[nr][nc]===WALL) return;
+  // เล่นเสียง move
+  if (!moveSound.paused) moveSound.currentTime = 0;
+  moveSound.play();
   // Clear old Pac-Man
   const oldIdx = pacman.row*COLS + pacman.col;
   const oldCell = document.getElementById('pacman-board').children[oldIdx];
@@ -190,6 +213,11 @@ function movePacman(dir) {
     score+=10;
     document.getElementById('pacman-score').innerText = score;
     updateCell(nr, nc);
+    // เล่นเสียงกิน dot
+    try {
+      if (!eatDotSound.paused) eatDotSound.currentTime = 0;
+      eatDotSound.play();
+    } catch (e) {}
   }
   // Eat power-up
   if(board[nr][nc]===POWER) {

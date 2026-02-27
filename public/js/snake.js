@@ -1,3 +1,9 @@
+// --- Sound ---
+const eatSound = new Audio('assets/sound/pacman/eat-dot.wav');
+eatSound.volume = 0.7;
+// --- Game Over Sound ---
+const gameOverSound = new Audio('assets/sound/pacman/gameover.wav');
+gameOverSound.volume = 0.8;
 window.setSnakePaused = function(p) {
   if(p) {
     window.clearInterval(window.snakeIntervalId);
@@ -148,6 +154,11 @@ function moveSnake() {
     document.getElementById('snake-score').innerText = score;
     placeFood();
     updateSnakeSpeed();
+    // เล่นเสียงกิน
+    try {
+      if (!eatSound.paused) eatSound.currentTime = 0;
+      eatSound.play();
+    } catch (e) {}
   } else if(window.powerUp && head.row===window.powerUp.row && head.col===window.powerUp.col) {
     score+=30;
     document.getElementById('snake-score').innerText = score;
@@ -181,7 +192,12 @@ function gameOverSnake() {
   isGameOver = true;
   clearInterval(gameInterval);
   saveSnakeStats(score);
-  alert('Game Over!');
+  // เล่นเสียงจบเกม
+  try {
+    if (!gameOverSound.paused) gameOverSound.currentTime = 0;
+    gameOverSound.play();
+  } catch (e) {}
+  // ไม่ต้อง alert
 }
 
 function saveSnakeStats(score) {
