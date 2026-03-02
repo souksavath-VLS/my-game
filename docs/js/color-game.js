@@ -40,37 +40,39 @@ function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
+// เรียกใช้งาน: playColorNameSound('Red');
 function playColorNameSound(colorName) {
-  // ใช้ SpeechSynthesis API
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  // ถ้าอยู่ใน Android WebView ที่มี Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(colorName, voiceLang);
+    return;
+  }
+  // Fallback: ใช้ SpeechSynthesis API (browser)
   if (!('speechSynthesis' in window)) {
     console.error('SpeechSynthesis API not supported');
     return;
   }
-  let lang = localStorage.getItem('lang') || 'en';
-  if (!['th','en','lao'].includes(lang)) lang = 'en';
-  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
   const utter = new SpeechSynthesisUtterance(colorName);
   utter.lang = voiceLang;
-  // ฟังก์ชันพูดหลังได้ voices
   function speakWithVoices() {
     const voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) {
-      console.error('No speech voices available');
-      window.speechSynthesis.speak(utter); // ลองพูดแม้ไม่มี voice
+      window.speechSynthesis.speak(utter);
       return;
     }
     const matchVoice = voices.find(v => v.lang === voiceLang);
     if (matchVoice) utter.voice = matchVoice;
     window.speechSynthesis.speak(utter);
   }
-  // ถ้า voices ยังไม่มา ให้รอ event
   if (window.speechSynthesis.getVoices().length === 0) {
     window.speechSynthesis.onvoiceschanged = function() {
       speakWithVoices();
     };
-    // trigger voices load
     window.speechSynthesis.getVoices();
-    setTimeout(speakWithVoices, 500); // fallback รอ 0.5 วิ
+    setTimeout(speakWithVoices, 500);
   } else {
     speakWithVoices();
   }
