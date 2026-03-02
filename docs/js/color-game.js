@@ -8,7 +8,7 @@ function getColorLang() {
 const COLOR_NAMES = {
   th: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล'],
   en: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown'],
-  lao: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+  lao: ['สีแดง','สีเหลือง','สีเขียว','สีน้ำเงิน','สีส้ม','สีม่วง','สีชมพู','สีน้ำตาล']
 };
 const COLORS = COLOR_NAMES[getColorLang()].map((name,i)=>{
   const colorArr = ['#e53935','#fbc02d','#43a047','#1e88e5','#fb8c00','#8e24aa','#ec407a','#6d4c41'];
