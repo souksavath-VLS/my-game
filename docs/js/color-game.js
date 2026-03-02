@@ -153,6 +153,16 @@ document.getElementById('restartColorBtn').onclick = () => {
 
 
 
+let ttsPlayed = false;
+window.tryPlayTTS = function() {
+  if (ttsPlayed) return;
+  if (currentColor && currentColor.name) {
+    playColorNameSound(currentColor.name);
+    ttsPlayed = true;
+    window.removeEventListener('touchstart', window.tryPlayTTS);
+    window.removeEventListener('mousedown', window.tryPlayTTS);
+  }
+};
 window.onload = () => {
   score = 0;
   round = 0;
@@ -160,24 +170,11 @@ window.onload = () => {
   correctInStage = 0;
   startTime = null;
   endTime = null;
+  ttsPlayed = false;
   nextColorRound();
-
-  // Fallback: ถ้า autoplay ไม่ทำงาน (เช่นใน WebView)
-  // จะพยายามเล่นเสียงอีกครั้งเมื่อ user แตะหน้าจอครั้งแรก
-  let ttsPlayed = false;
-  function tryPlayTTS() {
-    if (ttsPlayed) return;
-    // หา currentColor จากรอบแรก
-    if (currentColor && currentColor.name) {
-      playColorNameSound(currentColor.name);
-      ttsPlayed = true;
-      window.removeEventListener('touchstart', tryPlayTTS);
-      window.removeEventListener('mousedown', tryPlayTTS);
-    }
-  }
   // เรียกซ้ำเมื่อ user แตะหน้าจอ (สำหรับ mobile webview)
-  window.addEventListener('touchstart', tryPlayTTS);
-  window.addEventListener('mousedown', tryPlayTTS);
+  window.addEventListener('touchstart', window.tryPlayTTS);
+  window.addEventListener('mousedown', window.tryPlayTTS);
 };
 // เก็บสถิติลง localStorage
 function saveColorGameStat(timeUsed) {
