@@ -44,7 +44,7 @@ function shuffle(arr) {
 function playColorNameSound(colorName) {
   let lang = localStorage.getItem('lang') || 'en';
   if (!['th','en','lao'].includes(lang)) lang = 'en';
-  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'th-TH' : 'en-US';
   // ถ้าอยู่ใน Android WebView ที่มี Native TTS
   if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
     window.AndroidTTS.speak(colorName, voiceLang);
