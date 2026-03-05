@@ -47,15 +47,21 @@ function getDrawAbcLang() {
 }
 
 function playAbcSound(ch, idx) {
+  let lang = getDrawAbcLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  let text = '';
+  if (lang === 'en') {
+    text = ch;
+  } else {
+    text = ABC_LANG[lang][idx];
+  }
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(text, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getDrawAbcLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
-    let text = '';
-    if (lang === 'en') {
-      text = ch;
-    } else {
-      text = ABC_LANG[lang][idx];
-    }
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
