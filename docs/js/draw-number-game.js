@@ -31,10 +31,16 @@ function getDrawNumberLang() {
 }
 
 function playNumberSound(num, idx) {
+  let lang = getDrawNumberLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  let text = lang === 'en' ? num : NUMBER_LANG[lang][idx];
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(text, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getDrawNumberLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
-    let text = lang === 'en' ? num : NUMBER_LANG[lang][idx];
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
