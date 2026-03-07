@@ -6,6 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <style>
+        @media (max-width: 600px) {
+          #snake-board {
+            width: 320px !important;
+            height: 320px !important;
+            max-width: 320px !important;
+            max-height: 320px !important;
+            grid-template-rows: repeat(21, 15px) !important;
+            grid-template-columns: repeat(21, 15px) !important;
+          }
+          .snake-cell {
+            width: 15px !important;
+            height: 15px !important;
+          }
+        }
     body { background: #222; }
     .snake-container {
       display: flex;
@@ -17,8 +31,8 @@
       background: #111;
       border: 4px solid #4caf50;
       border-radius: 16px;
-      width: 440px;
-      height: 440px;
+      width: 450px;
+      height: 450px;
       display: grid;
       grid-template-rows: repeat(21, 20px);
       grid-template-columns: repeat(21, 20px);
@@ -65,14 +79,14 @@
 <body>
   <div class="snake-container">
     <h2 style="color:#4caf50;">Snake Pro</h2>
-    <div class="snake-score">คะแนน: <span id="snake-score">0</span> | สูงสุด: <span id="snake-highscore">0</span></div>
-    <button id="start-snake-btn">เริ่มเกม</button>
+    <div class="snake-score">คะแนน: <span id="snake-score">0</span></div>
+    <div style="margin-top:1.2rem;display:flex;gap:12px;justify-content:center;">
+      <button id="start-snake-btn">เริ่มเกม</button>
+      <button id="theme-snake-btn" style="font-size:1rem;padding:0.5rem 1.5rem;border-radius:10px;background:#333;color:#fff;border:none;box-shadow:0 2px 8px #4caf5044;cursor:pointer;">เปลี่ยนธีม</button>
+      <button id="pause-snake-btn" style="font-size:1rem;padding:0.5rem 1.5rem;border-radius:10px;background:#333;color:#fff;border:none;box-shadow:0 2px 8px #4caf5044;cursor:pointer;">หยุด</button>
+    </div>
     <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.2rem;">
       <div id="snake-board"></div>
-      <div style="margin-top:1.2rem;display:flex;gap:12px;justify-content:center;">
-        <button id="theme-snake-btn" style="font-size:1rem;padding:0.5rem 1.5rem;border-radius:10px;background:#333;color:#fff;border:none;box-shadow:0 2px 8px #4caf5044;cursor:pointer;">เปลี่ยนธีม</button>
-        <button id="pause-snake-btn" style="font-size:1rem;padding:0.5rem 1.5rem;border-radius:10px;background:#333;color:#fff;border:none;box-shadow:0 2px 8px #4caf5044;cursor:pointer;">หยุด</button>
-      </div>
       <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.2rem;">
         <div style="display:flex;justify-content:center;margin-bottom:1rem;">
           <button id="arrow-up" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▲</button>
