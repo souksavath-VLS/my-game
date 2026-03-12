@@ -5,6 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Space Invaders Pro</title>
   <style>
+            @media (max-width: 600px) {
+              #spaceinvaders-board {
+                width: 320px !important;
+                height: 320px !important;
+                max-width: 320px !important;
+                max-height: 320px !important;
+                grid-template-columns: repeat(20, 16px) !important;
+                grid-template-rows: repeat(20, 16px) !important;
+                gap: 1px !important;
+              }
+              .spaceinvaders-cell {
+                width: 16px !important;
+                height: 16px !important;
+              }
+              .spaceinvaders-btn {
+                font-size: 1.1rem !important;
+                padding: 0.7rem 1.2rem !important;
+                min-width: 80px !important;
+              }
+              .spaceinvaders-score {
+                font-size: 1rem !important;
+              }
+              .spaceinvaders-title {
+                font-size: 1.3em !important;
+                margin-top: 18px !important;
+              }
+              /* ไม่กำหนด flex-direction: column ให้ .spaceinvaders-btn-row */
+            }
+        /* Remove responsive for button row: always row layout */
+        /* Keep only board/cell responsive if needed, but not button row */
     body {
       background: #111;
       color: #fff;
@@ -90,7 +120,7 @@
     Time: <span id="spaceinvaders-timer">00:00</span>
   </div>
   <div id="spaceinvaders-board"></div>
-  <div style="display:flex;justify-content:center;align-items:center;margin-top:16px;gap:16px;">
+  <div class="spaceinvaders-btn-row" style="display:flex;justify-content:center;align-items:center;margin-top:16px;gap:16px;">
     <button class="spaceinvaders-btn" id="left-btn">&#8592; Left</button>
     <button class="spaceinvaders-btn" id="start-spaceinvaders-btn">Start Game</button>
     <button class="spaceinvaders-btn" id="right-btn">Right &#8594;</button>

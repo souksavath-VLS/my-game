@@ -1,7 +1,13 @@
 // js/slither.js
 // Slither (Snake Multiplayer/Bot) - โครงสร้างเริ่มต้น
 
-const ROWS = 30, COLS = 30;
+
+let ROWS = 30, COLS = 30;
+if (window.innerWidth <= 600) {
+  // สำหรับมือถือ: ใช้ 16 แถว 9 คอลัมน์ (9:16)
+  ROWS = 16;
+  COLS = 9;
+}
 let board = [], snakes = [], foods = [], score = 0, gameInterval, isGameOver = false;
 
 function createBoard() {
