@@ -71,11 +71,72 @@ function renderOptions() {
     div.style.cursor = 'grab';
     div.draggable = true;
     div.innerHTML = shape.icon;
+    // Mouse drag
     div.ondragstart = e => {
       e.dataTransfer.setData('shape', shape.name);
     };
+    // Touch drag
+    let touchDragging = false;
+    let touchShape = null;
+    div.addEventListener('touchstart', function(e) {
+      touchDragging = true;
+      touchShape = shape.name;
+      div.style.opacity = 0.5;
+    });
+    div.addEventListener('touchmove', function(e) {
+      if (!touchDragging) return;
+      const touch = e.touches[0];
+      div.style.position = 'absolute';
+      div.style.left = (touch.pageX - 40) + 'px';
+      div.style.top = (touch.pageY - 40) + 'px';
+      div.style.zIndex = 999;
+      e.preventDefault();
+    });
+    div.addEventListener('touchend', function(e) {
+      if (!touchDragging) return;
+      div.style.opacity = 1;
+      div.style.position = '';
+      div.style.left = '';
+      div.style.top = '';
+      div.style.zIndex = '';
+      // ตรวจสอบว่าปล่อยนิ้วบน shadow
+      const shadow = document.getElementById('shape-shadow');
+      const rect = shadow.getBoundingClientRect();
+      const touch = e.changedTouches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      if (
+        x >= rect.left && x <= rect.right &&
+        y >= rect.top && y <= rect.bottom
+      ) {
+        onDropShapeTouch(touchShape);
+      }
+      touchDragging = false;
+      touchShape = null;
+    });
     container.appendChild(div);
   });
+// สำหรับ touch event
+function onDropShapeTouch(dropped) {
+  if (finished) return;
+  finished = true;
+  endTimer();
+  if (dropped === answer.name) {
+    playSound('shapeCorrectSound');
+    playSound('shapeWinSound');
+    document.getElementById('shape-puzzle-result').textContent = 'ถูกต้อง!';
+    saveStats(true);
+    totalCorrect++;
+    setTimeout(() => {
+      currentLevel++;
+      startGame();
+    }, 900);
+  } else {
+    playSound('shapeWrongSound');
+    document.getElementById('shape-puzzle-result').textContent = 'ผิด ลองใหม่!';
+    saveStats(false);
+  }
+}
 }
 
 function onDropShape(e) {
