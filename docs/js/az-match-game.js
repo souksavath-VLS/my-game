@@ -30,8 +30,73 @@ function renderAZMatch() {
     div.setAttribute('draggable', 'true');
     div.dataset.letter = u;
     div.ondragstart = azMatchDragStart;
+    // Touch event support
+    let touchDragging = false;
+    let touchLetter = null;
+    div.addEventListener('touchstart', function(e) {
+      touchDragging = true;
+      touchLetter = u;
+      div.style.opacity = 0.6;
+    });
+    div.addEventListener('touchmove', function(e) {
+      if (!touchDragging) return;
+      const touch = e.touches[0];
+      div.style.position = 'absolute';
+      div.style.left = (touch.pageX - 27) + 'px';
+      div.style.top = (touch.pageY - 27) + 'px';
+      div.style.zIndex = 999;
+      e.preventDefault();
+    });
+    div.addEventListener('touchend', function(e) {
+      if (!touchDragging) return;
+      div.style.opacity = 1;
+      div.style.position = '';
+      div.style.left = '';
+      div.style.top = '';
+      div.style.zIndex = '';
+      // ตรวจสอบ drop zone (az-match-lower)
+      const lowers = document.querySelectorAll('.az-match-lower');
+      const touch = e.changedTouches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      for (const lowerDiv of lowers) {
+        const rect = lowerDiv.getBoundingClientRect();
+        if (
+          x >= rect.left && x <= rect.right &&
+          y >= rect.top && y <= rect.bottom
+        ) {
+          onAZMatchDropTouch(touchLetter, lowerDiv);
+          break;
+        }
+      }
+      touchDragging = false;
+      touchLetter = null;
+    });
     container.appendChild(div);
   });
+  // สำหรับ touch event drop
+  function onAZMatchDropTouch(upper, lowerDiv) {
+    if (azGameFinished) return;
+    const lower = lowerDiv.dataset.letter;
+    if (upper && lower && upper.toLowerCase() === lower) {
+      playSound('correct');
+      azGameCorrect++;
+      lowerDiv.style.background = '#cfc';
+      lowerDiv.textContent = upper + ' / ' + lower;
+      if (azGameCorrect === 26) {
+        azGameFinished = true;
+        playSound('win');
+        endAZTimer();
+        document.getElementById('az-match-result').textContent = `จบเกม! ถูกต้องครบ 26 ตัวอักษร | ตอบผิด ${azGameWrong} ครั้ง`;
+        saveAZStats(true);
+      }
+    } else {
+      playSound('wrong');
+      azGameWrong++;
+      lowerDiv.style.background = '#fcc';
+      document.getElementById('az-match-result').textContent = `ผิด ลองใหม่! (ผิด ${azGameWrong} ครั้ง)`;
+    }
+  }
   const shadow = document.getElementById('az-match-shadow');
   shadow.innerHTML = '';
   lower.forEach((l, idx) => {
