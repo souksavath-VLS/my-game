@@ -64,6 +64,36 @@ function renderDrawLaoChar() {
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   });
+  // Touch events
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    drawing = true;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, {passive: false});
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    drawing = false;
+  }, {passive: false});
+  canvas.addEventListener('touchcancel', function(e) {
+    e.preventDefault();
+    drawing = false;
+  }, {passive: false});
+  canvas.addEventListener('touchmove', function(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, {passive: false});
   // ปุ่มลบเส้น
   const clearBtn = document.createElement('button');
   clearBtn.className = 'menu-btn draw-lao-btn';
