@@ -156,12 +156,25 @@ const songs = {
     { note: 'E4', time: 3000 }, { note: 'E4', time: 3500 }, { note: 'E4', time: 4000 },
     { note: 'D4', time: 5000 }, { note: 'D4', time: 5500 }, { note: 'D4', time: 6000 },
     { note: 'E4', time: 7000 }, { note: 'G4', time: 7500 }, { note: 'G4', time: 8000 }
+  ],
+  happy: [
+    { note: 'C4', time: 1000 }, { note: 'C4', time: 1300 }, { note: 'D4', time: 1600 }, { note: 'C4', time: 2200 },
+    { note: 'F4', time: 2800 }, { note: 'E4', time: 3400 },
+    
+    { note: 'C4', time: 4400 }, { note: 'C4', time: 4700 }, { note: 'D4', time: 5000 }, { note: 'C4', time: 5600 },
+    { note: 'G4', time: 6200 }, { note: 'F4', time: 6800 },
+    
+    { note: 'C4', time: 7800 }, { note: 'C4', time: 8100 }, { note: 'C5', time: 8400 }, { note: 'A4', time: 9000 },
+    { note: 'F4', time: 9600 }, { note: 'E4', time: 10200 }, { note: 'D4', time: 10800 },
+    
+    { note: 'A#4', time: 11800 }, { note: 'A#4', time: 12100 }, { note: 'A4', time: 12400 }, { note: 'F4', time: 13000 },
+    { note: 'G4', time: 13600 }, { note: 'F4', time: 14200 }
   ]
 };
 
 const noteColors = {
   'C4': '#FF5252', 'D4': '#FF9800', 'E4': '#FFEB3B', 'F4': '#4CAF50',
-  'G4': '#2196F3', 'A4': '#9C27B0', 'B4': '#E91E63', 'C5': '#00BCD4'
+  'G4': '#2196F3', 'A4': '#9C27B0', 'A#4': '#E040FB', 'B4': '#E91E63', 'C5': '#00BCD4'
 };
 
 let currentSong = [];
@@ -169,12 +182,14 @@ let gameInterval;
 let gameStartTime = 0;
 let rhythmScore = 0;
 let activeNotes = [];
+let isAutoPlayMode = false;
 
 const trackContainer = document.getElementById('track-container');
 const notesTrack = document.getElementById('notes-track');
 const scoreDisplay = document.getElementById('score-display');
 const songSelect = document.getElementById('song-select');
 const startBtn = document.getElementById('start-song-btn');
+const listenBtn = document.getElementById('listen-song-btn');
 const feedbackText = document.getElementById('feedback-text');
 
 if (songSelect) {
@@ -188,10 +203,13 @@ if (songSelect) {
     }
   });
 
-  startBtn.addEventListener('click', startGame);
+  startBtn.addEventListener('click', () => startGame(false));
+  if (listenBtn) {
+    listenBtn.addEventListener('click', () => startGame(true));
+  }
 }
 
-function startGame() {
+function startGame(autoPlay = false) {
   const songId = songSelect.value;
   if (!songId) return;
   
@@ -201,6 +219,8 @@ function startGame() {
   clearInterval(gameInterval);
   notesTrack.innerHTML = '';
   rhythmScore = 0;
+  isAutoPlayMode = autoPlay === true;
+  scoreDisplay.style.visibility = isAutoPlayMode ? 'hidden' : 'visible';
   scoreDisplay.textContent = `Score: ${rhythmScore}`;
   activeNotes = [];
   
@@ -240,9 +260,27 @@ function gameLoop() {
     // Position = 60 + (timeRemaining * pixelsPerMs)
     const currentPos = 60 + (timeRemaining * pixelsPerMs);
     
+    // Auto-Play logic
+    if (isAutoPlayMode && currentPos <= 60 && !noteObj.played) {
+      noteObj.played = true;
+      const keyElement = document.querySelector(`.key[data-note="${noteObj.note}"]`);
+      if (keyElement) {
+        const freq = parseFloat(keyElement.getAttribute('data-freq'));
+        keyElement.classList.add('active');
+        playNote(freq, noteObj.note);
+        setTimeout(() => {
+          keyElement.classList.remove('active');
+          stopNote(noteObj.note);
+        }, 300);
+      }
+      noteObj.el.remove();
+      activeNotes.splice(i, 1);
+      continue;
+    }
+    
     if (currentPos < -50) {
       // Missed
-      showFeedback('Miss!', 'miss');
+      if (!isAutoPlayMode) showFeedback('Miss!', 'miss');
       noteObj.el.remove();
       activeNotes.splice(i, 1);
     } else {
@@ -253,7 +291,9 @@ function gameLoop() {
   
   if (currentSong.length === 0 && activeNotes.length === 0) {
     clearInterval(gameInterval);
-    setTimeout(() => alert('จบเพลง! คะแนนรวม: ' + rhythmScore), 1000);
+    if (!isAutoPlayMode) {
+      setTimeout(() => alert('จบเพลง! คะแนนรวม: ' + rhythmScore), 1000);
+    }
   }
 }
 
