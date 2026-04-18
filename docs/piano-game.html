@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" id="piano-lang">
+<head>
+  <meta charset="UTF-8">
+  <title id="piano-title">Piano Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      background: #f4f7f6;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      touch-action: manipulation; /* Prevent zooming on double tap */
+    }
+    
+    .piano-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      padding: 20px 0;
+      margin-top: 40px;
+      overflow-x: auto;
+    }
+
+    .keyboard {
+      position: relative;
+      display: flex;
+      background: #333;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .key {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      padding-bottom: 20px;
+      border-radius: 0 0 6px 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .key.white {
+      width: 60px;
+      height: 250px;
+      background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 5px rgba(0,0,0,0.2);
+      margin: 0 2px;
+      z-index: 1;
+      color: #555;
+    }
+
+    .key.white.active {
+      background: linear-gradient(to bottom, #e0e0e0 0%, #d0d0d0 100%);
+      box-shadow: 0 2px 2px rgba(0,0,0,0.2);
+      transform: translateY(2px);
+    }
+
+    .key.black {
+      width: 40px;
+      height: 150px;
+      background: linear-gradient(to bottom, #444 0%, #000 100%);
+      border: 1px solid #000;
+      box-shadow: 0 4px 5px rgba(0,0,0,0.5);
+      margin: 0 -20px;
+      z-index: 2;
+      color: #fff;
+      font-size: 0.9rem;
+      padding-bottom: 15px;
+    }
+
+    .key.black.active {
+      background: linear-gradient(to bottom, #222 0%, #000 100%);
+      box-shadow: 0 2px 2px rgba(0,0,0,0.5);
+      transform: translateY(2px);
+    }
+
+    /* Multi-color for white keys for kids */
+    .key[data-note="C4"] { border-bottom: 8px solid #FF5252; }
+    .key[data-note="D4"] { border-bottom: 8px solid #FF9800; }
+    .key[data-note="E4"] { border-bottom: 8px solid #FFEB3B; color: #888;}
+    .key[data-note="F4"] { border-bottom: 8px solid #4CAF50; }
+    .key[data-note="G4"] { border-bottom: 8px solid #2196F3; }
+    .key[data-note="A4"] { border-bottom: 8px solid #9C27B0; }
+    .key[data-note="B4"] { border-bottom: 8px solid #E91E63; }
+    .key[data-note="C5"] { border-bottom: 8px solid #00BCD4; }
+
+    @media (max-width: 600px) {
+      .key.white {
+        width: 45px;
+        height: 200px;
+        font-size: 1rem;
+      }
+      .key.black {
+        width: 30px;
+        height: 120px;
+        margin: 0 -15px;
+        font-size: 0.75rem;
+      }
+    }
+    
+    .note-label {
+      pointer-events: none;
+    }
+
+    /* Rhythm Game Styles */
+    .track-container {
+      display: none; /* ซ่อนไว้ก่อนจนกว่าจะเลือกเพลง */
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      height: 80px;
+      background: #e9ecef;
+      margin: 0 auto 20px auto;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #dee2e6;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .hit-line {
+      position: absolute;
+      left: 60px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #f44336;
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(244, 67, 54, 0.8);
+    }
+    
+    .hit-zone {
+      position: absolute;
+      left: 30px;
+      top: 0;
+      bottom: 0;
+      width: 60px;
+      background: rgba(244, 67, 54, 0.15);
+      z-index: 5;
+    }
+    
+    .moving-note {
+      position: absolute;
+      top: 15px;
+      height: 50px;
+      width: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+
+    #feedback-text {
+      position: absolute;
+      left: 45px;
+      top: -35px;
+      font-weight: bold;
+      font-size: 1.5rem;
+      pointer-events: none;
+      z-index: 20;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    .feedback-perfect { color: #4CAF50; animation: popUp 0.5s ease-out; }
+    .feedback-good { color: #2196F3; animation: popUp 0.5s ease-out; }
+    .feedback-miss { color: #F44336; animation: popUp 0.5s ease-out; }
+    
+    @keyframes popUp {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-20px) scale(1.2); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header" id="piano-header">Piano Game</div>
+  <div class="container py-4 text-center">
+    
+    <div id="rhythm-ui" class="mb-4 d-flex flex-wrap justify-content-center align-items-center gap-3">
+      <select id="song-select" class="form-select" style="max-width: 250px; font-size: 1.1rem; padding: 10px;">
+        <option value="">-- เลือกเพลง (Choose Song) --</option>
+        <option value="twinkle">Twinkle Twinkle Little Star</option>
+        <option value="mary">Mary Had a Little Lamb</option>
+      </select>
+      <button id="start-song-btn" class="btn btn-success" style="font-size: 1.1rem; padding: 10px 20px;">เริ่มเล่น (Start)</button>
+      <div id="score-display" class="fw-bold" style="font-size: 1.4rem; color: #ff9800; min-width: 120px;">Score: 0</div>
+    </div>
+    
+    <div class="track-container" id="track-container">
+      <div class="hit-line"></div>
+      <div class="hit-zone"></div>
+      <div id="notes-track" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>
+      <div id="feedback-text"></div>
+    </div>
+    
+    <div class="piano-container">
+      <div class="keyboard" id="keyboard">
+        <!-- Octave 4 -->
+        <div class="key white" data-note="C4" data-freq="261.63"><span class="note-label">C</span></div>
+        <div class="key black" data-note="C#4" data-freq="277.18"><span class="note-label">C#</span></div>
+        <div class="key white" data-note="D4" data-freq="293.66"><span class="note-label">D</span></div>
+        <div class="key black" data-note="D#4" data-freq="311.13"><span class="note-label">D#</span></div>
+        <div class="key white" data-note="E4" data-freq="329.63"><span class="note-label">E</span></div>
+        <div class="key white" data-note="F4" data-freq="349.23"><span class="note-label">F</span></div>
+        <div class="key black" data-note="F#4" data-freq="369.99"><span class="note-label">F#</span></div>
+        <div class="key white" data-note="G4" data-freq="392.00"><span class="note-label">G</span></div>
+        <div class="key black" data-note="G#4" data-freq="415.30"><span class="note-label">G#</span></div>
+        <div class="key white" data-note="A4" data-freq="440.00"><span class="note-label">A</span></div>
+        <div class="key black" data-note="A#4" data-freq="466.16"><span class="note-label">A#</span></div>
+        <div class="key white" data-note="B4" data-freq="493.88"><span class="note-label">B</span></div>
+        <!-- Octave 5 (C only for completion) -->
+        <div class="key white" data-note="C5" data-freq="523.25"><span class="note-label">C</span></div>
+      </div>
+    </div>
+    
+    <p id="piano-instruction" class="mt-4 text-muted">Tap the keys to play music!</p>
+
+    <div class="mt-4">
+      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;" id="exitBtn">Exit</button>
+    </div>
+  </div>
+
+  <script src="js/piano-game.js"></script>
+  <script>
+    const pianoLangData = {
+      th: {
+        title: 'เกมเปียโน',
+        header: 'เปียโนสำหรับเด็ก',
+        instruction: 'กดที่คีย์เพื่อเล่นเพลงสนุกๆ!',
+        exit: 'ออกเกม'
+      },
+      en: {
+        title: 'Piano Game',
+        header: 'Kids Piano',
+        instruction: 'Tap the keys to play music!',
+        exit: 'Exit'
+      },
+      lao: {
+        title: 'ເກມເປຍໂນ',
+        header: 'ເປຍໂນສຳລັບເດັກ',
+        instruction: 'ກົດປຸ່ມເພື່ອຫຼິ້ນເພງ!',
+        exit: 'ອອກເກມ'
+      }
+    };
+    function getPianoLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      return lang;
+    }
+    function setPianoLangUI() {
+      const lang = getPianoLang();
+      document.getElementById('piano-title').textContent = pianoLangData[lang].title;
+      document.getElementById('piano-header').textContent = pianoLangData[lang].header;
+      document.getElementById('piano-instruction').textContent = pianoLangData[lang].instruction;
+      document.getElementById('exitBtn').textContent = pianoLangData[lang].exit;
+      document.getElementById('piano-lang').setAttribute('lang', lang);
+    }
+    document.addEventListener('DOMContentLoaded', setPianoLangUI);
+  </script>
+</body>
+</html>
