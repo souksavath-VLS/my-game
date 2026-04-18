@@ -8,7 +8,13 @@
 </head>
 <body>
   <div class="header" id="color-header">Color Game</div>
-  <div class="container py-4">
+  <div id="color-tap-to-start" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+    <div style="background:#fff;padding:2rem 2.5rem;border-radius:1.2rem;box-shadow:0 2px 16px #0002;text-align:center;">
+      <div style="font-size:1.3rem;margin-bottom:1.2rem;">แตะเพื่อเริ่มเกม</div>
+      <button id="colorStartBtn" class="menu-btn" style="font-size:1.2rem;">เริ่มเกม</button>
+    </div>
+  </div>
+  <div class="container py-4" id="color-main-content">
     <div id="color-stage-info" class="text-center mb-2" style="font-size:1.1rem;color:#888;"></div>
     <div id="color-question" class="text-center mb-4" style="font-size:2rem;"></div>
     <div id="color-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
@@ -25,6 +31,35 @@
   <audio id="colorCongratsSound" src="assets/sound/color-game/congrats.wav"></audio>
   <script src="js/color-game.js"></script>
   <script>
+    // --- Tap to Start logic for WebView ---
+    function showTapToStart() {
+      var popup = document.getElementById('color-tap-to-start');
+      var main = document.getElementById('color-main-content');
+      popup.style.display = 'flex';
+      popup.style.visibility = 'visible';
+      main.style.filter = 'blur(2px)';
+      document.getElementById('colorStartBtn').onclick = function() {
+        // ป้องกันซ้อน display:none
+        popup.style.display = 'none';
+        popup.style.visibility = 'hidden';
+        main.style.filter = '';
+        setTimeout(function() {
+          if (window.tryPlayTTS) window.tryPlayTTS();
+        }, 100);
+      };
+    }
+    // ตรวจสอบว่าเป็น WebView หรือไม่ (เบื้องต้น)
+    function isProbablyWebView() {
+      let ua = navigator.userAgent || '';
+      // ตรวจสอบ WebView เบื้องต้น (Android/iOS)
+      return /wv|WebView|; wv\)/i.test(ua) || (window.cordova || window.Capacitor);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      // ถ้าเป็น WebView ให้แสดงปุ่มทันทีเมื่อเข้าเกม (ไม่ต้องเป็นลิงก์ใหม่)
+      if (isProbablyWebView()) {
+        showTapToStart();
+      }
+    });
     // ภาษา: th/en/lao
     const colorLangData = {
       th: {

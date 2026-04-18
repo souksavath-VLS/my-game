@@ -221,8 +221,73 @@ function renderMapPuzzle() {
     };
     piece.onmouseover = () => { piece.style.boxShadow = '0 4px 24px #1976d288'; };
     piece.onmouseout = () => { piece.style.boxShadow = '0 2px 12px rgba(25,118,210,0.13)'; };
+    // Touch event support
+    let touchDragging = false;
+    let touchKey = null;
+    piece.addEventListener('touchstart', function(e) {
+      touchDragging = true;
+      touchKey = p.key;
+      piece.style.opacity = 0.6;
+    });
+    piece.addEventListener('touchmove', function(e) {
+      if (!touchDragging) return;
+      const touch = e.touches[0];
+      piece.style.position = 'absolute';
+      piece.style.left = (touch.pageX - 55) + 'px';
+      piece.style.top = (touch.pageY - 37) + 'px';
+      piece.style.zIndex = 999;
+      e.preventDefault();
+    });
+    piece.addEventListener('touchend', function(e) {
+      if (!touchDragging) return;
+      piece.style.opacity = 1;
+      piece.style.position = '';
+      piece.style.left = '';
+      piece.style.top = '';
+      piece.style.zIndex = '';
+      // ตรวจสอบ drop zone
+      const dz = document.querySelector('.drop-zone');
+      if (dz) {
+        const rect = dz.getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        if (
+          x >= rect.left && x <= rect.right &&
+          y >= rect.top && y <= rect.bottom
+        ) {
+          // simulate drop
+          onDropZoneTouch(touchKey);
+        }
+      }
+      touchDragging = false;
+      touchKey = null;
+    });
     piecesRow.appendChild(piece);
   });
+  // สำหรับ touch event drop zone
+  function onDropZoneTouch(draggedKey) {
+    const dz = document.querySelector('.drop-zone');
+    if (!dz) return;
+    const target = COUNTRIES[selectedCountryIdx];
+    if (draggedKey === target.key) {
+      dz.style.background = target.color;
+      dz.innerHTML = `<img src="${target.flag}" alt="flag" style="width:56px;height:38px;vertical-align:middle;margin-right:10px;border:1.5px solid #fff;border-radius:5px;box-shadow:0 2px 8px #0002;"> <span>${target.label}</span>`;
+      dz.style.color = '#fff';
+      dz.style.opacity = 1;
+      correctCount++;
+      document.getElementById('correct').textContent = 'ถูกต้อง: ' + correctCount;
+      const piece = document.querySelector(`[data-piece='${draggedKey}']`);
+      if (piece) piece.remove();
+      document.getElementById('country-name').textContent = target.label;
+      checkWin();
+    } else {
+      dz.style.background = '#ffcdd2';
+      setTimeout(() => { dz.style.background = target.color + '22'; }, 700);
+      wrongCount++;
+      document.getElementById('wrong').textContent = 'ผิด: ' + wrongCount;
+    }
+  }
   // แสดงชื่อประเทศใต้ drop zone
   countryName.textContent = '';
   // timer (เริ่มใหม่เฉพาะเกมแรก)

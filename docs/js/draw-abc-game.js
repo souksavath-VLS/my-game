@@ -47,15 +47,21 @@ function getDrawAbcLang() {
 }
 
 function playAbcSound(ch, idx) {
+  let lang = getDrawAbcLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  let text = '';
+  if (lang === 'en') {
+    text = ch;
+  } else {
+    text = ABC_LANG[lang][idx];
+  }
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(text, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getDrawAbcLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
-    let text = '';
-    if (lang === 'en') {
-      text = ch;
-    } else {
-      text = ABC_LANG[lang][idx];
-    }
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
@@ -183,18 +189,49 @@ window.onload = () => {
   const canvas = document.getElementById('draw-canvas');
   const ctx = canvas.getContext('2d');
   let drawing = false;
-  canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); });
-  canvas.addEventListener('mouseup', e => { drawing = false; });
-  canvas.addEventListener('mouseleave', e => { drawing = false; });
-  canvas.addEventListener('mousemove', e => {
-    if (!drawing) return;
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineWidth = 8;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#1976d2';
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-  });
+    // Mouse events
+    canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); });
+    canvas.addEventListener('mouseup', e => { drawing = false; });
+    canvas.addEventListener('mouseleave', e => { drawing = false; });
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1976d2';
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    });
+    // Touch events
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      drawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      ctx.beginPath();
+      ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    }, {passive: false});
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      drawing = false;
+    }, {passive: false});
+    canvas.addEventListener('touchcancel', function(e) {
+      e.preventDefault();
+      drawing = false;
+    }, {passive: false});
+    canvas.addEventListener('touchmove', function(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1976d2';
+      ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    }, {passive: false});
 })();

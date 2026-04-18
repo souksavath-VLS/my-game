@@ -1,7 +1,13 @@
 function playColorOrderNameSound(colorName) {
+  let lang = getColorOrderLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(colorName, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getColorOrderLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
     const utter = new SpeechSynthesisUtterance(colorName);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
@@ -47,22 +53,26 @@ function startGame() {
 
 // พูดคำแนะนำการเรียงสีตามภาษา
 function playColorOrderInstructionSound() {
+  let lang = getColorOrderLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  let instruction = '';
+  let colorNames = '';
+  if (typeof colorOrderLangData !== 'undefined') {
+    instruction = colorOrderLangData[lang].question;
+  } else {
+    instruction = lang === 'th' ? 'เรียงสีตามลำดับนี้' : lang === 'lao' ? 'ຮຽງສີຕາມລຳດັບນີ້' : 'Order the colors';
+  }
+  if (typeof order !== 'undefined' && Array.isArray(order) && order.length > 0) {
+    colorNames = order.map(c => c.name).join(' ');
+  }
+  const fullText = instruction + (colorNames ? ' ' + colorNames : '');
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(fullText, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getColorOrderLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
-    // ใช้ข้อความแนะนำจาก colorOrderLangData
-    let instruction = '';
-    let colorNames = '';
-    if (typeof colorOrderLangData !== 'undefined') {
-      instruction = colorOrderLangData[lang].question;
-    } else {
-      instruction = lang === 'th' ? 'เรียงสีตามลำดับนี้' : lang === 'lao' ? 'ຮຽງສີຕາມລຳດັບນີ້' : 'Order the colors';
-    }
-    // รวมชื่อสีใน order
-    if (typeof order !== 'undefined' && Array.isArray(order) && order.length > 0) {
-      colorNames = order.map(c => c.name).join(' ');
-    }
-    const fullText = instruction + (colorNames ? ' ' + colorNames : '');
     const utter = new SpeechSynthesisUtterance(fullText);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();

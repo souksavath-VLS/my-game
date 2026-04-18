@@ -8,7 +8,7 @@ function getColorLang() {
 const COLOR_NAMES = {
   th: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล'],
   en: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown'],
-  lao: ['ສີແດງ','ສີເຫຼືອງ','ສີຂຽວ','ສີນ້ຳເງິນ','ສີສົ້ມ','ສີມ່ວງ','ສີຊົມພູ','ສີນ້ຳຕານ']
+  lao: ['สีแดง','สีเหลือง','สีเขียว','สีน้ำเงิน','สีส้ม','สีม่วง','สีชมพู','สีน้ำตาล']
 };
 const COLORS = COLOR_NAMES[getColorLang()].map((name,i)=>{
   const colorArr = ['#e53935','#fbc02d','#43a047','#1e88e5','#fb8c00','#8e24aa','#ec407a','#6d4c41'];
@@ -40,19 +40,41 @@ function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
+// เรียกใช้งาน: playColorNameSound('Red');
 function playColorNameSound(colorName) {
-  // ใช้ SpeechSynthesis API
-  if ('speechSynthesis' in window) {
-    let lang = localStorage.getItem('lang') || 'en';
-    if (!['th','en','lao'].includes(lang)) lang = 'en';
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
-    const utter = new SpeechSynthesisUtterance(colorName);
-    utter.lang = voiceLang;
-    // หา voice ที่ตรงกับ lang
+  let lang = localStorage.getItem('lang') || 'en';
+  if (!['th','en','lao'].includes(lang)) lang = 'en';
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'th-TH' : 'en-US';
+  // ถ้าอยู่ใน Android WebView ที่มี Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(colorName, voiceLang);
+    return;
+  }
+  // Fallback: ใช้ SpeechSynthesis API (browser)
+  if (!('speechSynthesis' in window)) {
+    console.error('SpeechSynthesis API not supported');
+    return;
+  }
+  const utter = new SpeechSynthesisUtterance(colorName);
+  utter.lang = voiceLang;
+  function speakWithVoices() {
     const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) {
+      window.speechSynthesis.speak(utter);
+      return;
+    }
     const matchVoice = voices.find(v => v.lang === voiceLang);
     if (matchVoice) utter.voice = matchVoice;
     window.speechSynthesis.speak(utter);
+  }
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.onvoiceschanged = function() {
+      speakWithVoices();
+    };
+    window.speechSynthesis.getVoices();
+    setTimeout(speakWithVoices, 500);
+  } else {
+    speakWithVoices();
   }
 }
 
@@ -153,6 +175,16 @@ document.getElementById('restartColorBtn').onclick = () => {
 
 
 
+let ttsPlayed = false;
+window.tryPlayTTS = function() {
+  if (ttsPlayed) return;
+  if (currentColor && currentColor.name) {
+    playColorNameSound(currentColor.name);
+    ttsPlayed = true;
+    window.removeEventListener('touchstart', window.tryPlayTTS);
+    window.removeEventListener('mousedown', window.tryPlayTTS);
+  }
+};
 window.onload = () => {
   score = 0;
   round = 0;
@@ -160,7 +192,11 @@ window.onload = () => {
   correctInStage = 0;
   startTime = null;
   endTime = null;
+  ttsPlayed = false;
   nextColorRound();
+  // เรียกซ้ำเมื่อ user แตะหน้าจอ (สำหรับ mobile webview)
+  window.addEventListener('touchstart', window.tryPlayTTS);
+  window.addEventListener('mousedown', window.tryPlayTTS);
 };
 // เก็บสถิติลง localStorage
 function saveColorGameStat(timeUsed) {

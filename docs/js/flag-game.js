@@ -197,6 +197,12 @@ const FLAGS = [
 
 
 function speakCountry(name) {
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(name, 'en-US');
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
     const utter = new SpeechSynthesisUtterance(name);
     utter.lang = 'en-US';

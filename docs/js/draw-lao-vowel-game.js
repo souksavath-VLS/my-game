@@ -35,8 +35,8 @@ function renderDrawLaoVowel() {
   area.appendChild(charDiv);
   // วาด canvas
   const canvas = document.createElement('canvas');
-  canvas.width = 220;
-  canvas.height = 220;
+  canvas.width = 320;
+  canvas.height = 320;
   canvas.className = 'draw-lao-canvas';
   area.appendChild(canvas);
   // วาดเงาตัวอย่างตัวอักษร (ฟังก์ชันแยก)
@@ -45,7 +45,7 @@ function renderDrawLaoVowel() {
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = 0.18;
-    ctx.font = 'bold 120px Noto Sans Lao, sans-serif';
+    ctx.font = 'bold 180px Noto Sans Lao, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#1976d2';
@@ -72,18 +72,54 @@ function renderDrawLaoVowel() {
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   });
-  // ปุ่มลบเส้น
+  // Touch events
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    drawing = true;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, {passive: false});
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    drawing = false;
+  }, {passive: false});
+  canvas.addEventListener('touchcancel', function(e) {
+    e.preventDefault();
+    drawing = false;
+  }, {passive: false});
+  canvas.addEventListener('touchmove', function(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  }, {passive: false});
+  // ปุ่มลบเส้นและเสร็จสิ้นใน row เดียวกัน
+  const btnRow = document.createElement('div');
+  btnRow.style.display = 'flex';
+  btnRow.style.flexDirection = 'row';
+  btnRow.style.justifyContent = 'center';
+  btnRow.style.gap = '1rem';
+  btnRow.style.margin = '1.2rem 0';
   const clearBtn = document.createElement('button');
   clearBtn.className = 'menu-btn draw-lao-btn';
   clearBtn.textContent = 'ลบเส้น';
   clearBtn.onclick = function() { drawShadow(); };
-  area.appendChild(clearBtn);
-  // ปุ่มเสร็จ
+  btnRow.appendChild(clearBtn);
   const btn = document.createElement('button');
   btn.className = 'menu-btn draw-lao-btn';
   btn.textContent = 'เสร็จสิ้นตัวนี้';
   btn.onclick = checkDrawLaoVowel;
-  area.appendChild(btn);
+  btnRow.appendChild(btn);
+  area.appendChild(btnRow);
 }
 
 function checkDrawLaoVowel() {

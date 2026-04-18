@@ -5,6 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Slither Pro</title>
   <style>
+        @media (max-width: 600px) {
+          #slither-board {
+            width: min(80vw,70vh) !important;
+            height: min(80vw,70vh) !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            grid-template-columns: repeat(30, 1fr) !important;
+            grid-template-rows: repeat(30, 1fr) !important;
+            gap: 1px !important;
+          }
+          .slither-cell {
+            width: 100% !important;
+            height: 100% !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+          }
+          .slither-btn {
+            font-size: 1.1rem !important;
+            padding: 0.7rem 1.2rem !important;
+            min-width: 80px !important;
+          }
+        }
     body {
       background: #181818;
       color: #fff;
@@ -81,7 +103,32 @@
   <div class="slither-title">Slither Pro</div>
   <div style="margin-bottom:8px;">Score: <span id="slither-score">0</span></div>
   <div id="slither-board"></div>
+    <div class="slither-arrow-btns" style="display:flex;flex-direction:column;align-items:center;margin:1.2rem 0 0 0;gap:0.3rem;">
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <button class="slither-btn" id="slither-up">▲</button>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <button class="slither-btn" id="slither-left">◀</button>
+        <button class="slither-btn" id="slither-down">▼</button>
+        <button class="slither-btn" id="slither-right">▶</button>
+      </div>
+    </div>
   <button class="slither-btn" id="start-slither-btn">Start Game</button>
   <script src="js/slither.js"></script>
+  <script>
+    // ปุ่มควบคุมทิศทางสำหรับมือถือ
+    document.getElementById('slither-up').onclick = function() {
+      window.setSlitherDirection && window.setSlitherDirection('up');
+    };
+    document.getElementById('slither-down').onclick = function() {
+      window.setSlitherDirection && window.setSlitherDirection('down');
+    };
+    document.getElementById('slither-left').onclick = function() {
+      window.setSlitherDirection && window.setSlitherDirection('left');
+    };
+    document.getElementById('slither-right').onclick = function() {
+      window.setSlitherDirection && window.setSlitherDirection('right');
+    };
+  </script>
 </body>
 </html>

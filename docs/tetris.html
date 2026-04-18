@@ -6,6 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <style>
+    /* Responsive Tetris Layout for Mobile */
+    @media (max-width: 600px) {
+      .tetris-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        margin-top: 0.5rem !important;
+        padding: 0.5rem 0.2rem 1rem 0.2rem !important;
+        background: linear-gradient(135deg, #232526 0%, #414345 100%) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.14), 0 1px 0 #fff inset !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+      }
+      .tetris-flex-row {
+        flex-direction: column !important;
+        gap: 0 !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      #tetris-board {
+        width: 250px !important;
+        height: 480px !important;
+        grid-template-rows: repeat(20, 22px) !important;
+        grid-template-columns: repeat(10, 22px) !important;
+        aspect-ratio: unset !important;
+        margin: 0 auto 1.2rem auto !important;
+      }
+      .tetris-panel {
+        width: 92vw !important;
+        max-width: 320px !important;
+        margin: 0 auto 0.5rem auto !important;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .tetris-panel > div {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      .tetris-score, #timer {
+        font-size: 1.1rem !important;
+        padding: 0.3rem 0.7rem !important;
+      }
+      #start-btn, #theme-btn {
+        font-size: 1rem !important;
+        padding: 0.5rem 1.2rem !important;
+        border-radius: 10px !important;
+      }
+      .arrow-btn-row {
+        gap: 2px !important;
+      }
+      .arrow-btn {
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 1.7rem !important;
+        margin: 0 2px !important;
+      }
+      .tetris-controls > div:last-child {
+        font-size: 0.8rem !important;
+      }
+    }
         body.theme-wood {
           background: #bfa16b !important;
         }
@@ -245,34 +309,34 @@
   </style>
 </head>
 <body>
-  <div class="tetris-container">
-     
-    <h2 style="color:#fff;">Tetris</h2>
-    <div style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;margin-bottom:0.8rem;gap:18px;">
-      <div id="tetris-board"></div>
-      <div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="color:#fff;font-size:1.1rem;margin-bottom:0.3rem;">ชิ้นถัดไป</div>
-        <div id="next-preview" style="background:linear-gradient(135deg,#222 60%,#444 100%);border-radius:10px;border:2px solid #1976d2;box-shadow:0 2px 8px #1976d2aa;padding:8px 12px;min-width:60px;min-height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;"></div>
-        <div class="tetris-score" style="margin-top:1.2rem;">คะแนน: <span id="score">0</span></div>
-        <div id="timer" style="margin-top:0.7rem;font-size:1.1rem;color:#fff;background:rgba(25,118,210,0.13);border-radius:8px;padding:4px 16px;box-shadow:0 1px 4px #1976d244;">เวลา: <span id="time">0:00</span></div>
-        <button id="start-btn">เริ่มเกม</button>
-        <div style="display:flex;justify-content:center;width:100%;margin:1rem 0 0.5rem 0;">
-          <button id="theme-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;padding:0.4rem 1.2rem;box-shadow:0 2px 8px rgba(25,118,210,0.08);cursor:pointer;">Change Theme</button>
-        </div>
-    </div>
-    </div>
-    <div class="tetris-controls">
-      <div class="arrow-btn-row">
-        <button class="arrow-btn" id="left-btn" aria-label="ซ้าย">⬅️</button>
-        <button class="arrow-btn" id="rotate-btn" aria-label="หมุน">⟳</button>
-        <button class="arrow-btn" id="right-btn" aria-label="ขวา">➡️</button>
-        <button class="arrow-btn" id="down-btn" aria-label="ลง">⬇️</button>
-        <button class="arrow-btn" id="drop-btn" aria-label="วางทันที">⏬</button>
+  <!-- Removed duplicate tetris-container and board. Only one board and one set of controls will show. -->
+    <div class="tetris-container">
+      <div class="tetris-header-row" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:12px;margin-bottom:0.7rem;">
+        <h2 style="color:#fff;margin:0 0.5rem 0 0;flex:1 1 0;min-width:60px;">Tetris</h2>
+        <div id="next-preview" style="background:linear-gradient(135deg,#222 60%,#444 100%);border-radius:10px;border:2px solid #1976d2;box-shadow:0 2px 8px #1976d2aa;padding:8px 12px;min-width:60px;min-height:40px;display:flex;align-items:center;justify-content:center;"></div>
+        <div class="tetris-score" style="margin:0 0 0 0.5rem;white-space:nowrap;">คะแนน: <span id="score">0</span></div>
       </div>
-      <div style="font-size:0.95rem;opacity:0.8;">หรือใช้แป้นพิมพ์ ⬅️ ➡️ ⬆️ ⬇️ Spacebar</div>
+      <div class="tetris-flex-row" style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;margin-bottom:0.8rem;gap:18px;width:100%;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;">
+          <div id="tetris-board"></div>
+          <div class="arrow-btn-row" style="display:flex;gap:4px;margin:16px 0 0 0;justify-content:center;">
+            <button class="arrow-btn" id="left-btn" title="ซ้าย" aria-label="ซ้าย">&#8592;</button>
+            <button class="arrow-btn" id="rotate-btn" title="หมุน" aria-label="หมุน">&#8635;</button>
+            <button class="arrow-btn" id="right-btn" title="ขวา" aria-label="ขวา">&#8594;</button>
+            <button class="arrow-btn" id="down-btn" title="ลง" aria-label="ลง">&#8595;</button>
+            <button class="arrow-btn" id="drop-btn" title="ตกเร็ว" aria-label="ตกเร็ว">&#11015;</button>
+          </div>
+        </div>
+        <div class="tetris-panel" style="display:flex;flex-direction:column;align-items:center;min-width:120px;max-width:180px;">
+          <div id="timer" style="margin-top:0.7rem;font-size:1.1rem;color:#fff;background:rgba(25,118,210,0.13);border-radius:8px;padding:4px 16px;box-shadow:0 1px 4px #1976d244;">เวลา: <span id="time">0:00</span></div>
+          <button id="start-btn">เริ่มเกม</button>
+          <div style="display:flex;justify-content:center;width:100%;margin:1rem 0 0.5rem 0;">
+            <button id="theme-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;padding:0.4rem 1.2rem;box-shadow:0 2px 8px rgba(25,118,210,0.08);cursor:pointer;">Change Theme</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <script src="js/tetris.js"></script>
-  <script src="js/tetris-sound.js"></script>
-</body>
+    <script src="js/tetris-sound.js"></script>
+    <script src="js/tetris.js"></script>
+  </body>
 </html>

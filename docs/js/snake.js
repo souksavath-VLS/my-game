@@ -204,16 +204,12 @@ function saveSnakeStats(score) {
   const stats = JSON.parse(localStorage.getItem('snakeStats') || '[]');
   stats.push({ score, date: Date.now() });
   localStorage.setItem('snakeStats', JSON.stringify(stats));
-  updateHighScore();
+  // updateHighScore(); // Remove high score update
 }
 
 function updateHighScore() {
-  const stats = JSON.parse(localStorage.getItem('snakeStats') || '[]');
-  const high = stats.length ? Math.max(...stats.map(s=>s.score)) : 0;
-  document.getElementById('snake-highscore').innerText = high;
+  // Removed high score update
 }
 
 // Show high score
-const scoreDiv = document.querySelector('.snake-score');
-scoreDiv.insertAdjacentHTML('afterend', '<div class="snake-score">สูงสุด: <span id="snake-highscore">0</span></div>');
-updateHighScore();
+// Removed high score display

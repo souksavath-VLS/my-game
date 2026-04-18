@@ -6,6 +6,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <style>
+            @media (max-width: 600px) {
+              .pacman-container {
+                padding: 0.5rem 0.2rem 1.2rem 0.2rem !important;
+                margin-top: 0.5rem !important;
+                align-items: center !important;
+              }
+              #pacman-board {
+                width: 315px !important;
+                height: 315px !important;
+                max-width: 315px !important;
+                max-height: 315px !important;
+                margin: 0 auto 2rem auto !important;
+                box-shadow: 0 2px 12px #ffd60044 !important;
+                grid-template-rows: repeat(21, 15px) !important;
+                grid-template-columns: repeat(21, 15px) !important;
+              }
+              .pacman-cell {
+                width: 15px !important;
+                height: 15px !important;
+              }
+              .pacman-score-row {
+                margin-bottom: 0.7rem !important;
+              }
+              .arrow-btn-row {
+                display: flex !important;
+                justify-content: center !important;
+                gap: 12px !important;
+                margin: 0.5rem 0 1.2rem 0 !important; /* เพิ่มระยะห่างจาก board ให้มากขึ้น */
+              }
+              #arrow-up, #arrow-left, #arrow-down, #arrow-right {
+                width: 48px !important;
+                height: 48px !important;
+                font-size: 2rem !important;
+                margin: 0 4px !important;
+              }
+              #start-pacman-btn {
+                font-size: 1.2rem !important;
+                padding: 0.7rem 2.2rem !important;
+                border-radius: 16px !important;
+                margin-top: 1.2rem !important;
+              }
+            }
+        @media (max-width: 600px) {
+          #pacman-board {
+            width: 92vw !important;
+            height: 92vw !important;
+            max-width: 320px !important;
+            max-height: 320px !important;
+          }
+          #arrow-up, #arrow-left, #arrow-down, #arrow-right {
+            width: 48px !important;
+            height: 48px !important;
+            font-size: 2rem !important;
+          }
+          #start-pacman-btn {
+            font-size: 1.2rem !important;
+            padding: 0.7rem 2.2rem !important;
+            border-radius: 16px !important;
+            margin-bottom: 1.2rem !important;
+          }
+        }
     body { background: #222; }
     .pacman-container {
       display: flex;
@@ -114,19 +175,19 @@
 <body>
   <div class="pacman-container">
     <h2 style="color:#ffd600;">Pac-Man Pro</h2>
-    <div class="pacman-score">คะแนน: <span id="pacman-score">0</span></div>
-    <div class="pacman-lives">ชีวิต: <span id="pacman-lives">3</span></div>
+    <div class="pacman-score-row" style="display:flex;justify-content:center;align-items:center;gap:32px;margin:1rem 0;">
+      <div class="pacman-score">คะแนน: <span id="pacman-score">0</span></div>
+      <div class="pacman-lives">ชีวิต: <span id="pacman-lives">3</span></div>
+    </div>
     <div id="pacman-board"></div>
     <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.2rem;">
-      <button id="start-pacman-btn" style="margin-bottom:1rem;">เริ่มเกม</button>
-      <div style="display:flex;justify-content:center;margin-bottom:1rem;">
-        <button id="arrow-up" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▲</button>
+      <div class="arrow-btn-row">
+        <button id="arrow-left">◀</button>
+        <button id="arrow-up">▲</button>
+        <button id="arrow-down">▼</button>
+        <button id="arrow-right">▶</button>
       </div>
-      <div style="display:flex;justify-content:center;margin-bottom:1rem;">
-        <button id="arrow-left" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">◀</button>
-        <button id="arrow-down" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▼</button>
-        <button id="arrow-right" style="width:40px;height:40px;margin:2px;font-size:1.5rem;">▶</button>
-      </div>
+      <button id="start-pacman-btn">เริ่มเกม</button>
     </div>
   </div>
   <script src="js/pacman.js"></script>

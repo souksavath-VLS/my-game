@@ -46,9 +46,15 @@ function getMissingNumberLang() {
 }
 
 function speakMissingNumber(text) {
+  let lang = getMissingNumberLang();
+  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  // Android Native TTS
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    window.AndroidTTS.speak(text, voiceLang);
+    return;
+  }
+  // Fallback: SpeechSynthesis API
   if ('speechSynthesis' in window) {
-    let lang = getMissingNumberLang();
-    let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
