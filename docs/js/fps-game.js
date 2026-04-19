@@ -5,7 +5,6 @@ const canvas = document.getElementById('fps-game-canvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('fps-score');
 const timerEl = document.getElementById('fps-timer');
-const shootBtn = document.getElementById('fps-shoot-btn');
 
 let score = 0;
 let startTime = null;
@@ -61,7 +60,7 @@ function spawnBalloons() {
         y: canvas.height - 100 - Math.random() * 200,
         radius: 40 + Math.random() * 20,
         color: `hsl(${Math.random() * 360},90%,60%)`,
-        speed: 1 + Math.random() * 2,
+        speed: 0.5 + Math.random() * 1.5, // Slower for kids
         bomb: false
       });
     }
@@ -178,7 +177,10 @@ function shoot(x, y) {
     if (dist < b.radius) {
       if (b.bomb) {
         playExplosionSound();
-        endGame('Game Over! You hit the bomb!');
+        score -= 10;
+        if (score < 0) score = 0;
+        scoreEl.innerText = score;
+        balloons.splice(i, 1);
         return;
       }
       playShootSound();
@@ -225,10 +227,6 @@ canvas.addEventListener('touchmove', e => {
 canvas.addEventListener('touchstart', e => {
   const touch = e.touches[0];
   shoot(touch.clientX, touch.clientY);
-});
-
-shootBtn.addEventListener('touchstart', () => {
-  shoot(crosshair.x, crosshair.y);
 });
 
 // Start game automatically

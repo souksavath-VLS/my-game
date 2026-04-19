@@ -97,11 +97,25 @@
     .slither-btn:hover {
       background: linear-gradient(90deg,#fff700,#00ff99);
     }
+    #slither-exit-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      padding: 8px 16px;
+      background: #ff4444;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
-  <div class="slither-title">Slither Pro</div>
-  <div style="margin-bottom:8px;">Score: <span id="slither-score">0</span></div>
+  <a id="slither-exit-btn" href="index.html">Exit</a>
+  <div class="slither-title" id="slither-title">Slither Pro</div>
+  <div style="margin-bottom:8px; font-size: 1.2rem;"><span id="label-score">Score:</span> <span id="slither-score">0</span></div>
   <div id="slither-board"></div>
     <div class="slither-arrow-btns" style="display:flex;flex-direction:column;align-items:center;margin:1.2rem 0 0 0;gap:0.3rem;">
       <div style="display:flex;justify-content:center;gap:8px;">
@@ -129,6 +143,39 @@
     document.getElementById('slither-right').onclick = function() {
       window.setSlitherDirection && window.setSlitherDirection('right');
     };
+
+    const slitherLangData = {
+      th: {
+        title: 'เกมงู',
+        score: 'คะแนน:',
+        start: 'เริ่มเกม',
+        exit: 'ออกเกม'
+      },
+      en: {
+        title: 'Snake Game',
+        score: 'Score:',
+        start: 'Start Game',
+        exit: 'Exit'
+      },
+      lao: {
+        title: 'ເກມງູ',
+        score: 'ຄະແນນ:',
+        start: 'ເລີ່ມເກມ',
+        exit: 'ອອກເກມ'
+      }
+    };
+
+    function setSlitherLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      
+      document.getElementById('slither-title').textContent = slitherLangData[lang].title;
+      document.getElementById('label-score').textContent = slitherLangData[lang].score;
+      document.getElementById('start-slither-btn').textContent = slitherLangData[lang].start;
+      document.getElementById('slither-exit-btn').textContent = slitherLangData[lang].exit;
+    }
+    
+    document.addEventListener('DOMContentLoaded', setSlitherLang);
   </script>
 </body>
 </html>

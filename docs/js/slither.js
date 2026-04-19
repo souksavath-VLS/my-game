@@ -89,7 +89,7 @@ function resetGame() {
   drawSnakes();
   drawFoods();
   if(gameInterval) clearInterval(gameInterval);
-  gameInterval = setInterval(gameLoop, 120);
+  gameInterval = setInterval(gameLoop, 200); // ช้าลงให้เด็กเล่นง่ายขึ้น
 }
 
 document.getElementById('start-slither-btn').onclick = function() {
@@ -162,16 +162,25 @@ function checkEatFood() {
 }
 
 function checkCollision() {
-  // Player hit wall
   let head = snakes[0][0];
-  if(head.row<0||head.row>=ROWS||head.col<0||head.col>=COLS) return gameOver();
-  // Player hit self
-  for(let i=1;i<snakes[0].length;i++) if(head.row===snakes[0][i].row&&head.col===snakes[0][i].col) return gameOver();
-  // Player hit bot
-  for(let i=0;i<snakes[1].length;i++) if(head.row===snakes[1][i].row&&head.col===snakes[1][i].col) return gameOver();
-  // Bot hit wall
+  // Player wrap around wall
+  if(head.row < 0) head.row = ROWS - 1;
+  if(head.row >= ROWS) head.row = 0;
+  if(head.col < 0) head.col = COLS - 1;
+  if(head.col >= COLS) head.col = 0;
+
   let botHead = snakes[1][0];
-  if(botHead.row<0||botHead.row>=ROWS||botHead.col<0||botHead.col>=COLS) return resetBot();
+  // Bot wrap around wall
+  if(botHead.row < 0) botHead.row = ROWS - 1;
+  if(botHead.row >= ROWS) botHead.row = 0;
+  if(botHead.col < 0) botHead.col = COLS - 1;
+  if(botHead.col >= COLS) botHead.col = 0;
+
+  // Player hit self
+  for(let i=1;i<snakes[0].length;i++) if(head.row===snakes[0][i].row&&head.col===snakes[0][i].col) return softResetPlayer();
+  // Player hit bot
+  for(let i=0;i<snakes[1].length;i++) if(head.row===snakes[1][i].row&&head.col===snakes[1][i].col) return softResetPlayer();
+  
   // Bot hit self
   for(let i=1;i<snakes[1].length;i++) {
     if(botHead.row===snakes[1][i].row&&botHead.col===snakes[1][i].col) return resetBot();
@@ -180,13 +189,17 @@ function checkCollision() {
   for(let i=0;i<snakes[0].length;i++) {
     if(botHead.row===snakes[0][i].row&&botHead.col===snakes[0][i].col) return resetBot();
   }
-  // ไม่ reset bot เมื่อกิน food
 }
 
 function gameOver() {
   isGameOver = true;
   clearInterval(gameInterval);
-  alert('Game Over!');
+}
+
+function softResetPlayer() {
+  score = 0;
+  placePlayerSnake();
+  playerDir = 'right';
 }
 
 function resetBot() {

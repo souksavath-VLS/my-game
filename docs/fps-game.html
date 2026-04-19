@@ -45,35 +45,23 @@
       flex-wrap: wrap;
       justify-content: center;
     }
-    #fps-shoot-btn {
+    #fps-exit-btn {
       position: absolute;
-      bottom: 32px;
-      right: 32px;
+      top: 10px;
+      left: 10px;
       z-index: 20;
-      padding: 18px 32px;
-      font-size: 1.3em;
-      background: linear-gradient(90deg,#00ff99,#fff700);
-      color: #222;
-      border: none;
-      border-radius: 16px;
-      box-shadow: 0 0 8px #00ff99;
-      cursor: pointer;
+      padding: 8px 16px;
+      background: #ff4444;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
       font-weight: bold;
-      transition: background 0.2s;
-      display: none;
     }
     @media (max-width: 900px) {
       #fps-ui {
         font-size: 1em;
         padding: 6px 12px;
         gap: 12px;
-      }
-      #fps-shoot-btn {
-        display: block;
-        font-size: 1em;
-        padding: 12px 18px;
-        bottom: 16px;
-        right: 16px;
       }
     }
     @media (max-width: 600px) {
@@ -82,23 +70,54 @@
         padding: 4px 6px;
         gap: 6px;
       }
-      #fps-shoot-btn {
-        display: block;
+      #fps-exit-btn {
+        padding: 6px 12px;
         font-size: 0.9em;
-        padding: 8px 12px;
-        bottom: 8px;
-        right: 8px;
       }
     }
   </style>
 </head>
 <body>
+  <a id="fps-exit-btn" href="index.html">Exit</a>
   <div id="fps-ui">
-    <span>Score: <span id="fps-score">0</span></span>
-    <span>Time: <span id="fps-timer">00:00</span></span>
+    <span><span id="label-score">Score:</span> <span id="fps-score">0</span></span>
+    <span><span id="label-time">Time:</span> <span id="fps-timer">00:00</span></span>
   </div>
   <canvas id="fps-game-canvas"></canvas>
-  <button id="fps-shoot-btn">Shoot</button>
   <script src="js/fps-game.js"></script>
+  <script>
+    const fpsLangData = {
+      th: {
+        score: 'คะแนน:',
+        time: 'เวลา:',
+        exit: 'ออกเกม',
+        gameOverBomb: 'ว้า โดนระเบิด! หัก 10 คะแนน',
+        gameOverMsg: 'จบเกม! โดนระเบิด'
+      },
+      en: {
+        score: 'Score:',
+        time: 'Time:',
+        exit: 'Exit',
+        gameOverBomb: 'Oops! Hit a bomb! -10 Points',
+        gameOverMsg: 'Game Over! You hit a bomb.'
+      },
+      lao: {
+        score: 'ຄະແນນ:',
+        time: 'ເວລາ:',
+        exit: 'ອອກເກມ',
+        gameOverBomb: 'ໂອ້ຍ! ຖືກລະເບີດ! ຫັກ 10 ຄະແນນ',
+        gameOverMsg: 'ຈົບເກມ! ຖືກລະເບີດ'
+      }
+    };
+    function setFpsLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th','en','lao'].includes(lang)) lang = 'en';
+      document.getElementById('label-score').textContent = fpsLangData[lang].score;
+      document.getElementById('label-time').textContent = fpsLangData[lang].time;
+      document.getElementById('fps-exit-btn').textContent = fpsLangData[lang].exit;
+      window.fpsLang = fpsLangData[lang]; // Expose to fps-game.js
+    }
+    document.addEventListener('DOMContentLoaded', setFpsLang);
+  </script>
 </body>
 </html>
