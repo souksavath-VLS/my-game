@@ -28,35 +28,8 @@
         <p class="text-lg text-gray-300">เกมนี้ออกแบบมาให้เล่นในแนวนอนเพื่อประสบการณ์ที่ดีที่สุด</p>
     </div>
 
-    <!-- NEW TOP BAR outside of game-area -->
-    <div class="bg-gray-900 border-b-2 border-gray-700 p-1 px-2 sm:px-4 z-50 shrink-0 w-full flex justify-between items-center shadow-md pointer-events-auto">
-        <div class="flex gap-1 sm:gap-2">
-            <div class="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded-full border border-gray-700 shadow-inner">
-                <span class="text-xs sm:text-sm">❤️</span><span id="ui-hp" class="text-xs sm:text-sm font-bold">20</span>
-            </div>
-            <div class="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded-full border border-gray-700 shadow-inner">
-                <span class="text-xs sm:text-sm">🪙</span><span id="ui-money" class="text-xs sm:text-sm font-bold text-yellow-400">400</span>
-            </div>
-        </div>
-        
-        <div class="flex flex-col items-center bg-gray-800 px-3 py-0.5 rounded-lg border border-gray-700 shadow-inner">
-            <div class="flex items-center gap-2 text-[10px] sm:text-xs">
-                <div class="font-bold text-gray-300">WAVE <span id="ui-wave" class="text-white">1</span></div>
-                <div class="w-px h-3 bg-gray-600"></div>
-                <div class="font-bold text-gray-300">Enemies: <span id="ui-enemies-left" class="text-white">0</span></div>
-            </div>
-            <div class="text-[9px] sm:text-[10px] text-blue-300 font-semibold leading-tight">Next: <span id="ui-next-wave">...</span></div>
-        </div>
-
-        <div class="flex gap-1 sm:gap-2">
-            <button id="btn-speed" class="bg-blue-600 hover:bg-blue-500 rounded p-1 w-8 h-8 flex items-center justify-center font-bold text-xs sm:text-sm shadow">x1</button>
-            <button id="btn-pause" class="bg-gray-700 hover:bg-gray-600 rounded p-1 w-8 h-8 flex items-center justify-center shadow"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button>
-        </div>
-    </div>
-
-    <!-- Game Area (Canvas only) -->
     <div id="game-area" class="relative flex-grow w-full overflow-hidden bg-gray-900">
-        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full"></canvas>
+        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
 
         <div id="modal-container" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center backdrop-blur-sm z-50">
             <div id="screen-start" class="bg-gray-800 border-4 border-gray-600 rounded-2xl p-4 sm:p-8 flex flex-col items-center max-w-[260px] sm:max-w-xs w-11/12 shadow-2xl">
@@ -92,9 +65,26 @@
         </div>
     </div>
 
-    <div class="bg-gray-900 border-t-2 border-gray-700 p-0.5 sm:p-1 z-50 shrink-0 w-full">
-        <div id="tower-selection" class="flex gap-1 overflow-x-auto hide-scrollbar px-1 items-center justify-start">
+    <div class="bg-gray-900 border-t-2 border-gray-700 p-0.5 z-50 shrink-0 w-full flex justify-between items-center overflow-hidden h-[54px] sm:h-[64px]">
+        <div id="tower-selection" class="flex gap-1 overflow-x-auto hide-scrollbar px-1 items-center h-full">
             <!-- Rendered via JS -->
+        </div>
+        
+        <div class="flex flex-shrink-0 items-center bg-gray-800 rounded-lg p-1 mr-1 gap-1.5 sm:gap-2 border border-gray-700 shadow-inner h-[46px] sm:h-[54px]">
+            <div class="flex flex-col justify-center gap-0.5 h-full">
+                <div class="flex items-center gap-1 leading-none"><span class="text-[10px] sm:text-xs">❤️</span><span id="ui-hp" class="text-[10px] sm:text-xs font-bold">20</span></div>
+                <div class="flex items-center gap-1 leading-none"><span class="text-[10px] sm:text-xs">🪙</span><span id="ui-money" class="text-[10px] sm:text-xs font-bold text-yellow-400">400</span></div>
+            </div>
+            <div class="w-px h-6 bg-gray-600"></div>
+            <div class="flex flex-col justify-center items-center min-w-[50px] sm:min-w-[60px] h-full">
+                <div class="text-[8px] sm:text-[9px] font-bold text-gray-400 leading-none">WAVE <span id="ui-wave" class="text-white text-[10px] sm:text-xs">1</span></div>
+                <div class="text-[8px] sm:text-[9px] text-gray-300 leading-none mt-0.5 sm:mt-1">Left: <span id="ui-enemies-left" class="text-white">0</span></div>
+                <div class="text-[7px] sm:text-[8px] text-blue-300 leading-none mt-0.5 sm:mt-1 truncate max-w-[50px] sm:max-w-[60px]"><span id="ui-next-wave">...</span></div>
+            </div>
+            <div class="flex gap-1 h-full items-center">
+                <button id="btn-speed" class="bg-blue-600 hover:bg-blue-500 rounded shadow flex items-center justify-center font-bold text-[10px] sm:text-xs w-6 h-6 sm:w-8 sm:h-8 transition-transform active:scale-95">x1</button>
+                <button id="btn-pause" class="bg-gray-700 hover:bg-gray-600 rounded shadow flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 transition-transform active:scale-95"><svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></button>
+            </div>
         </div>
     </div>
 
@@ -802,41 +792,65 @@
         }
 
         function drawMap() {
-            ctx.fillStyle = '#166534'; ctx.fillRect(mapOffsetX, mapOffsetY, MAP_COLS * cellSize, MAP_ROWS * cellSize);
-            ctx.fillStyle = '#2563eb';
-            for (let r=0; r<MAP_ROWS; r++) for (let c=0; c<MAP_COLS; c++) if (mapGrid[r][c] === 2) ctx.fillRect(mapOffsetX + c*cellSize, mapOffsetY + r*cellSize, cellSize, cellSize);
+            // Background grass for map area
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(mapOffsetX, mapOffsetY, MAP_COLS * cellSize, MAP_ROWS * cellSize);
 
+            // Draw path first
+            ctx.strokeStyle = '#d97706'; // Brighter outer path
+            ctx.lineWidth = cellSize * 0.9;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.beginPath();
             if (pixelPath.length > 0) {
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.strokeStyle = '#5c3a21'; ctx.lineWidth = cellSize * 0.95; ctx.beginPath();
                 ctx.moveTo(pixelPath[0].x, pixelPath[0].y);
-                for (let i = 1; i < pixelPath.length; i++) ctx.lineTo(pixelPath[i].x, pixelPath[i].y);
-                ctx.stroke();
-                ctx.strokeStyle = '#8B4513'; ctx.lineWidth = cellSize * 0.8; ctx.stroke();
+                for(let i=1; i<pixelPath.length; i++) {
+                    ctx.lineTo(pixelPath[i].x, pixelPath[i].y);
+                }
             }
+            ctx.stroke();
+            
+            // Inner path highlight for depth
+            ctx.strokeStyle = '#f59e0b'; // Even brighter inner path
+            ctx.lineWidth = cellSize * 0.6;
+            ctx.stroke();
 
-            ctx.font = `${cellSize * 0.7}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             for (let r=0; r<MAP_ROWS; r++) {
                 for (let c=0; c<MAP_COLS; c++) {
-                    const x = mapOffsetX + c * cellSize + cellSize/2;
-                    const y = mapOffsetY + r * cellSize + cellSize/2;
-                    if (mapGrid[r][c] === 2) ctx.fillText('💧', x, y);
-                    else if (mapGrid[r][c] === 0 || mapGrid[r][c] === 3) {
+                    const tile = mapGrid[r][c];
+                    const px = mapOffsetX + c * cellSize;
+                    const py = mapOffsetY + r * cellSize;
+                    const cx = px + cellSize/2;
+                    const cy = py + cellSize/2;
+                    
+                    if (tile === 0 || tile === 3) {
+                        ctx.font = `${cellSize*0.6}px Arial`;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         const vis = visualMapGrid[r][c];
                         if (vis) {
-                            ctx.fillText(vis.grass, x, y);
-                            if (mapGrid[r][c] === 3) {
-                                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x, y + cellSize*0.3, cellSize*0.3, cellSize*0.15, 0, 0, Math.PI*2); ctx.fill();
-                                ctx.fillText(vis.tree, x, y);
+                            ctx.fillText(vis.grass, cx, cy);
+                            if (tile === 3 && vis.tree) {
+                                ctx.fillStyle = 'rgba(0,0,0,0.3)'; 
+                                ctx.beginPath(); ctx.ellipse(cx, cy + cellSize*0.3, cellSize*0.3, cellSize*0.15, 0, 0, Math.PI*2); ctx.fill();
+                                ctx.font = `${cellSize*0.8}px Arial`;
+                                ctx.fillText(vis.tree, cx, cy - cellSize*0.1);
                             }
                         }
+                    } else if (tile === 2) {
+                        ctx.fillStyle = '#3b82f6'; // Brighter water
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px+cellSize, py+cellSize); ctx.stroke();
+                        ctx.font = `${cellSize*0.5}px Arial`;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('💧', cx, cy);
                     }
                 }
             }
         }
 
         function draw() {
-            ctx.fillStyle = '#166534'; // Fill empty space with grass color
+            ctx.fillStyle = '#22c55e'; // Bright vibrant green background
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawMap();
             const now = performance.now();
@@ -850,9 +864,9 @@
                     for (let c=0; c<MAP_COLS; c++) {
                         if (mapGrid[r][c] === 0) {
                             if (!towers.some(t => t.col === c && t.row === r)) {
-                                ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)'; ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
-                                ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(mapOffsetX + c * cellSize + 2, mapOffsetY + r * cellSize + 2, cellSize - 4, cellSize - 4, 6);
-                                ctx.fill(); ctx.stroke();
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                                ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(mapOffsetX + c * cellSize + 4, mapOffsetY + r * cellSize + 4, cellSize - 8, cellSize - 8, 4);
+                                ctx.fill(); ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
                             }
                         }
                     }
