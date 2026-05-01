@@ -92,12 +92,9 @@
         </div>
     </div>
 
-    <div class="bg-gray-900 border-t-2 border-gray-700 p-1 sm:p-2 z-50 shrink-0 w-full">
-        <div id="tower-selection" class="flex gap-1 sm:gap-2 overflow-x-auto hide-scrollbar pb-1 px-1">
+    <div class="bg-gray-900 border-t-2 border-gray-700 p-0.5 sm:p-1 z-50 shrink-0 w-full">
+        <div id="tower-selection" class="flex gap-1 overflow-x-auto hide-scrollbar px-1 items-center justify-start">
             <!-- Rendered via JS -->
-        </div>
-        <div id="build-instruction" class="text-center text-[10px] sm:text-xs text-gray-400 mt-1 font-medium">
-            เลือกป้อมและแตะที่พื้นที่ <b>🌱 หญ้า</b> (ห้ามวางบน 🟤 💧 🌳)
         </div>
     </div>
 
@@ -310,7 +307,8 @@
         function calculatePixelPath() {
             const areaW = canvas.width;
             const areaH = canvas.height;
-            cellSize = Math.min(areaW / MAP_COLS, areaH / MAP_ROWS);
+            // Optimize for wide mobile screens by allowing vertical overflow of empty grass
+            cellSize = Math.min(areaW / MAP_COLS, areaH / 10);
             mapOffsetX = (areaW - (MAP_COLS * cellSize)) / 2;
             mapOffsetY = (areaH - (MAP_ROWS * cellSize)) / 2;
             pixelPath = pathNodes.map(node => ({
@@ -838,7 +836,8 @@
         }
 
         function draw() {
-            ctx.fillStyle = '#111827'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#166534'; // Fill empty space with grass color
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawMap();
             const now = performance.now();
             towers.forEach(t => t.draw(ctx));
@@ -922,11 +921,11 @@
                 const active = selectedTowerTypeToBuild === key;
                 
                 const div = document.createElement('div');
-                div.className = `tower-item flex-shrink-0 w-16 sm:w-20 bg-gray-800 border-2 rounded-xl p-1 cursor-pointer transition-all flex flex-col items-center gap-1 ${affordable ? 'border-gray-600 hover:bg-gray-700' : 'border-red-900 opacity-50'} ${active ? 'active' : ''}`;
+                div.className = `tower-item flex-shrink-0 w-12 sm:w-16 bg-gray-800 border-2 rounded-lg py-0.5 px-0 cursor-pointer transition-all flex flex-col items-center justify-center ${affordable ? 'border-gray-600 hover:bg-gray-700' : 'border-red-900 opacity-50'} ${active ? 'active' : ''}`;
                 
-                const iconHTML = `<div class="w-6 h-6 sm:w-8 sm:h-8 rounded shadow-inner flex items-center justify-center text-sm sm:text-xl" style="background-color: ${tower.color}">${tower.icon}</div>`;
+                const iconHTML = `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs" style="background-color: ${tower.color}; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${tower.icon}</div>`;
                 
-                div.innerHTML = `${iconHTML}<span class="text-[10px] sm:text-xs font-bold text-gray-200">${tower.name}</span><span class="text-[10px] sm:text-xs font-bold ${affordable ? 'text-yellow-400' : 'text-red-500'} flex items-center"><span class="mr-0.5">🪙</span>${tower.cost}</span>`;
+                div.innerHTML = `${iconHTML}<div class="text-[8px] sm:text-[10px] font-bold text-gray-200 mt-0.5 leading-none whitespace-nowrap">${tower.name}</div><div class="text-[8px] sm:text-[10px] font-bold ${affordable ? 'text-yellow-400' : 'text-red-500'} flex items-center mt-0.5 leading-none"><span class="mr-0.5 text-[8px]">🪙</span>${tower.cost}</div>`;
                 
                 div.addEventListener('pointerdown', (e) => {
                     e.stopPropagation();
@@ -949,7 +948,14 @@
             costSpan.className = money >= upgCost ? "text-yellow-400" : "text-red-500";
             document.getElementById('sell-value').innerText = tower.sellValue;
 
-            upgradeModal.style.left = `${tower.x}px`; upgradeModal.style.top = `${tower.y - cellSize}px`;
+            upgradeModal.style.left = `${tower.x}px`; 
+            if (tower.y < 100) {
+                upgradeModal.style.top = `${tower.y + cellSize}px`;
+                upgradeModal.classList.remove('-translate-y-full');
+            } else {
+                upgradeModal.style.top = `${tower.y - cellSize}px`;
+                upgradeModal.classList.add('-translate-y-full');
+            }
             upgradeModal.classList.remove('hidden'); upgradeModal.classList.add('flex');
             if(currentState === GAME_STATE.PAUSED) draw();
         }
