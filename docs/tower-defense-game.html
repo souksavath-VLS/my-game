@@ -52,6 +52,11 @@
             </div>
         </div>
 
+        <!-- Mute Button (floating top-center) -->
+        <button id="btn-mute" class="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-gray-800/80 border border-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base shadow-lg pointer-events-auto backdrop-blur-sm hover:bg-gray-700 transition-colors" title="เปิด/ปิดเสียง">
+            🔊
+        </button>
+
         <div id="upgrade-modal" class="absolute hidden bg-gray-800 border-2 border-gray-600 rounded-lg p-2 flex-col gap-1.5 shadow-2xl z-40 transform -translate-x-1/2 -translate-y-full pointer-events-auto">
             <div class="text-center font-bold border-b border-gray-600 pb-1 mb-0.5 text-xs"><span id="upg-name">Tower</span> Lvl <span id="upg-level">1</span></div>
             <button id="btn-upgrade" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-2 rounded flex justify-between items-center text-xs min-w-[100px]">
@@ -94,7 +99,9 @@
         const gameArea = document.getElementById('game-area');
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isMuted = false;
         function playSound(type) {
+            if (isMuted) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
@@ -263,13 +270,13 @@
         let mouse = { x: -100, y: -100, isDown: false };
 
         const TOWER_TYPES = {
-            BASIC: { id: 'BASIC', name: 'ธนู', cost: 100, color: '#3b82f6', icon: '🏹', baseDamage: 25, baseRange: 3.5, baseFireRate: 1.2, upgCostMult: 1.5, upgDamageMult: 1.5, upgRangeMult: 1.1, upgFireRateMult: 1.2, dmgType: 'physical', canHitFlying: true },
-            RAPID: { id: 'RAPID', name: 'ปืนกล', cost: 150, color: '#eab308', icon: '🔫', baseDamage: 10, baseRange: 2.5, baseFireRate: 3.5, upgCostMult: 1.6, upgDamageMult: 1.4, upgRangeMult: 1.05, upgFireRateMult: 1.3, dmgType: 'physical', canHitFlying: false },
-            FIRE:  { id: 'FIRE', name: 'ไฟ', cost: 200, color: '#f97316', icon: '🔥', baseDamage: 10, baseRange: 3, baseFireRate: 1.5, upgCostMult: 1.6, upgDamageMult: 1.5, upgRangeMult: 1.1, upgFireRateMult: 1.1, effect: 'burn', effectDuration: 3, dmgType: 'magic', canHitFlying: false },
-            MAGE:  { id: 'MAGE', name: 'เวท', cost: 250, color: '#06b6d4', icon: '🔮', baseDamage: 15, baseRange: 3, baseFireRate: 0.8, upgCostMult: 1.6, upgDamageMult: 1.4, upgRangeMult: 1.15, upgFireRateMult: 1.2, effect: 'slow', effectDuration: 2, dmgType: 'magic', canHitFlying: true },
-            BOMB:  { id: 'BOMB', name: 'ระเบิด', cost: 300, color: '#ef4444', icon: '💣', baseDamage: 40, baseRange: 2.5, baseFireRate: 0.6, upgCostMult: 1.8, upgDamageMult: 1.5, upgRangeMult: 1.1, upgFireRateMult: 1.1, splashRadius: 1.5, dmgType: 'magic', canHitFlying: false },
-            SNIPER:{ id: 'SNIPER', name: 'ปืนใหญ่', cost: 350, color: '#a855f7', icon: '🎯', baseDamage: 50, baseRange: 5.5, baseFireRate: 0.7, upgCostMult: 1.7, upgDamageMult: 1.6, upgRangeMult: 1.2, upgFireRateMult: 1.1, dmgType: 'physical', canHitFlying: true },
-            SUPPORT:{ id: 'SUPPORT', name: 'บัฟ', cost: 400, color: '#10b981', icon: '⛺', baseDamage: 0, baseRange: 2.5, baseFireRate: 0, upgCostMult: 2.0, upgDamageMult: 1, upgRangeMult: 1.2, upgFireRateMult: 1, dmgType: 'none', canHitFlying: false }
+            BASIC:  { id: 'BASIC',  name: 'ธนู',    cost: 120,  color: '#3b82f6', icon: '🏹', baseDamage: 22,  baseRange: 3.2, baseFireRate: 1.0, upgCostMult: 1.6, upgDamageMult: 1.4, upgRangeMult: 1.08, upgFireRateMult: 1.15, dmgType: 'physical', canHitFlying: true },
+            RAPID:  { id: 'RAPID',  name: 'ปืนกล', cost: 180,  color: '#eab308', icon: '🔫', baseDamage: 8,   baseRange: 2.5, baseFireRate: 3.2, upgCostMult: 1.7, upgDamageMult: 1.35,upgRangeMult: 1.05, upgFireRateMult: 1.2,  dmgType: 'physical', canHitFlying: false },
+            FIRE:   { id: 'FIRE',   name: 'ไฟ',    cost: 240,  color: '#f97316', icon: '🔥', baseDamage: 8,   baseRange: 2.8, baseFireRate: 1.3, upgCostMult: 1.7, upgDamageMult: 1.45,upgRangeMult: 1.08, upgFireRateMult: 1.1,  effect: 'burn', effectDuration: 2.5, dmgType: 'magic',    canHitFlying: false },
+            MAGE:   { id: 'MAGE',   name: 'เวท',   cost: 300,  color: '#06b6d4', icon: '🔮', baseDamage: 12,  baseRange: 2.8, baseFireRate: 0.7, upgCostMult: 1.7, upgDamageMult: 1.35,upgRangeMult: 1.12, upgFireRateMult: 1.15, effect: 'slow', effectDuration: 2,   dmgType: 'magic',    canHitFlying: true },
+            BOMB:   { id: 'BOMB',   name: 'ระเบิด',cost: 380,  color: '#ef4444', icon: '💣', baseDamage: 35,  baseRange: 2.3, baseFireRate: 0.5, upgCostMult: 1.9, upgDamageMult: 1.45,upgRangeMult: 1.08, upgFireRateMult: 1.1,  splashRadius: 1.4, dmgType: 'magic',    canHitFlying: false },
+            SNIPER: { id: 'SNIPER', name: 'ปืนใหญ่',cost: 450, color: '#a855f7', icon: '🎯', baseDamage: 45,  baseRange: 5.2, baseFireRate: 0.6, upgCostMult: 1.8, upgDamageMult: 1.5, upgRangeMult: 1.15, upgFireRateMult: 1.1,  dmgType: 'physical', canHitFlying: true },
+            SUPPORT:{ id: 'SUPPORT',name: 'บัฟ',   cost: 500,  color: '#10b981', icon: '⛺', baseDamage: 0,   baseRange: 2.5, baseFireRate: 0,   upgCostMult: 2.0, upgDamageMult: 1,   upgRangeMult: 1.2,  upgFireRateMult: 1,   dmgType: 'none',     canHitFlying: false }
         };
 
         const ENEMY_TYPES = {
@@ -287,28 +294,32 @@
         const BOSS_POOL = ['BOSS_DRAGON', 'BOSS_LICH', 'BOSS_MECH'];
         function generateWave(waveIndex) {
             let count, type, interval, hpMult;
-            hpMult = Math.pow(1.12, waveIndex);
+            // Steeper early ramp: enemies get tougher quickly in waves 1-50
+            // then plateau slowly so late game stays playable
+            hpMult = 1 + Math.min(waveIndex * 0.18, 20); // max 21x base HP
 
             if ((waveIndex + 1) % 10 === 0) {
-                const bossIndex = Math.floor((waveIndex) / 10) % BOSS_POOL.length;
+                const bossIndex = Math.floor(waveIndex / 10) % BOSS_POOL.length;
                 type = BOSS_POOL[bossIndex];
-                count = 1 + Math.floor(waveIndex / 30);
-                interval = 3000;
-                hpMult *= 1.6;
+                count = 1 + Math.floor(waveIndex / 25);
+                interval = 2500;
+                hpMult = Math.min(hpMult * 3, 60); // boss cap 60x
             } else {
                 const types = ['NORMAL', 'SWARM', 'FAST', 'TANK', 'FLYING', 'ARMORED'];
                 const maxTypeIndex = Math.min(types.length - 1, Math.floor(waveIndex / 2) + 1);
                 type = types[Math.floor(Math.random() * (maxTypeIndex + 1))];
 
-                count = 10 + Math.floor(waveIndex * 1.5);
-                if (type === 'SWARM')   count = Math.floor(count * 1.5);
-                if (type === 'TANK' || type === 'ARMORED') count = Math.floor(count * 0.5);
+                // More enemies per wave — punishes spreading too thin
+                count = 12 + Math.floor(waveIndex * 2.2);
+                if (type === 'SWARM')   count = Math.floor(count * 1.8);
+                if (type === 'TANK' || type === 'ARMORED') count = Math.floor(count * 0.6);
                 if (count < 1) count = 1;
 
-                interval = Math.max(300, 1500 - waveIndex * 15);
-                if (type === 'SWARM') interval *= 0.5;
+                // Spawn interval tightens quickly
+                interval = Math.max(150, 1400 - waveIndex * 18);
+                if (type === 'SWARM') interval *= 0.4;
             }
-            return { count, type, interval, delay: 3000, hpMult };
+            return { count, type, interval, delay: 2500, hpMult };
         }
 
         let currentWaveData = null;
@@ -818,7 +829,7 @@
         }
 
         function initGame() {
-            money = 500;
+            money = 200;
             hp = maxHp;
             currentWave = 0;
             gameSpeed = 1;
@@ -845,6 +856,18 @@
             currentState = GAME_STATE.GAMEOVER; playSound('error');
             modalContainer.classList.remove('hidden'); screenGameover.classList.remove('hidden');
             goWave.innerText = currentWave + 1;
+        }
+
+        function gameWin() {
+            currentState = GAME_STATE.GAMEOVER; 
+            modalContainer.classList.remove('hidden');
+            // Reuse gameover screen with win message
+            screenGameover.classList.remove('hidden');
+            screenGameover.style.borderColor = '#f59e0b';
+            screenGameover.querySelector('h1').innerText = '🏆 YOU WIN!';
+            screenGameover.querySelector('h1').className = 'text-2xl sm:text-3xl font-black text-yellow-400 mb-2 uppercase tracking-wider text-center';
+            goWave.innerText = '1000';
+            screenGameover.querySelector('.text-gray-400').innerText = 'Survived All Waves!';
         }
 
         function togglePause() {
@@ -886,13 +909,17 @@
 
                 if (waveState.enemiesSpawned >= wave.count && enemies.length === 0) {
                     currentWave++;
+
+                    // WIN condition: survived all 1000 waves
+                    if (currentWave >= 1000) { gameWin(); return; }
+
                     currentWaveData = generateWave(currentWave);
                     waveState.active = false;
                     waveState.waveDelayTimer = currentWaveData.delay;
-                    // Base reward + interest on idle cash
-                    const baseReward = 50 + (currentWave * 20);
-                    const interest = Math.floor(money * 0.05);
-                    const bonus = Math.floor(Math.random() * 80);
+                    // Small reward + 1% interest — no free cash spam
+                    const baseReward = 30 + (currentWave * 12);
+                    const interest = Math.floor(money * 0.01);
+                    const bonus = Math.floor(Math.random() * 40);
                     money += baseReward + interest + bonus;
                     playSound('coin');
                     updateUI();
@@ -1162,9 +1189,24 @@
         });
 
         document.getElementById('btn-start').addEventListener('click', startGame);
-        document.getElementById('btn-restart').addEventListener('click', startGame);
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            // Reset win styling before restart
+            screenGameover.style.borderColor = '';
+            const h1 = screenGameover.querySelector('h1');
+            h1.innerText = 'Game Over';
+            h1.className = 'text-2xl sm:text-3xl font-black text-red-500 mb-2 uppercase tracking-wider text-center';
+            screenGameover.querySelector('.text-gray-400').innerText = 'Reached Wave';
+            startGame();
+        });
         btnPause.addEventListener('click', togglePause);
         btnSpeed.addEventListener('click', toggleSpeed);
+        const btnMute = document.getElementById('btn-mute');
+        btnMute.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            btnMute.textContent = isMuted ? '🔇' : '🔊';
+            btnMute.style.opacity = isMuted ? '0.5' : '1';
+        });
         window.addEventListener('contextmenu', e => e.preventDefault());
 
         resizeCanvas(); drawMap();
