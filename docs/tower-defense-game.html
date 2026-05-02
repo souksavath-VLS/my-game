@@ -133,6 +133,31 @@
                 osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.2);
                 gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'enemy_die') {
+                // Short descending "splat" — distinct from shoot sounds, low volume
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+                gainNode.gain.setValueAtTime(0.04, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.start(now); osc.stop(now + 0.18);
+            } else if (type === 'boss_die') {
+                // Deep dramatic roar — 2 oscillators
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.connect(gain2); gain2.connect(audioCtx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.7);
+                gainNode.gain.setValueAtTime(0.12, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                osc.start(now); osc.stop(now + 0.7);
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(60, now);
+                osc2.frequency.exponentialRampToValueAtTime(15, now + 0.5);
+                gain2.gain.setValueAtTime(0.06, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc2.start(now); osc2.stop(now + 0.5);
             } else if (type === 'build') {
                 osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.setValueAtTime(600, now + 0.1);
                 gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
@@ -179,7 +204,7 @@
         let lastTime = 0;
 
         const MAP_COLS = 20;
-        const MAP_ROWS = 12;
+        const MAP_ROWS = 10;
         let cellSize = 50;
         let mapOffsetX = 0;
         let mapOffsetY = 0;
@@ -193,10 +218,8 @@
             [0,0,0,0,3,0,1,1,1,1,0,0,0,0,1,0,3,0,0,0],
             [2,2,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
             [2,2,2,0,0,0,0,3,0,1,1,1,1,1,1,0,0,0,3,0],
-            [0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [0,0,2,2,2,0,0,0,3,0,0,0,0,3,0,0,0,0,0,0],
-            [0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0],
-            [0,3,0,0,2,2,0,0,0,0,3,0,0,0,0,0,0,0,0,0]
+            [0,2,2,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,2,2,2,0,0,3,0,0,0,3,0,0,0,0,0,3,0,0]
         ];
 
         const visualMapGrid = [];
@@ -224,6 +247,12 @@
             {c:9, r:5}, {c:9, r:7}, {c:14, r:7}, {c:14, r:3}, {c:20, r:3}
         ];
 
+        let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+        function triggerShake(intensity, duration) {
+            screenShake.intensity = Math.max(screenShake.intensity, intensity);
+            screenShake.duration = Math.max(screenShake.duration, duration);
+        }
+
         let pixelPath = []; 
         let enemies = [];
         let towers = [];
@@ -244,36 +273,38 @@
         };
 
         const ENEMY_TYPES = {
-            NORMAL: { id: 'NORMAL', emoji: '🧟', radius: 0.35, baseSpeed: 1.0, baseHp: 50, reward: 10 },
-            FAST:   { id: 'FAST', emoji: '🦇', radius: 0.30, baseSpeed: 1.8, baseHp: 25, reward: 10 },
-            TANK:   { id: 'TANK', emoji: '👹', radius: 0.50, baseSpeed: 0.6, baseHp: 250, reward: 25 },
-            SWARM:  { id: 'SWARM', emoji: '🦠', radius: 0.25, baseSpeed: 1.2, baseHp: 15, reward: 5 },
-            FLYING: { id: 'FLYING', emoji: '🦅', radius: 0.35, baseSpeed: 1.1, baseHp: 40, reward: 15, isFlying: true },
-            ARMORED:{ id: 'ARMORED', emoji: '🛡️', radius: 0.40, baseSpeed: 0.8, baseHp: 150, reward: 20, isArmored: true },
-            HEALER: { id: 'HEALER', emoji: '👼', radius: 0.35, baseSpeed: 0.9, baseHp: 80, reward: 15, isHealer: true },
-            BOSS:   { id: 'BOSS', emoji: '🐉', radius: 0.70, baseSpeed: 0.4, baseHp: 1500, reward: 100 }
+            NORMAL:     { id: 'NORMAL',     emoji: '🧟', radius: 0.35, baseSpeed: 1.0, baseHp: 50,   reward: 10 },
+            FAST:       { id: 'FAST',       emoji: '🦇', radius: 0.30, baseSpeed: 1.8, baseHp: 25,   reward: 10 },
+            TANK:       { id: 'TANK',       emoji: '👹', radius: 0.50, baseSpeed: 0.6, baseHp: 250,  reward: 25 },
+            SWARM:      { id: 'SWARM',      emoji: '🦠', radius: 0.25, baseSpeed: 1.2, baseHp: 15,   reward: 5  },
+            FLYING:     { id: 'FLYING',     emoji: '🦅', radius: 0.35, baseSpeed: 1.1, baseHp: 40,   reward: 15, isFlying: true },
+            ARMORED:    { id: 'ARMORED',    emoji: '🛡️', radius: 0.40, baseSpeed: 0.8, baseHp: 120,  reward: 20, isArmored: true },
+            BOSS_DRAGON:{ id: 'BOSS_DRAGON',emoji: '🐉', radius: 0.70, baseSpeed: 0.5, baseHp: 1200, reward: 120, isBoss: true, bossType: 'dragon' },
+            BOSS_LICH:  { id: 'BOSS_LICH',  emoji: '💀', radius: 0.65, baseSpeed: 0.6, baseHp: 900,  reward: 100, isBoss: true, bossType: 'lich',   immuneSlow: true },
+            BOSS_MECH:  { id: 'BOSS_MECH',  emoji: '🤖', radius: 0.75, baseSpeed: 0.4, baseHp: 1800, reward: 150, isBoss: true, bossType: 'mech',   isArmored: true }
         };
 
+        const BOSS_POOL = ['BOSS_DRAGON', 'BOSS_LICH', 'BOSS_MECH'];
         function generateWave(waveIndex) {
             let count, type, interval, hpMult;
-            hpMult = Math.pow(1.15, waveIndex); 
-            
+            hpMult = Math.pow(1.12, waveIndex);
+
             if ((waveIndex + 1) % 10 === 0) {
-                type = 'BOSS';
-                count = Math.floor((waveIndex + 1) / 10);
-                interval = 2000;
-                hpMult *= 1.5;
+                const bossIndex = Math.floor((waveIndex) / 10) % BOSS_POOL.length;
+                type = BOSS_POOL[bossIndex];
+                count = 1 + Math.floor(waveIndex / 30);
+                interval = 3000;
+                hpMult *= 1.6;
             } else {
-                const types = ['NORMAL', 'SWARM', 'FAST', 'TANK', 'FLYING', 'ARMORED', 'HEALER'];
+                const types = ['NORMAL', 'SWARM', 'FAST', 'TANK', 'FLYING', 'ARMORED'];
                 const maxTypeIndex = Math.min(types.length - 1, Math.floor(waveIndex / 2) + 1);
                 type = types[Math.floor(Math.random() * (maxTypeIndex + 1))];
-                
+
                 count = 10 + Math.floor(waveIndex * 1.5);
-                if (type === 'SWARM') count = Math.floor(count * 1.5);
+                if (type === 'SWARM')   count = Math.floor(count * 1.5);
                 if (type === 'TANK' || type === 'ARMORED') count = Math.floor(count * 0.5);
-                if (type === 'HEALER') count = Math.floor(count * 0.4);
                 if (count < 1) count = 1;
-                
+
                 interval = Math.max(300, 1500 - waveIndex * 15);
                 if (type === 'SWARM') interval *= 0.5;
             }
@@ -297,8 +328,7 @@
         function calculatePixelPath() {
             const areaW = canvas.width;
             const areaH = canvas.height;
-            // Optimize for wide mobile screens by allowing vertical overflow of empty grass
-            cellSize = Math.min(areaW / MAP_COLS, areaH / 10);
+            cellSize = Math.min(areaW / MAP_COLS, areaH / MAP_ROWS);
             mapOffsetX = (areaW - (MAP_COLS * cellSize)) / 2;
             mapOffsetY = (areaH - (MAP_ROWS * cellSize)) / 2;
             pixelPath = pathNodes.map(node => ({
@@ -336,8 +366,9 @@
                 
                 this.slowTimer = 0;
                 this.burnTimer = 0;
-                this.healCooldown = 0;
                 this.wobblePhase = Math.random() * Math.PI * 2;
+                // Boss ability timers
+                this.bossAbilityCooldown = 4000;
             }
 
             update(dt, now) {
@@ -367,6 +398,50 @@
                             }
                         }
                         if (healed) spawnParticles(this.x, this.y, '#4ade80', 15, 1.5);
+                    }
+                }
+
+                // Boss abilities
+                if (this.type.isBoss && !this.isDead) {
+                    this.bossAbilityCooldown -= dt * gameSpeed;
+                    if (this.bossAbilityCooldown <= 0) {
+                        this.bossAbilityCooldown = 5000;
+                        if (this.type.bossType === 'dragon') {
+                            // Summon 3 swarm minions
+                            for (let i = 0; i < 3; i++) {
+                                const minion = new Enemy(ENEMY_TYPES['SWARM'], 1.0);
+                                minion.x = this.x + (Math.random()-0.5)*cellSize;
+                                minion.y = this.y + (Math.random()-0.5)*cellSize;
+                                minion.pathIndex = this.pathIndex;
+                                enemies.push(minion);
+                            }
+                            spawnParticles(this.x, this.y, '#ef4444', 20, 2);
+                        } else if (this.type.bossType === 'lich') {
+                            // AoE slow pulse
+                            for (let e of enemies) {
+                                if (!e.isDead && !e.type.isBoss) {
+                                    if (dist(this.x, this.y, e.x, e.y) <= 5 * cellSize) {
+                                        // heal nearby allies
+                                        e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.1);
+                                    }
+                                }
+                            }
+                            // Slow nearby towers
+                            spawnParticles(this.x, this.y, '#818cf8', 30, 3);
+                            triggerShake(4, 200);
+                        } else if (this.type.bossType === 'mech') {
+                            // Stun nearest tower
+                            let nearest = null, nearDist = Infinity;
+                            for (let t of towers) {
+                                const d = dist(this.x, this.y, t.x, t.y);
+                                if (d < nearDist) { nearDist = d; nearest = t; }
+                            }
+                            if (nearest && nearDist <= 5 * cellSize) {
+                                nearest.stunTimer = 3000; // 3s stun
+                                spawnParticles(nearest.x, nearest.y, '#fbbf24', 20, 2);
+                            }
+                            triggerShake(6, 300);
+                        }
                     }
                 }
 
@@ -403,21 +478,16 @@
                 ctx.ellipse(this.x, this.y + this.radius*0.6, this.radius, this.radius*0.5, 0, 0, Math.PI*2);
                 ctx.fill();
 
-                if (this.type.id === 'BOSS' || this.type.id === 'TANK') {
-                    const pulse = Math.sin(now / 200) * 0.15 + 1.15; 
+                if (this.type.isBoss || this.type.id === 'TANK') {
+                    const pulse = Math.sin(now / 200) * 0.15 + 1.15;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius * pulse, 0, Math.PI*2);
-                    ctx.fillStyle = this.type.id === 'BOSS' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(234, 179, 8, 0.3)';
+                    const bossColors = { dragon: 'rgba(239,68,68,0.35)', lich: 'rgba(129,140,248,0.35)', mech: 'rgba(251,191,36,0.35)' };
+                    ctx.fillStyle = this.type.bossType ? (bossColors[this.type.bossType] || 'rgba(239,68,68,0.3)') : 'rgba(234,179,8,0.3)';
                     ctx.fill();
                 }
 
-                if (this.type.isHealer) {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius * 1.5, 0, Math.PI*2);
-                    ctx.strokeStyle = 'rgba(74, 222, 128, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
+                if (this.type.isHealer) { /* removed */ }
 
                 ctx.save();
                 ctx.translate(this.x, this.y);
@@ -448,7 +518,7 @@
 
             takeDamage(amount, dmgType) {
                 if (this.type.isArmored && dmgType === 'physical') {
-                    amount *= 0.5;
+                    amount *= 0.25; // Armor blocks 75% physical — use MAGE/FIRE/BOMB
                 }
                 this.hp -= amount;
                 if (this.hp <= 0 && !this.isDead) this.die();
@@ -456,10 +526,17 @@
 
             die() {
                 this.isDead = true;
-                playSound('coin');
+                if (this.type.isBoss) {
+                    playSound('boss_die');
+                    triggerShake(12, 600);
+                    spawnParticles(this.x, this.y, '#ef4444', 40, 5);
+                    spawnParticles(this.x, this.y, '#fbbf24', 30, 4);
+                } else {
+                    playSound('enemy_die');
+                    spawnParticles(this.x, this.y, '#facc15', 5, 3);
+                }
                 money += this.reward;
                 updateUI();
-                spawnParticles(this.x, this.y, '#facc15', 5, 3);
             }
 
             reachEnd() {
@@ -516,6 +593,14 @@
             }
 
             update(now) {
+                // Stun check (from BOSS_MECH)
+                if (this.stunTimer > 0) {
+                    this.stunTimer -= (now - (this._lastNow || now));
+                    this._lastNow = now;
+                    return;
+                }
+                this._lastNow = now;
+
                 let buffFr = 1, buffDmg = 1;
                 for (let t of towers) {
                     if (t.typeDef.id === 'SUPPORT' && t !== this) {
@@ -527,7 +612,6 @@
                 }
 
                 if (this.typeDef.id === 'SUPPORT') {
-                    // Support visual
                     if (now - this.lastFiredTime > 1000) {
                         spawnParticles(this.x, this.y, '#10b981', 2, 0.5);
                         this.lastFiredTime = now;
@@ -540,7 +624,6 @@
                 const actualDmg = this.damage * buffDmg;
                 const interval = 1 / (actualFr * gameSpeed);
 
-                // Throttled target check (every 200ms or if lost target)
                 if (this.target && (this.target.isDead || dist(this.x, this.y, this.target.x, this.target.y) > this.range * cellSize)) {
                     this.target = null;
                 }
@@ -563,7 +646,15 @@
                     this.angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                     if (elapsed >= interval || this.lastFiredTime === 0) {
                         playSound(`shoot_${this.typeDef.id}`);
-                        bullets.push(new Bullet(this.x, this.y, this.target, actualDmg, this.color, this.typeDef));
+                        if (this.typeDef.id === 'SNIPER') {
+                            // Hitscan: instant damage + laser line visual
+                            this.target.takeDamage(actualDmg, this.typeDef.dmgType);
+                            spawnParticles(this.target.x, this.target.y, '#a855f7', 8, 2);
+                            // Draw laser line stored for one frame
+                            this.laserLine = { x1: this.x, y1: this.y, x2: this.target.x, y2: this.target.y, life: 150 };
+                        } else {
+                            bullets.push(new Bullet(this.x, this.y, this.target, actualDmg, this.color, this.typeDef));
+                        }
                         const dx = Math.cos(this.angle) * cellSize*0.4;
                         const dy = Math.sin(this.angle) * cellSize*0.4;
                         spawnParticles(this.x + dx, this.y + dy, '#facc15', 3, 1);
@@ -621,6 +712,30 @@
 
                 ctx.restore();
                 
+                // Draw stun indicator
+                if (this.stunTimer > 0) {
+                    ctx.fillStyle = 'rgba(251,191,36,0.6)';
+                    ctx.font = `${cellSize*0.3}px Arial`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('⚡', this.x, this.y - cellSize*0.5);
+                }
+
+                // Draw sniper laser
+                if (this.laserLine) {
+                    this.laserLine.life -= 16;
+                    if (this.laserLine.life > 0) {
+                        const alpha = this.laserLine.life / 150;
+                        ctx.strokeStyle = `rgba(168,85,247,${alpha})`;
+                        ctx.lineWidth = 2;
+                        ctx.shadowBlur = 8; ctx.shadowColor = '#a855f7';
+                        ctx.beginPath();
+                        ctx.moveTo(this.laserLine.x1, this.laserLine.y1);
+                        ctx.lineTo(this.laserLine.x2, this.laserLine.y2);
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    } else { this.laserLine = null; }
+                }
+
                 ctx.font = `${cellSize*0.25}px Arial`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(this.typeDef.icon, this.x, this.y);
@@ -662,7 +777,6 @@
                         }
                     }
                     spawnParticles(this.x, this.y, '#ef4444', 15, 3);
-                    
                     ctx.beginPath(); ctx.arc(this.x, this.y, splashDist, 0, Math.PI*2);
                     ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; ctx.fill();
                 } else {
@@ -775,7 +889,11 @@
                     currentWaveData = generateWave(currentWave);
                     waveState.active = false;
                     waveState.waveDelayTimer = currentWaveData.delay;
-                    money += 50 + (currentWave * 20);
+                    // Base reward + interest on idle cash
+                    const baseReward = 50 + (currentWave * 20);
+                    const interest = Math.floor(money * 0.05);
+                    const bonus = Math.floor(Math.random() * 80);
+                    money += baseReward + interest + bonus;
                     playSound('coin');
                     updateUI();
                 }
@@ -850,8 +968,18 @@
         }
 
         function draw() {
-            ctx.fillStyle = '#22c55e'; // Bright vibrant green background
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Apply screen shake
+            if (screenShake.intensity > 0) {
+                screenShake.x = (Math.random()-0.5)*screenShake.intensity;
+                screenShake.y = (Math.random()-0.5)*screenShake.intensity;
+                screenShake.intensity *= 0.85;
+                if (screenShake.intensity < 0.5) screenShake.intensity = 0;
+            } else { screenShake.x = 0; screenShake.y = 0; }
+            ctx.save();
+            ctx.translate(screenShake.x, screenShake.y);
+
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(-screenShake.x-2, -screenShake.y-2, canvas.width+4, canvas.height+4);
             drawMap();
             const now = performance.now();
             towers.forEach(t => t.draw(ctx));
@@ -895,6 +1023,7 @@
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1; ctx.stroke();
             }
+            ctx.restore(); // end screen shake
         }
 
         function gameLoop(timestamp) {
@@ -915,7 +1044,8 @@
             uiEnemiesLeft.innerText = left;
 
             const nextWaveData = generateWave(currentWave + 1);
-            uiNextWave.innerText = `${ENEMY_TYPES[nextWaveData.type].emoji} x${nextWaveData.count}`;
+            const nextEnemy = ENEMY_TYPES[nextWaveData.type];
+            uiNextWave.innerText = nextEnemy ? `${nextEnemy.emoji} x${nextWaveData.count}` : `? x${nextWaveData.count}`;
 
             renderTowerSelection(); 
         }
@@ -938,8 +1068,10 @@
                 div.className = `tower-item flex-shrink-0 w-12 sm:w-16 bg-gray-800 border-2 rounded-lg py-0.5 px-0 cursor-pointer transition-all flex flex-col items-center justify-center ${affordable ? 'border-gray-600 hover:bg-gray-700' : 'border-red-900 opacity-50'} ${active ? 'active' : ''}`;
                 
                 const iconHTML = `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-xs" style="background-color: ${tower.color}; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${tower.icon}</div>`;
+                const dps = tower.baseDamage > 0 ? Math.round(tower.baseDamage * tower.baseFireRate) : 0;
+                const dpsStr = dps > 0 ? `<div class="text-[7px] text-orange-300 leading-none">${dps}dps</div>` : '';
                 
-                div.innerHTML = `${iconHTML}<div class="text-[8px] sm:text-[10px] font-bold text-gray-200 mt-0.5 leading-none whitespace-nowrap">${tower.name}</div><div class="text-[8px] sm:text-[10px] font-bold ${affordable ? 'text-yellow-400' : 'text-red-500'} flex items-center mt-0.5 leading-none"><span class="mr-0.5 text-[8px]">🪙</span>${tower.cost}</div>`;
+                div.innerHTML = `${iconHTML}<div class="text-[8px] sm:text-[10px] font-bold text-gray-200 mt-0.5 leading-none whitespace-nowrap">${tower.name}</div><div class="text-[8px] sm:text-[10px] font-bold ${affordable ? 'text-yellow-400' : 'text-red-500'} flex items-center mt-0.5 leading-none"><span class="mr-0.5 text-[8px]">🪙</span>${tower.cost}</div>${dpsStr}`;
                 
                 div.addEventListener('pointerdown', (e) => {
                     e.stopPropagation();
