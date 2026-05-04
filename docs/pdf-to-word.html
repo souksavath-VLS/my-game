@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to Word Converter - แปลงไฟล์ PDF เป็น Word</title>
+  <meta name="description"
+    content="แปลงไฟล์ PDF เป็น Word (.docx) ออนไลน์ฟรี รองรับภาษาลาว ไทย จีน อังกฤษ ทำงานบนเบราว์เซอร์ ไม่ต้องอัปโหลดไฟล์ไปเซิร์ฟเวอร์">
+  <link rel="stylesheet" href="css/pdf-to-word.css">
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="pdf-nav">
+    <div class="logo">
+      <svg viewBox="0 0 36 36" fill="none">
+        <rect width="36" height="36" rx="8" fill="#2563eb" /><text x="5" y="24" font-size="14" font-weight="bold"
+          fill="#fff">P→W</text>
+      </svg>
+      <span>PDF to Word<br><small style="font-size:.65rem;color:#94a3b8;font-weight:400">Converter</small></span>
+    </div>
+    <div class="nav-links">
+      <a href="#" class="active">หน้าแรก</a>
+      <a href="#how-to">วิธีใช้งาน</a>
+      <a href="#features">คุณสมบัติ</a>
+      <a href="#faq">คำถามที่พบบ่อย</a>
+      <a href="index.html">กลับหน้าหลัก</a>
+    </div>
+    <button class="lang-sel">🌐 ไทย ▾</button>
+  </nav>
+
+  <!-- Back Link -->
+  <a href="index.html" class="back-link">← กลับหน้าหลัก</a>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>แปลง <span class="blue">PDF</span> เป็น <span class="blue">Word</span></h1>
+    <p>แปลงไฟล์ PDF เป็น Word (.docx) ที่สามารถแก้ไขได้ รองรับทุกภาษา</p>
+    <p class="lang-line">ลาว ไทย จีน อังกฤษ และทุกภาษาอื่น ๆ</p>
+  </section>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="pdf-icon">PDF</div>
+    <p>ลากและวางไฟล์ PDF ของคุณที่นี่</p>
+    <p class="sub">หรือ</p>
+    <button class="upload-btn" id="uploadBtn">📤 เลือกไฟล์ PDF ▾</button>
+    <p class="sub" style="margin-top:12px">รองรับไฟล์ PDF ขนาดไม่เกิน 100MB</p>
+    <input type="file" id="fileInput" accept=".pdf" style="display:none">
+  </div>
+
+  <!-- File Info -->
+  <div class="file-info" id="fileInfo" style="display:none">
+    <div class="fi-icon">PDF</div>
+    <div class="fi-name">
+      <span id="fileName">document.pdf</span>
+      <small id="fileSize">0 KB</small>
+    </div>
+    <button class="fi-remove" id="removeFile" title="ลบไฟล์">✕</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <p class="progress-text" id="progressText">กำลังแปลงไฟล์...</p>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-area" id="resultArea">
+    <div class="success-icon">✅</div>
+    <h2 style="margin-bottom:.5rem;color:#10b981">แปลงไฟล์สำเร็จ!</h2>
+    <p style="color:#64748b;margin-bottom:1rem">ไฟล์ Word (.docx) พร้อมดาวน์โหลด</p>
+    <button class="download-btn" id="downloadBtn">⬇ ดาวน์โหลด Word</button>
+    <p style="margin-top:1rem"><button id="convertAnother"
+        style="background:none;border:none;color:#2563eb;cursor:pointer;font-weight:600;font-size:.9rem">🔄
+        แปลงไฟล์อื่น</button></p>
+  </div>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="features">
+      <div class="feat">
+        <div class="icon">🔒</div>
+        <h3>ปลอดภัย 100%</h3>
+        <p>ไฟล์ของคุณถูกประมวลผลบนเบราว์เซอร์ ไม่ส่งไปเซิร์ฟเวอร์</p>
+      </div>
+      <div class="feat">
+        <div class="icon">⚡</div>
+        <h3>แปลงรวดเร็ว</h3>
+        <p>ใช้เทคโนโลยี JavaScript ขั้นสูง แปลงได้อย่างรวดเร็ว</p>
+      </div>
+      <div class="feat">
+        <div class="icon">📄</div>
+        <h3>รักษารูปแบบเดิม</h3>
+        <p>คงรูปแบบ ตาราง รูปภาพ และเลเอาท์ ให้ใกล้เคียงต้นฉบับ</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Languages Section -->
+  <div class="section">
+    <h2>รองรับทุกภาษา</h2>
+    <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem">แปลงเอกสารทุกภาษาเป็น Word ได้อย่างสมบูรณ์</p>
+    <div class="lang-grid">
+      <div class="lang-card">
+        <img src="https://flagcdn.com/la.svg" alt="Lao" class="flag-img"><br>
+        <div class="name">ภาษา ลาว</div>
+        <div class="sample">ສາທາລະນະລັດ ປະຊາທິປະໄຕ</div>
+      </div>
+      <div class="lang-card">
+        <img src="https://flagcdn.com/th.svg" alt="Thai" class="flag-img"><br>
+        <div class="name">ภาษา ไทย</div>
+        <div class="sample">สวัสดีครับ ประเทศไทย</div>
+      </div>
+      <div class="lang-card">
+        <img src="https://flagcdn.com/cn.svg" alt="Chinese" class="flag-img"><br>
+        <div class="name">中文 (จีน)</div>
+        <div class="sample">中华人民共和国 欢迎使用</div>
+      </div>
+      <div class="lang-card">
+        <img src="https://flagcdn.com/gb.svg" alt="English" class="flag-img"><br>
+        <div class="name">English (อังกฤษ)</div>
+        <div class="sample">Hello World Welcome to PDF to Word</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fonts Section -->
+  <div class="section">
+    <h2>ใช้ฟอนต์ทางการ</h2>
+    <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem">สำหรับภาษาลาว ไทย จีน และอังกฤษ ใช้ฟอนต์มาตรฐานทางการ
+    </p>
+    <div class="font-grid">
+      <div class="font-card">
+        <div class="fname">ລາວ</div>
+        <div class="fsub">Noto Sans Lao</div>
+        <div class="fsample" style="font-family:'Noto Sans Lao',sans-serif">ກຂຄງ</div>
+      </div>
+      <div class="font-card">
+        <div class="fname">ไทย</div>
+        <div class="fsub">TH Sarabun New</div>
+        <div class="fsample">กขคง</div>
+      </div>
+      <div class="font-card">
+        <div class="fname">中文 (จีน)</div>
+        <div class="fsub">SimSun (宋体)</div>
+        <div class="fsample">汉字中文</div>
+      </div>
+      <div class="font-card">
+        <div class="fname">English</div>
+        <div class="fsub">Times New Roman</div>
+        <div class="fsample">AaBbCc</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How To Steps -->
+  <section id="how-to">
+    <div class="section">
+      <h2>วิธีการใช้งาน</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>อัปโหลดไฟล์ PDF</h3>
+        <p>เลือกหรือลากไฟล์ PDF ที่ต้องการแปลง</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>ระบบแปลงไฟล์</h3>
+        <p>ระบบจะทำการแปลงไฟล์โดยอัตโนมัติ</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>ดาวน์โหลด Word</h3>
+        <p>รับไฟล์ Word (.docx) ที่พร้อมใช้งาน</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section">
+      <h2>คำถามที่พบบ่อย</h2>
+      <div style="background:#fff;border-radius:14px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+        <details style="margin-bottom:1rem">
+          <summary style="cursor:pointer;font-weight:600;color:#1e293b">ไฟล์ของฉันปลอดภัยหรือไม่?</summary>
+          <p style="color:#64748b;margin-top:.5rem;font-size:.9rem">ปลอดภัย 100%
+            เพราะไฟล์ถูกประมวลผลบนเบราว์เซอร์ของคุณเท่านั้น ไม่มีการส่งข้อมูลไปเซิร์ฟเวอร์</p>
+        </details>
+        <details style="margin-bottom:1rem">
+          <summary style="cursor:pointer;font-weight:600;color:#1e293b">รองรับไฟล์ PDF ขนาดเท่าไหร่?</summary>
+          <p style="color:#64748b;margin-top:.5rem;font-size:.9rem">รองรับไฟล์ PDF ขนาดไม่เกิน 100MB</p>
+        </details>
+        <details>
+          <summary style="cursor:pointer;font-weight:600;color:#1e293b">รองรับ PDF ที่เป็นรูปภาพ (สแกน) หรือไม่?
+          </summary>
+          <p style="color:#64748b;margin-top:.5rem;font-size:.9rem">ระบบรองรับ PDF ที่มีข้อความ (text-based) หาก PDF
+            เป็นรูปภาพสแกน จะต้องใช้ OCR เพิ่มเติม</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <span>🔒</span> ความเป็นส่วนตัวของคุณคือสิ่งสำคัญสำหรับเรา — เราไม่เก็บไฟล์ของคุณไว้บนเซิร์ฟเวอร์
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+
+  <script>
+    // PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const resultArea = document.getElementById('resultArea');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const convertAnother = document.getElementById('convertAnother');
+
+    let currentFile = null;
+    let docxBlob = null;
+
+    // Upload button click
+    uploadBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === 'application/pdf') {
+        handleFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    });
+
+    removeFile.addEventListener('click', resetUI);
+    convertAnother.addEventListener('click', resetUI);
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function handleFile(file) {
+      if (file.size > 100 * 1048576) {
+        alert('ไฟล์ขนาดเกิน 100MB กรุณาเลือกไฟล์ที่เล็กกว่า');
+        return;
+      }
+      currentFile = file;
+      fileName.textContent = file.name;
+      fileSize.textContent = formatSize(file.size);
+      fileInfo.style.display = 'flex';
+      uploadZone.style.display = 'none';
+      startConversion(file);
+    }
+
+    function resetUI() {
+      currentFile = null;
+      docxBlob = null;
+      fileInput.value = '';
+      fileInfo.style.display = 'none';
+      progressWrap.style.display = 'none';
+      resultArea.style.display = 'none';
+      uploadZone.style.display = 'block';
+      progressBar.style.width = '0%';
+    }
+
+    async function startConversion(file) {
+      progressWrap.style.display = 'block';
+      resultArea.style.display = 'none';
+      progressBar.style.width = '10%';
+      progressText.textContent = 'กำลังอ่านไฟล์ PDF...';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        progressBar.style.width = '20%';
+        progressText.textContent = 'กำลังวิเคราะห์เอกสาร...';
+
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdf.numPages;
+        const pages = [];
+
+        for (let i = 1; i <= totalPages; i++) {
+          progressBar.style.width = (20 + (i / totalPages) * 50) + '%';
+          progressText.textContent = `กำลังแปลงหน้า ${i} จาก ${totalPages}...`;
+
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+
+          // Group text items by Y position to preserve line structure
+          const lines = {};
+          textContent.items.forEach(item => {
+            const y = Math.round(item.transform[5]);
+            if (!lines[y]) lines[y] = [];
+            lines[y].push({ x: item.transform[4], text: item.str });
+          });
+
+          // Sort by Y (descending = top to bottom) then X
+          const sortedYs = Object.keys(lines).map(Number).sort((a, b) => b - a);
+          const pageLines = [];
+          sortedYs.forEach(y => {
+            const lineItems = lines[y].sort((a, b) => a.x - b.x);
+            const lineText = lineItems.map(item => item.text).join(' ');
+            if (lineText.trim()) pageLines.push(lineText);
+          });
+
+          pages.push({ pageNum: i, lines: pageLines });
+        }
+
+        progressBar.style.width = '80%';
+        progressText.textContent = 'กำลังสร้างไฟล์ Word...';
+
+        // Build DOCX using the docx library
+        await generateDocx(pages, file.name);
+
+        progressBar.style.width = '100%';
+        progressText.textContent = 'แปลงไฟล์สำเร็จ!';
+
+        setTimeout(() => {
+          progressWrap.style.display = 'none';
+          resultArea.style.display = 'block';
+        }, 500);
+
+      } catch (err) {
+        console.error(err);
+        progressText.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
+        progressBar.style.width = '0%';
+        progressBar.style.background = '#ef4444';
+      }
+    }
+
+    async function generateDocx(pages, originalName) {
+      const { Document, Packer, Paragraph, TextRun, PageBreak, AlignmentType } = window.docx;
+
+      const children = [];
+
+      children.push(new Paragraph({
+        children: [new TextRun({ text: originalName.replace(/\.pdf$/i, ''), bold: true, size: 32, font: 'Arial' })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 300 }
+      }));
+
+      pages.forEach((page, idx) => {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `--- Page ${page.pageNum} ---`, color: '999999', size: 18, font: 'Arial' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 200, after: 100 }
+        }));
+
+        page.lines.forEach(line => {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: line, size: 24, font: 'Arial' })],
+            spacing: { after: 80 }
+          }));
+        });
+
+        if (idx < pages.length - 1) {
+          children.push(new Paragraph({ children: [new PageBreak()] }));
+        }
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } }
+          },
+          children: children
+        }]
+      });
+
+      docxBlob = await Packer.toBlob(doc);
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (docxBlob) {
+        const baseName = currentFile ? currentFile.name.replace(/\.pdf$/i, '') : 'document';
+        const fileName = baseName + '_converted.docx';
+        // Create a proper blob with explicit MIME type
+        const wordBlob = new Blob([docxBlob], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const url = URL.createObjectURL(wordBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    });
+
+    // ===== Language sync from index page =====
+    const pageLang = {
+      th: {
+        title: 'แปลง PDF เป็น Word', sub: 'แปลงไฟล์ PDF เป็น Word (.docx) ที่สามารถแก้ไขได้ รองรับทุกภาษา',
+        langLine: 'ลาว ไทย จีน อังกฤษ และทุกภาษาอื่น ๆ', drag: 'ลากและวางไฟล์ PDF ของคุณที่นี่', or: 'หรือ',
+        selectBtn: '📤 เลือกไฟล์ PDF ▾', maxSize: 'รองรับไฟล์ PDF ขนาดไม่เกิน 100MB',
+        navHome: 'หน้าแรก', navHow: 'วิธีใช้งาน', navFeat: 'คุณสมบัติ', navFaq: 'คำถามที่พบบ่อย', navBack: 'กลับหน้าหลัก',
+        backLink: '← กลับหน้าหลัก', langBtn: '🌐 ไทย ▾',
+        successTitle: 'แปลงไฟล์สำเร็จ!', successSub: 'ไฟล์ Word (.docx) พร้อมดาวน์โหลด',
+        dlBtn: '⬇ ดาวน์โหลด Word', convertMore: '🔄 แปลงไฟล์อื่น',
+        f1t: 'ปลอดภัย 100%', f1d: 'ไฟล์ของคุณถูกประมวลผลบนเบราว์เซอร์ ไม่ส่งไปเซิร์ฟเวอร์',
+        f2t: 'แปลงรวดเร็ว', f2d: 'ใช้เทคโนโลยี JavaScript ขั้นสูง แปลงได้อย่างรวดเร็ว',
+        f3t: 'รักษารูปแบบเดิม', f3d: 'คงรูปแบบ ตาราง รูปภาพ และเลเอาท์ ให้ใกล้เคียงต้นฉบับ'
+      },
+      en: {
+        title: 'Convert PDF to Word', sub: 'Convert PDF to editable Word (.docx) files. Supports all languages.',
+        langLine: 'Lao, Thai, Chinese, English and more', drag: 'Drag and drop your PDF file here', or: 'or',
+        selectBtn: '📤 Select PDF File ▾', maxSize: 'Supports PDF files up to 100MB',
+        navHome: 'Home', navHow: 'How to Use', navFeat: 'Features', navFaq: 'FAQ', navBack: 'Back to Main',
+        backLink: '← Back to Main', langBtn: '🌐 English ▾',
+        successTitle: 'Conversion Complete!', successSub: 'Word (.docx) file ready to download',
+        dlBtn: '⬇ Download Word', convertMore: '🔄 Convert Another',
+        f1t: '100% Secure', f1d: 'Files processed in your browser. Never uploaded to any server.',
+        f2t: 'Fast Conversion', f2d: 'Uses advanced JavaScript technology for quick conversion.',
+        f3t: 'Preserve Format', f3d: 'Maintains tables, images, and layout close to the original.'
+      },
+      lao: {
+        title: 'ແປງ PDF ເປັນ Word', sub: 'ແປງໄຟລ໌ PDF ເປັນ Word (.docx) ທີ່ສາມາດແກ້ໄຂໄດ້ ຮອງຮັບທຸກພາສາ',
+        langLine: 'ລາວ ໄທ ຈີນ ອັງກິດ ແລະທຸກພາສາ', drag: 'ລາກແລະວາງໄຟລ໌ PDF ຂອງທ່ານທີ່ນີ້', or: 'ຫຼື',
+        selectBtn: '📤 ເລືອກໄຟລ໌ PDF ▾', maxSize: 'ຮອງຮັບໄຟລ໌ PDF ຂະໜາດບໍ່ເກີນ 100MB',
+        navHome: 'ໜ້າທຳອິດ', navHow: 'ວິທີໃຊ້ງານ', navFeat: 'ຄຸນສົມບັດ', navFaq: 'ຄຳຖາມທີ່ພົບເລື້ອຍ', navBack: 'ກັບໜ້າຫຼັກ',
+        backLink: '← ກັບໜ້າຫຼັກ', langBtn: '🌐 ລາວ ▾',
+        successTitle: 'ແປງໄຟລ໌ສຳເລັດ!', successSub: 'ໄຟລ໌ Word (.docx) ພ້ອມດາວໂຫຼດ',
+        dlBtn: '⬇ ດາວໂຫຼດ Word', convertMore: '🔄 ແປງໄຟລ໌ອື່ນ',
+        f1t: 'ປອດໄພ 100%', f1d: 'ໄຟລ໌ຖືກປະມວນຜົນໃນບຣາວເຊີ ບໍ່ສົ່ງໄປເຊີບເວີ',
+        f2t: 'ແປງໄວ', f2d: 'ໃຊ້ເທັກໂນໂລຍີ JavaScript ຂັ້ນສູງ',
+        f3t: 'ຮັກສາຮູບແບບເດີມ', f3d: 'ຄົງຮູບແບບ ຕາຕະລາງ ຮູບພາບ ແລະເລເອົາທ໌'
+      }
+    };
+    function applyLang(lang) {
+      const d = pageLang[lang] || pageLang.th;
+      const h1 = document.querySelector('.hero h1');
+      h1.innerHTML = d.title.replace('PDF', '<span class="blue">PDF</span>').replace('Word', '<span class="blue">Word</span>');
+      document.querySelector('.hero > p:not(.lang-line)').textContent = d.sub;
+      document.querySelector('.hero .lang-line').textContent = d.langLine;
+      document.querySelector('#uploadZone > p:first-of-type').textContent = d.drag;
+      document.querySelector('#uploadZone > .sub').textContent = d.or;
+      uploadBtn.textContent = d.selectBtn;
+      document.querySelector('#uploadZone > p:last-of-type').textContent = d.maxSize;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      if (navLinks[0]) navLinks[0].textContent = d.navHome;
+      if (navLinks[1]) navLinks[1].textContent = d.navHow;
+      if (navLinks[2]) navLinks[2].textContent = d.navFeat;
+      if (navLinks[3]) navLinks[3].textContent = d.navFaq;
+      if (navLinks[4]) navLinks[4].textContent = d.navBack;
+      document.querySelector('.back-link').textContent = d.backLink;
+      document.querySelector('.lang-sel').textContent = d.langBtn;
+      document.querySelector('#resultArea h2').textContent = d.successTitle;
+      document.querySelector('#resultArea p').textContent = d.successSub;
+      downloadBtn.textContent = d.dlBtn;
+      convertAnother.textContent = d.convertMore;
+      const feats = document.querySelectorAll('.feat');
+      if (feats[0]) { feats[0].querySelector('h3').textContent = d.f1t; feats[0].querySelector('p').textContent = d.f1d; }
+      if (feats[1]) { feats[1].querySelector('h3').textContent = d.f2t; feats[1].querySelector('p').textContent = d.f2d; }
+      if (feats[2]) { feats[2].querySelector('h3').textContent = d.f3t; feats[2].querySelector('p').textContent = d.f3d; }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const lang = localStorage.getItem('lang') || 'th';
+      applyLang(lang);
+    });
+  </script>
+</body>
+
+</html>
