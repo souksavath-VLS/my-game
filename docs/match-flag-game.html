@@ -2,127 +2,427 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Match Flag Game</title>
   <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <div class="flag-card-main">
-    <div class="flag-header">Match Flag Game</div>
-    <div class="flag-board" id="match-flag-board">
-      <div class="flag-row" id="flag-row"></div>
-      <div class="name-row" id="name-row"></div>
-    </div>
-    <div style="margin: 18px 0; display: flex; gap: 12px; justify-content:center;">
-      <button id="backBtn" class="flag-btn">ย้อนกลับหน้าแรก</button>
-      <button id="nextBtn" class="flag-btn">สุ่มใหม่</button>
-    </div>
-    <div id="timer"></div>
-    <div id="result"></div>
-  </div>
-  <script src="js/country-list.js"></script>
-  <script src="js/match-flag-game.js"></script>
-</body>
-</html>
   <style>
-    body {
-      background: linear-gradient(135deg, #e0e7ff 0%, #fffbe7 100%);
-      min-height: 100vh;
+    html, body {
       margin: 0;
-      font-family: 'Kanit', 'Prompt', 'Noto Sans Thai', Arial, sans-serif;
-    }
-    .flag-card-main {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 6px 32px 0 rgba(60,60,120,0.10), 0 1.5px 6px 0 rgba(60,60,120,0.08);
-      max-width: 520px;
-      margin: 40px auto 0 auto;
-      padding: 32px 24px 28px 24px;
-      position: relative;
-    }
-    .flag-header {
-      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
-      color: #fff;
-      font-size: 2.1rem;
-      font-weight: bold;
-      border-radius: 14px 14px 0 0;
-      padding: 18px 0 14px 0;
+      padding: 0;
+      background: linear-gradient(135deg, #e0e7ff 0%, #fffbe7 100%);
+      color: #1a3a5a;
+      font-family: 'Kanit', 'Prompt', 'Noto Sans Thai', 'Segoe UI', Arial, sans-serif;
       text-align: center;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .mf-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 8px 0;
+      height: 100vh;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      overflow-y: auto;
+    }
+
+    .mf-title {
+      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0 0 6px;
+      font-size: 1.6em;
+      font-weight: bold;
       letter-spacing: 1px;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 8px 0 rgba(79,140,255,0.08);
     }
-    .flag-board {
-      margin-bottom: 24px;
-    }
-    .flag-row, .name-row {
+
+    .mf-statusbar {
       display: flex;
       justify-content: center;
-      gap: 18px;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      padding: 0 6px;
     }
-    .flag-box {
-      width: 90px;
-      height: 70px;
-      border: 2px solid #1976d2;
-      border-radius: 8px;
+    .mf-pill {
+      background: rgba(79, 140, 255, 0.10);
+      border: 1px solid rgba(79, 140, 255, 0.45);
+      padding: 4px 12px;
+      border-radius: 14px;
+      color: #1a3a5a;
+      white-space: nowrap;
+    }
+    .mf-pill strong { color: #4f8cff; font-size: 1rem; }
+    .mf-pill.wrong strong { color: #c62828; }
+
+    /* Difficulty selector */
+    .mf-diff-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin: 4px 0 10px;
+      flex-wrap: wrap;
+    }
+    .mf-diff-btn {
+      padding: 6px 16px;
+      font-size: 0.9rem;
+      border-radius: 14px;
+      border: 2px solid #4f8cff;
       background: #fff;
+      color: #4f8cff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mf-diff-btn.active {
+      background: linear-gradient(90deg, #4f8cff, #7f53ac);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    /* Flag tiles row */
+    .mf-flag-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 8px 0;
+      width: 100%;
+      max-width: 720px;
+    }
+    .mf-flag-tile {
+      width: 110px;
+      height: 78px;
+      border: 3px solid #4f8cff;
+      border-radius: 10px;
+      background: #fff;
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.3s;
-      position: relative;
-      margin-bottom: 8px;
-      box-shadow: 0 2px 8px rgba(25,118,210,0.10);
-    }
-    .flag-box.matched {
-      background: #c8e6c9 !important;
-      border-color: #388e3c;
-    }
-    .flag-box img {
-      width: 70px;
-      height: 48px;
-      object-fit: contain;
-      border-radius: 4px;
-      box-shadow: 0 1px 4px rgba(60,60,120,0.08);
-    }
-    .flag-btn {
-      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 22px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0 8px 12px 0;
       cursor: pointer;
-      box-shadow: 0 1.5px 6px 0 rgba(60,60,120,0.07);
-      transition: background 0.2s, box-shadow 0.2s;
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      box-shadow: 0 3px 10px rgba(79, 140, 255, 0.15);
+      -webkit-tap-highlight-color: transparent;
     }
-    .flag-btn:hover {
-      background: linear-gradient(90deg, #7f53ac 0%, #4f8cff 100%);
-      box-shadow: 0 4px 16px 0 rgba(127,83,172,0.13);
+    .mf-flag-tile:active { transform: scale(0.96); }
+    .mf-flag-tile img {
+      width: 92px;
+      height: 60px;
+      object-fit: contain;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
     }
-    #result {
-      font-size: 1.3rem;
+    .mf-flag-tile.selected {
+      border-color: #ffb300;
+      background: #fff8e1;
+      box-shadow: 0 0 16px rgba(255, 179, 0, 0.6);
+    }
+    .mf-flag-tile.matched {
+      background: #c8e6c9;
+      border-color: #2e7d32;
+      box-shadow: 0 0 14px rgba(46, 125, 50, 0.5);
+      cursor: default;
+    }
+    .mf-flag-tile.wrong {
+      background: #ffcdd2;
+      border-color: #c62828;
+      animation: mfShake 0.4s;
+    }
+
+    /* Name buttons row */
+    .mf-name-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 8px 0 12px;
+      width: 100%;
+      max-width: 720px;
+    }
+    .mf-name-btn {
+      padding: 9px 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      border: 2px solid #4f8cff;
+      background: #fff;
+      color: #1a3a5a;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      box-shadow: 0 3px 8px rgba(79, 140, 255, 0.12);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .mf-name-btn:active { transform: scale(0.96); }
+    .mf-name-btn.selected {
+      border-color: #ffb300;
+      background: #fff8e1;
+      color: #b07d00;
+      box-shadow: 0 0 14px rgba(255, 179, 0, 0.55);
+    }
+    .mf-name-btn.matched {
+      background: #c8e6c9;
+      border-color: #2e7d32;
+      color: #2e7d32;
+      cursor: default;
+      opacity: 0.7;
+    }
+    .mf-name-btn.wrong {
+      background: #ffcdd2;
+      border-color: #c62828;
+      animation: mfShake 0.4s;
+    }
+    .mf-name-btn:disabled { cursor: default; }
+
+    @keyframes mfShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* Actions */
+    .mf-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 6px 0 12px;
+      flex-wrap: wrap;
+    }
+    .mf-btn {
+      padding: 9px 22px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: none;
       font-weight: bold;
-      color: #ff9800;
-      margin-top: 18px;
-      min-height: 32px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(50, 70, 130, 0.35);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .mf-btn.primary { background: linear-gradient(90deg, #4f8cff, #7f53ac); color: #fff; }
+    .mf-btn.secondary { background: #fff; color: #4f8cff; border: 2px solid #4f8cff; }
+    .mf-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(50, 70, 130, 0.35); }
+
+    /* Floating buttons */
+    #mf-exit-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 30;
+      padding: 8px 14px;
+      background: #ff4444;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+    #mf-mute-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 30;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      color: #4f8cff;
+      border: 2px solid rgba(79, 140, 255, 0.55);
+      font-size: 1.1em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* Result modal */
+    .mf-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
       text-align: center;
     }
-    #timer {
-      font-size: 1.2rem;
-      color: #1976d2;
-      margin-bottom: 10px;
-      font-weight: 500;
-      text-align: center;
+    .mf-card {
+      background: linear-gradient(145deg, #fff, #e3f2fd);
+      border: 3px solid #4f8cff;
+      border-radius: 16px;
+      padding: 26px 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(79, 140, 255, 0.55);
+      animation: mfCardPop 0.35s ease-out;
     }
+    @keyframes mfCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .mf-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.6em;
+      background: linear-gradient(90deg, #4f8cff, #7f53ac);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .mf-result-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 14px 0;
+      font-size: 1.1em;
+    }
+    .mf-result-row span {
+      background: rgba(79, 140, 255, 0.12);
+      padding: 6px 14px;
+      border-radius: 12px;
+    }
+    #mf-new-record {
+      display: inline-block;
+      background: #ff5252;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      animation: mfPulse 0.6s infinite alternate;
+    }
+    @keyframes mfPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+
     @media (max-width: 600px) {
-      .flag-card-main { padding: 16px 4px 18px 4px; }
-      .flag-header { font-size: 1.3rem; padding: 12px 0 8px 0; }
-      .flag-box { width: 60px; height: 40px; }
-      .flag-box img { width: 40px; height: 24px; }
+      .mf-title { font-size: 1.3em; }
+      .mf-statusbar { font-size: 0.8rem; gap: 6px; }
+      .mf-pill { padding: 3px 10px; }
+      .mf-diff-btn { padding: 5px 12px; font-size: 0.8rem; }
+      .mf-flag-tile { width: 86px; height: 60px; border-width: 2px; }
+      .mf-flag-tile img { width: 72px; height: 46px; }
+      .mf-name-btn { padding: 7px 12px; font-size: 0.88rem; }
+      .mf-btn { padding: 8px 18px; font-size: 0.9rem; }
+      .mf-card { padding: 20px 24px; }
+      .mf-card h2 { font-size: 1.3em; }
     }
   </style>
+</head>
+<body>
+  <a id="mf-exit-btn" href="index.html">Exit</a>
+  <button id="mf-mute-btn" aria-label="Mute">🔊</button>
+
+  <div class="mf-container">
+    <h1 class="mf-title" id="mf-title">Match Flag Game</h1>
+
+    <div class="mf-statusbar">
+      <span class="mf-pill"><span id="label-progress">Pairs:</span> <strong id="mf-progress">0 / 5</strong></span>
+      <span class="mf-pill wrong">✗ <strong id="mf-wrong">0</strong></span>
+      <span class="mf-pill">⏱ <strong id="mf-time">00:00</strong></span>
+      <span class="mf-pill">🏆 <strong id="mf-best">—</strong></span>
+    </div>
+
+    <div class="mf-diff-row">
+      <button class="mf-diff-btn" id="mf-diff-easy">Easy · 3</button>
+      <button class="mf-diff-btn" id="mf-diff-medium">Medium · 5</button>
+      <button class="mf-diff-btn" id="mf-diff-hard">Hard · 8</button>
+    </div>
+
+    <div class="mf-flag-row" id="mf-flag-row"></div>
+    <div class="mf-name-row" id="mf-name-row"></div>
+
+    <p id="mf-hint" style="opacity: 0.65; font-size: 0.85rem; margin: 0 0 4px;">Tap a flag, then tap its name</p>
+
+    <div class="mf-actions">
+      <button id="mf-newgame-btn" class="mf-btn primary">New Game</button>
+    </div>
+  </div>
+
+  <!-- Result modal -->
+  <div id="mf-result-modal" class="mf-overlay" style="display:none;">
+    <div class="mf-card">
+      <h2 id="mf-result-title">All Matched! 🎉</h2>
+      <div id="mf-new-record" style="display:none;">NEW RECORD!</div>
+      <div class="mf-result-row">
+        <span>⏱ <strong id="mf-result-time">00:00</strong></span>
+        <span>✗ <strong id="mf-result-wrong">0</strong></span>
+      </div>
+      <button id="mf-replay-btn" class="mf-btn primary">Play Again</button>
+    </div>
+  </div>
+
+  <script src="js/country-list.js"></script>
+  <script src="js/match-flag-game.js"></script>
+  <script>
+    const matchFlagLangData = {
+      th: {
+        title: 'จับคู่ธงประเทศ',
+        progress: 'จับคู่:',
+        easy: 'ง่าย · 3', medium: 'กลาง · 5', hard: 'ยาก · 8',
+        hint: 'แตะธงก่อน แล้วแตะชื่อให้ตรง',
+        newGame: 'เริ่มใหม่', exit: 'ออกเกม',
+        resultTitle: 'จับคู่ครบหมด! 🎉', newRecord: 'สถิติใหม่!',
+        playAgain: 'เล่นอีก'
+      },
+      en: {
+        title: 'Match Flag Game',
+        progress: 'Pairs:',
+        easy: 'Easy · 3', medium: 'Medium · 5', hard: 'Hard · 8',
+        hint: 'Tap a flag, then tap its name',
+        newGame: 'New Game', exit: 'Exit',
+        resultTitle: 'All Matched! 🎉', newRecord: 'NEW RECORD!',
+        playAgain: 'Play Again'
+      },
+      lao: {
+        title: 'ຈັບຄູ່ທຸງປະເທດ',
+        progress: 'ຈັບຄູ່:',
+        easy: 'ງ່າຍ · 3', medium: 'ກາງ · 5', hard: 'ຍາກ · 8',
+        hint: 'ແຕະທຸງກ່ອນ ແລ້ວແຕະຊື່ໃຫ້ກົງ',
+        newGame: 'ເລີ່ມໃໝ່', exit: 'ອອກເກມ',
+        resultTitle: 'ຈັບຄູ່ຄົບແລ້ວ! 🎉', newRecord: 'ສະຖິຕິໃໝ່!',
+        playAgain: 'ຫຼິ້ນອີກ'
+      }
+    };
+    function setMatchFlagLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = matchFlagLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('mf-title', t.title);
+      set('label-progress', t.progress);
+      set('mf-diff-easy', t.easy);
+      set('mf-diff-medium', t.medium);
+      set('mf-diff-hard', t.hard);
+      set('mf-hint', t.hint);
+      set('mf-newgame-btn', t.newGame);
+      set('mf-exit-btn', t.exit);
+      set('mf-result-title', t.resultTitle);
+      set('mf-new-record', t.newRecord);
+      set('mf-replay-btn', t.playAgain);
+    }
+    document.addEventListener('DOMContentLoaded', setMatchFlagLang);
+  </script>
+</body>
+</html>

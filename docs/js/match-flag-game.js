@@ -1,138 +1,314 @@
-// --- Match Flag Game with timer ---
-let matchFlagStartTime = null;
-let matchFlagTimerInterval = null;
+// Match Flag Game — kids-friendly, mobile-first. Tap-to-pair (no drag).
+// Country data lives in country-list.js as window.COUNTRIES.
 
+// ---------- Settings ----------
+const DIFFICULTY = { easy: 3, medium: 5, hard: 8 };
+let pairCount = DIFFICULTY.medium;
+let difficultyKey = localStorage.getItem('matchFlagDiff') || 'medium';
+if (!DIFFICULTY[difficultyKey]) difficultyKey = 'medium';
+pairCount = DIFFICULTY[difficultyKey];
+
+// ---------- State ----------
+let lang = 'en';
+let countriesThisRound = [];
+let selectedFlag = null; // DOM element
+let selectedName = null; // DOM element
+let matchedCount = 0;
+let wrongCount = 0;
+let startTime = 0;
+let timerHandle = null;
+let bestStats = JSON.parse(localStorage.getItem('matchFlagBest') || '{}'); // { easy: {time,wrong}, ... }
+let roundActive = false;
+
+// ---------- Audio ----------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.4;
+masterGain.connect(audioCtx.destination);
+let muted = localStorage.getItem('matchFlagMuted') === '1';
+function applyMute() { masterGain.gain.value = muted ? 0 : 0.4; }
+applyMute();
+function toggleMute() {
+  muted = !muted;
+  localStorage.setItem('matchFlagMuted', muted ? '1' : '0');
+  applyMute();
+  const btn = document.getElementById('mf-mute-btn');
+  if (btn) btn.textContent = muted ? '🔇' : '🔊';
+}
+window.matchFlagToggleMute = toggleMute;
+
+function beep({ type = 'square', freq = 600, freqEnd = null, duration = 0.12, gain = 0.35 }) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (freqEnd !== null) o.frequency.linearRampToValueAtTime(freqEnd, audioCtx.currentTime + duration);
+  g.gain.setValueAtTime(gain, audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+  o.connect(g); g.connect(masterGain);
+  o.start();
+  o.stop(audioCtx.currentTime + duration);
+}
+function sndSelect()  { beep({ type: 'triangle', freq: 600, duration: 0.04, gain: 0.18 }); }
+function sndCorrect() {
+  beep({ type: 'triangle', freq: 700, freqEnd: 1000, duration: 0.10, gain: 0.35 });
+  setTimeout(() => beep({ type: 'triangle', freq: 1000, freqEnd: 1400, duration: 0.15, gain: 0.35 }), 90);
+}
+function sndWrong()   { beep({ type: 'sawtooth', freq: 300, freqEnd: 150, duration: 0.18, gain: 0.35 }); }
+function sndComplete() {
+  [523, 659, 784, 1046].forEach((f, i) => {
+    setTimeout(() => beep({ type: 'triangle', freq: f, duration: 0.18, gain: 0.4 }), i * 130);
+  });
+}
+
+// ---------- Language ----------
+function getLang() {
+  let l = localStorage.getItem('lang') || 'en';
+  if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+  return l;
+}
+function countryName(c) {
+  if (lang === 'th') return c.name_th || c.name_en;
+  if (lang === 'lao') return c.name_la || c.name_en; // fallback — country-list has no Lao
+  return c.name_en;
+}
+
+// ---------- Helpers ----------
 function shuffle(arr) {
-	return arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]);
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
-
 function pickRandomCountries(n) {
-	return shuffle(window.COUNTRIES).slice(0, n);
+  return shuffle(window.COUNTRIES).slice(0, n);
+}
+function formatTime(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
 }
 
-function renderMatchFlagGame() {
-	const N = 5;
-	const countries = pickRandomCountries(N);
-	matchFlagStartTime = Date.now();
-	clearInterval(matchFlagTimerInterval);
-	updateTimer();
-	matchFlagTimerInterval = setInterval(updateTimer, 200);
+// ---------- Render ----------
+function renderRound() {
+  lang = getLang();
+  matchedCount = 0;
+  wrongCount = 0;
+  selectedFlag = null;
+  selectedName = null;
+  roundActive = true;
 
-	const board = document.getElementById('match-flag-board');
-	const flagRow = document.getElementById('flag-row');
-	const nameRow = document.getElementById('name-row');
-	flagRow.innerHTML = '';
-	nameRow.innerHTML = '';
+  countriesThisRound = pickRandomCountries(pairCount);
 
-	countries.forEach((c, i) => {
-		const flagBox = document.createElement('div');
-		flagBox.className = 'flag-box';
-		flagBox.style.width = '90px';
-		flagBox.style.height = '70px';
-		flagBox.style.border = '2px solid #1976d2';
-		flagBox.style.borderRadius = '8px';
-		flagBox.style.background = '#fff';
-		flagBox.style.display = 'flex';
-		flagBox.style.alignItems = 'center';
-		flagBox.style.justifyContent = 'center';
-		flagBox.style.transition = 'background 0.3s';
-		flagBox.style.position = 'relative';
-		flagBox.style.marginBottom = '8px';
-		// เลือกชื่อประเทศตามภาษา
-		let lang = localStorage.getItem('lang') || 'en';
-		let countryName = lang === 'th' ? c.name_th : lang === 'lao' ? c.name_la : c.name_en;
-		flagBox.dataset.name = countryName;
-		flagBox.ondragover = e => e.preventDefault();
-		flagBox.ondrop = function(e) {
-			e.preventDefault();
-			const dragged = e.dataTransfer.getData('text/plain');
-			const draggedElem = document.getElementById('name-' + dragged);
-			if (dragged === countryName) {
-				flagBox.style.background = '#c8e6c9';
-				flagBox.classList.add('matched');
-				// ย้ายปุ่มชื่อไปข้างล่างธง (ใน name-row)
-				draggedElem.style.order = i;
-				nameRow.appendChild(draggedElem);
-				playMatchFlagSound('correct');
-				checkWin();
-			} else {
-				flagBox.style.background = '#ffcdd2';
-				playMatchFlagSound('wrong');
-				setTimeout(() => { if (!flagBox.classList.contains('matched')) flagBox.style.background = '#fff'; }, 700);
-			}
-		};
-		const flagImg = document.createElement('img');
-		flagImg.src = c.flag;
-		flagImg.alt = c.name_en;
-		flagImg.style.width = '70px';
-		flagImg.style.height = '48px';
-		flagImg.style.objectFit = 'contain';
-		flagBox.appendChild(flagImg);
-		flagRow.appendChild(flagBox);
-	});
+  const flagRow = document.getElementById('mf-flag-row');
+  const nameRow = document.getElementById('mf-name-row');
+  flagRow.innerHTML = '';
+  nameRow.innerHTML = '';
 
-	const shuffled = countries.slice().sort(() => Math.random() - 0.5);
-	let lang = localStorage.getItem('lang') || 'en';
-	shuffled.forEach((c, i) => {
-		const nameBtn = document.createElement('button');
-		nameBtn.id = 'name-' + c.name_en;
-		let countryName = lang === 'th' ? c.name_th : lang === 'lao' ? c.name_la : c.name_en;
-		nameBtn.textContent = countryName;
-		nameBtn.draggable = true;
-		nameBtn.style.padding = '8px 12px';
-		nameBtn.style.fontSize = '16px';
-		nameBtn.style.borderRadius = '8px';
-		nameBtn.style.border = '2px solid #1976d2';
-		nameBtn.style.background = '#fff';
-		nameBtn.style.cursor = 'grab';
-		nameBtn.ondragstart = function(e) {
-			e.dataTransfer.setData('text/plain', countryName);
-		};
-		nameRow.appendChild(nameBtn);
-	});
+  // Flag tiles (in their picked order)
+  countriesThisRound.forEach((c, i) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'mf-flag-tile';
+    tile.dataset.key = c.name_en;
+    const img = document.createElement('img');
+    img.src = c.flag;
+    img.alt = '';
+    img.loading = 'lazy';
+    tile.appendChild(img);
+    tile.addEventListener('click', () => onFlagTap(tile, c));
+    flagRow.appendChild(tile);
+  });
 
-	function checkWin() {
-		const allFlags = Array.from(flagRow.children);
-		const allMatched = allFlags.every(flagBox => flagBox.classList.contains('matched'));
-		if (allMatched) {
-			document.getElementById('result').textContent = 'ถูกต้องทั้งหมด! 🎉';
-			clearInterval(matchFlagTimerInterval);
-			matchFlagTimerInterval = null;
-			document.getElementById('timer').style.color = '#388e3c';
-		}
-	}
-	document.getElementById('result').textContent = '';
-	document.getElementById('timer').style.color = '#1976d2';
+  // Name buttons (shuffled order)
+  const names = shuffle(countriesThisRound);
+  names.forEach(c => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mf-name-btn';
+    btn.dataset.key = c.name_en;
+    btn.textContent = countryName(c);
+    btn.addEventListener('click', () => onNameTap(btn, c));
+    nameRow.appendChild(btn);
+  });
+
+  startTimer();
+  updateStats();
+  updateBestDisplay();
 }
 
-function updateTimer() {
-	if (!matchFlagStartTime) return;
-	const timerDiv = document.getElementById('timer');
-	if (!timerDiv) return;
-	const ms = Date.now() - matchFlagStartTime;
-	const sec = Math.floor(ms / 1000);
-	const min = Math.floor(sec / 60);
-	const s = sec % 60;
-	timerDiv.textContent = `เวลา: ${min > 0 ? min + ':' : ''}${s.toString().padStart(2, '0')} วินาที`;
+// ---------- Selection / matching ----------
+function clearSelection(el) {
+  if (el) el.classList.remove('selected');
 }
 
-function playMatchFlagSound(type) {
-    let audioId = type === 'correct' ? 'matchFlagCorrectSound' : 'matchFlagWrongSound';
-    let audio = document.getElementById(audioId);
-    if (!audio) {
-        audio = document.createElement('audio');
-        audio.id = audioId;
-        audio.src = type === 'correct' ? 'assets/sound/correct.wav' : 'assets/sound/wrong.wav';
-        document.body.appendChild(audio);
-    }
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = 1.0;
-    audio.play();
+function onFlagTap(tile, country) {
+  if (!roundActive || tile.classList.contains('matched')) return;
+  if (selectedName) {
+    // Try match
+    checkMatch(tile, country, selectedName);
+    return;
+  }
+  // Toggle flag selection
+  if (selectedFlag === tile) {
+    clearSelection(tile);
+    selectedFlag = null;
+  } else {
+    clearSelection(selectedFlag);
+    selectedFlag = tile;
+    tile.classList.add('selected');
+    sndSelect();
+  }
 }
 
+function onNameTap(btn, country) {
+  if (!roundActive || btn.classList.contains('matched')) return;
+  if (selectedFlag) {
+    checkMatch(selectedFlag, getCountryByKey(selectedFlag.dataset.key), btn);
+    return;
+  }
+  // Toggle name selection
+  if (selectedName === btn) {
+    clearSelection(btn);
+    selectedName = null;
+  } else {
+    clearSelection(selectedName);
+    selectedName = btn;
+    btn.classList.add('selected');
+    sndSelect();
+  }
+}
+
+function getCountryByKey(key) {
+  return countriesThisRound.find(c => c.name_en === key);
+}
+
+function checkMatch(flagTile, flagCountry, nameBtn) {
+  const correct = flagTile.dataset.key === nameBtn.dataset.key;
+  if (correct) {
+    flagTile.classList.add('matched');
+    flagTile.classList.remove('selected');
+    nameBtn.classList.add('matched');
+    nameBtn.classList.remove('selected');
+    nameBtn.disabled = true;
+    flagTile.disabled = true;
+    matchedCount++;
+    sndCorrect();
+  } else {
+    flagTile.classList.add('wrong');
+    nameBtn.classList.add('wrong');
+    wrongCount++;
+    sndWrong();
+    setTimeout(() => {
+      flagTile.classList.remove('wrong', 'selected');
+      nameBtn.classList.remove('wrong', 'selected');
+    }, 600);
+  }
+  selectedFlag = null;
+  selectedName = null;
+  updateStats();
+  if (matchedCount >= pairCount) finishRound();
+}
+
+// ---------- Round end ----------
+function finishRound() {
+  roundActive = false;
+  stopTimer();
+  sndComplete();
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const prev = bestStats[difficultyKey];
+  const beat = !prev || wrongCount < prev.wrong || (wrongCount === prev.wrong && elapsed < prev.time);
+  if (beat) {
+    bestStats[difficultyKey] = { time: elapsed, wrong: wrongCount };
+    localStorage.setItem('matchFlagBest', JSON.stringify(bestStats));
+  }
+  showResultModal(elapsed, beat);
+  updateBestDisplay();
+}
+
+function showResultModal(elapsedSec, beat) {
+  const modal = document.getElementById('mf-result-modal');
+  if (!modal) return;
+  document.getElementById('mf-result-time').textContent = formatTime(elapsedSec);
+  document.getElementById('mf-result-wrong').textContent = wrongCount;
+  const newTag = document.getElementById('mf-new-record');
+  if (newTag) newTag.style.display = beat ? '' : 'none';
+  modal.style.display = 'flex';
+}
+function hideResultModal() {
+  const modal = document.getElementById('mf-result-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ---------- Stats UI ----------
+function updateStats() {
+  document.getElementById('mf-wrong').textContent = wrongCount;
+  document.getElementById('mf-progress').textContent = `${matchedCount} / ${pairCount}`;
+}
+function updateBestDisplay() {
+  const el = document.getElementById('mf-best');
+  if (!el) return;
+  const b = bestStats[difficultyKey];
+  el.textContent = b ? `${formatTime(b.time)} · ✗${b.wrong}` : '—';
+}
+
+function startTimer() {
+  startTime = Date.now();
+  stopTimer();
+  const update = () => {
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    const el = document.getElementById('mf-time');
+    if (el) el.textContent = formatTime(sec);
+  };
+  update();
+  timerHandle = setInterval(update, 500);
+}
+function stopTimer() {
+  if (timerHandle) clearInterval(timerHandle);
+  timerHandle = null;
+}
+
+// ---------- Difficulty ----------
+function setDifficulty(key) {
+  if (!DIFFICULTY[key]) return;
+  difficultyKey = key;
+  pairCount = DIFFICULTY[key];
+  localStorage.setItem('matchFlagDiff', key);
+  updateDifficultyButtons();
+  hideResultModal();
+  renderRound();
+}
+window.matchFlagSetDifficulty = setDifficulty;
+
+function updateDifficultyButtons() {
+  for (const k of Object.keys(DIFFICULTY)) {
+    const btn = document.getElementById('mf-diff-' + k);
+    if (btn) btn.classList.toggle('active', k === difficultyKey);
+  }
+}
+
+// ---------- Boot ----------
 document.addEventListener('DOMContentLoaded', () => {
-	renderMatchFlagGame();
-	document.getElementById('nextBtn').onclick = renderMatchFlagGame;
-	document.getElementById('backBtn').onclick = () => { window.location.href = 'index.html'; };
+  lang = getLang();
+
+  const muteBtn = document.getElementById('mf-mute-btn');
+  if (muteBtn) {
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    muteBtn.addEventListener('click', toggleMute);
+  }
+  const newGameBtn = document.getElementById('mf-newgame-btn');
+  if (newGameBtn) newGameBtn.addEventListener('click', renderRound);
+  const replayBtn = document.getElementById('mf-replay-btn');
+  if (replayBtn) replayBtn.addEventListener('click', () => { hideResultModal(); renderRound(); });
+
+  for (const k of Object.keys(DIFFICULTY)) {
+    const btn = document.getElementById('mf-diff-' + k);
+    if (btn) btn.addEventListener('click', () => setDifficulty(k));
+  }
+  updateDifficultyButtons();
+
+  renderRound();
 });

@@ -1,5 +1,9 @@
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let activeOscillators = {};
+// Master gain to prevent clipping when many notes play together (chords / glissando)
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.5;
+masterGain.connect(audioCtx.destination);
 
 // Resume audio context on first user interaction (browser policy)
 document.body.addEventListener('touchstart', initAudio, { once: true });
@@ -14,31 +18,27 @@ function initAudio() {
 
 function playNote(freq, noteName) {
   initAudio();
-  
+
   // If note is already playing, do nothing
   if (activeOscillators[noteName]) return;
-  
-  // Create Oscillator
+
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
-  
-  // Type of sound: sine, square, sawtooth, triangle
+
   // Triangle sounds a bit like a toy piano/flute
   osc.type = 'triangle';
   osc.frequency.value = freq;
-  
-  // Attack, Decay, Sustain, Release envelope
+
+  // ADSR envelope with lower peak to avoid clipping on chords
   gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-  // Attack
-  gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.05);
-  // Decay & Sustain
-  gainNode.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.3);
-  
+  gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.03);
+  gainNode.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime + 0.3);
+
   osc.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-  
+  gainNode.connect(masterGain);
+
   osc.start();
-  
+
   activeOscillators[noteName] = { osc, gainNode };
 }
 
@@ -57,53 +57,81 @@ function stopNote(noteName) {
   delete activeOscillators[noteName];
 }
 
-// Event Listeners for UI Keys
-const keys = document.querySelectorAll('.key');
+// Unified pointer handling at the keyboard level so we can support
+// multi-touch (chords) and glissando (sliding across keys).
+const keyboardEl = document.getElementById('keyboard');
+const pointerToNote = new Map();   // pointerId -> currently held note
+const noteRefCount = {};            // note -> number of pointers holding it
 
-keys.forEach(key => {
-  const noteName = key.getAttribute('data-note');
-  const freq = parseFloat(key.getAttribute('data-freq'));
-  
-  // Mouse Events
-  key.addEventListener('mousedown', (e) => {
+function keyElementFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el ? el.closest('.key') : null;
+}
+
+function pressNote(note, keyEl) {
+  if (!note || !keyEl) return;
+  noteRefCount[note] = (noteRefCount[note] || 0) + 1;
+  if (noteRefCount[note] === 1) {
+    const freq = parseFloat(keyEl.getAttribute('data-freq'));
+    keyEl.classList.add('active');
+    playNote(freq, note);
+    if (typeof checkHit === 'function') checkHit(note);
+  }
+}
+
+function releaseNote(note) {
+  if (!note || !noteRefCount[note]) return;
+  noteRefCount[note]--;
+  if (noteRefCount[note] === 0) {
+    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
+    if (keyEl) keyEl.classList.remove('active');
+    stopNote(note);
+  }
+}
+
+if (keyboardEl) {
+  keyboardEl.addEventListener('pointerdown', (e) => {
+    const keyEl = e.target.closest && e.target.closest('.key');
+    if (!keyEl) return;
     e.preventDefault();
-    key.classList.add('active');
-    playNote(freq, noteName);
-    if(typeof checkHit === 'function') checkHit(noteName);
+    // Don't capture the pointer — we want pointermove to keep hitting other keys
+    // (so the user can slide their finger across the keyboard for a glissando).
+    const note = keyEl.getAttribute('data-note');
+    pointerToNote.set(e.pointerId, note);
+    pressNote(note, keyEl);
   });
-  
-  key.addEventListener('mouseup', (e) => {
+
+  keyboardEl.addEventListener('pointermove', (e) => {
+    if (!pointerToNote.has(e.pointerId)) return;
     e.preventDefault();
-    key.classList.remove('active');
-    stopNote(noteName);
+    const keyEl = keyElementFromPoint(e.clientX, e.clientY);
+    const newNote = keyEl ? keyEl.getAttribute('data-note') : null;
+    const oldNote = pointerToNote.get(e.pointerId);
+    if (newNote === oldNote) return;
+    if (oldNote) releaseNote(oldNote);
+    if (newNote) {
+      pointerToNote.set(e.pointerId, newNote);
+      pressNote(newNote, keyEl);
+    } else {
+      pointerToNote.delete(e.pointerId);
+    }
   });
-  
-  key.addEventListener('mouseleave', (e) => {
-    e.preventDefault();
-    key.classList.remove('active');
-    stopNote(noteName);
-  });
-  
-  // Touch Events (Mobile)
-  key.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // prevent mouse emulation
-    key.classList.add('active');
-    playNote(freq, noteName);
-    if(typeof checkHit === 'function') checkHit(noteName);
-  });
-  
-  key.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    key.classList.remove('active');
-    stopNote(noteName);
-  });
-  
-  key.addEventListener('touchcancel', (e) => {
-    e.preventDefault();
-    key.classList.remove('active');
-    stopNote(noteName);
-  });
-});
+
+  const endPointer = (e) => {
+    if (!pointerToNote.has(e.pointerId)) return;
+    const note = pointerToNote.get(e.pointerId);
+    pointerToNote.delete(e.pointerId);
+    releaseNote(note);
+  };
+  keyboardEl.addEventListener('pointerup', endPointer);
+  keyboardEl.addEventListener('pointercancel', endPointer);
+  keyboardEl.addEventListener('pointerleave', endPointer);
+
+  // Block native gestures (double-tap zoom, text selection) on the keyboard.
+  keyboardEl.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+  keyboardEl.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  keyboardEl.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 
 // Optional: Keyboard mapping
 const keyMap = {
@@ -126,20 +154,14 @@ document.addEventListener('keydown', (e) => {
   if (e.repeat) return; // Ignore holding key down
   const mapping = keyMap[e.key.toLowerCase()];
   if (mapping) {
-    const { note, keyElement } = mapping;
-    const freq = parseFloat(keyElement.getAttribute('data-freq'));
-    keyElement.classList.add('active');
-    playNote(freq, note);
-    if(typeof checkHit === 'function') checkHit(note);
+    pressNote(mapping.note, mapping.keyElement);
   }
 });
 
 document.addEventListener('keyup', (e) => {
   const mapping = keyMap[e.key.toLowerCase()];
   if (mapping) {
-    const { note, keyElement } = mapping;
-    keyElement.classList.remove('active');
-    stopNote(note);
+    releaseNote(mapping.note);
   }
 });
 
@@ -160,15 +182,99 @@ const songs = {
   happy: [
     { note: 'C4', time: 1000 }, { note: 'C4', time: 1300 }, { note: 'D4', time: 1600 }, { note: 'C4', time: 2200 },
     { note: 'F4', time: 2800 }, { note: 'E4', time: 3400 },
-    
+
     { note: 'C4', time: 4400 }, { note: 'C4', time: 4700 }, { note: 'D4', time: 5000 }, { note: 'C4', time: 5600 },
     { note: 'G4', time: 6200 }, { note: 'F4', time: 6800 },
-    
+
     { note: 'C4', time: 7800 }, { note: 'C4', time: 8100 }, { note: 'C5', time: 8400 }, { note: 'A4', time: 9000 },
     { note: 'F4', time: 9600 }, { note: 'E4', time: 10200 }, { note: 'D4', time: 10800 },
-    
+
     { note: 'A#4', time: 11800 }, { note: 'A#4', time: 12100 }, { note: 'A4', time: 12400 }, { note: 'F4', time: 13000 },
     { note: 'G4', time: 13600 }, { note: 'F4', time: 14200 }
+  ],
+
+  // Old MacDonald Had a Farm — verse
+  oldmac: [
+    { note: 'C4', time: 1000 }, { note: 'C4', time: 1600 }, { note: 'C4', time: 2200 }, { note: 'G4', time: 2800 },
+    { note: 'A4', time: 3400 }, { note: 'A4', time: 4000 }, { note: 'G4', time: 4600 },
+    { note: 'E4', time: 5800 }, { note: 'E4', time: 6400 }, { note: 'D4', time: 7000 }, { note: 'D4', time: 7600 }, { note: 'C4', time: 8200 }
+  ],
+
+  // Frère Jacques / Are You Sleeping
+  frere: [
+    { note: 'C4', time: 1000 }, { note: 'D4', time: 1500 }, { note: 'E4', time: 2000 }, { note: 'C4', time: 2500 },
+    { note: 'C4', time: 3000 }, { note: 'D4', time: 3500 }, { note: 'E4', time: 4000 }, { note: 'C4', time: 4500 },
+    { note: 'E4', time: 5000 }, { note: 'F4', time: 5500 }, { note: 'G4', time: 6000 },
+    { note: 'E4', time: 7000 }, { note: 'F4', time: 7500 }, { note: 'G4', time: 8000 }
+  ],
+
+  // Row Row Row Your Boat
+  row: [
+    { note: 'C4', time: 1000 }, { note: 'C4', time: 2000 }, { note: 'C4', time: 3000 },
+    { note: 'D4', time: 3500 }, { note: 'E4', time: 4000 },
+    { note: 'E4', time: 5000 }, { note: 'D4', time: 5500 }, { note: 'E4', time: 6000 }, { note: 'F4', time: 6500 }, { note: 'G4', time: 7000 }
+  ],
+
+  // London Bridge Is Falling Down
+  london: [
+    { note: 'G4', time: 1000 }, { note: 'A4', time: 1500 }, { note: 'G4', time: 2000 }, { note: 'F4', time: 2500 },
+    { note: 'E4', time: 3000 }, { note: 'F4', time: 3500 }, { note: 'G4', time: 4000 },
+    { note: 'D4', time: 5000 }, { note: 'E4', time: 5500 }, { note: 'F4', time: 6000 },
+    { note: 'E4', time: 7000 }, { note: 'F4', time: 7500 }, { note: 'G4', time: 8000 },
+    { note: 'G4', time: 9000 }, { note: 'A4', time: 9500 }, { note: 'G4', time: 10000 }, { note: 'F4', time: 10500 },
+    { note: 'E4', time: 11000 }, { note: 'F4', time: 11500 }, { note: 'G4', time: 12000 },
+    { note: 'D4', time: 13000 }, { note: 'G4', time: 13500 }, { note: 'E4', time: 14000 }, { note: 'C4', time: 14500 }
+  ],
+
+  // Hot Cross Buns — very easy starter song
+  hotcross: [
+    { note: 'E4', time: 1000 }, { note: 'D4', time: 1500 }, { note: 'C4', time: 2000 },
+    { note: 'E4', time: 3000 }, { note: 'D4', time: 3500 }, { note: 'C4', time: 4000 },
+    { note: 'C4', time: 5000 }, { note: 'C4', time: 5300 }, { note: 'C4', time: 5600 }, { note: 'C4', time: 5900 },
+    { note: 'D4', time: 6200 }, { note: 'D4', time: 6500 }, { note: 'D4', time: 6800 }, { note: 'D4', time: 7100 },
+    { note: 'E4', time: 7500 }, { note: 'D4', time: 8000 }, { note: 'C4', time: 8500 }
+  ],
+
+  // Jingle Bells — chorus
+  jingle: [
+    { note: 'E4', time: 1000 }, { note: 'E4', time: 1600 }, { note: 'E4', time: 2400 },
+    { note: 'E4', time: 3200 }, { note: 'E4', time: 3800 }, { note: 'E4', time: 4600 },
+    { note: 'E4', time: 5400 }, { note: 'G4', time: 6000 }, { note: 'C4', time: 6600 }, { note: 'D4', time: 7200 },
+    { note: 'E4', time: 8000 }
+  ],
+
+  // Three Blind Mice
+  blindmice: [
+    { note: 'E4', time: 1000 }, { note: 'D4', time: 1600 }, { note: 'C4', time: 2200 },
+    { note: 'E4', time: 3000 }, { note: 'D4', time: 3600 }, { note: 'C4', time: 4200 },
+    { note: 'G4', time: 5000 }, { note: 'F4', time: 5400 }, { note: 'F4', time: 5700 }, { note: 'E4', time: 6000 },
+    { note: 'G4', time: 7000 }, { note: 'F4', time: 7400 }, { note: 'F4', time: 7700 }, { note: 'E4', time: 8000 }
+  ],
+
+  // Itsy Bitsy Spider — first verse
+  spider: [
+    { note: 'G4', time: 1000 },
+    { note: 'C4', time: 1500 }, { note: 'C4', time: 1800 }, { note: 'C4', time: 2100 },
+    { note: 'D4', time: 2500 }, { note: 'E4', time: 3000 },
+    { note: 'E4', time: 3300 }, { note: 'E4', time: 3700 },
+    { note: 'D4', time: 4200 }, { note: 'C4', time: 4700 },
+    { note: 'D4', time: 5300 }, { note: 'E4', time: 5800 }, { note: 'C4', time: 6400 }
+  ],
+
+  // If You're Happy and You Know It — Clap your hands
+  happyclap: [
+    { note: 'C4', time: 1000 }, { note: 'C4', time: 1300 },
+    { note: 'F4', time: 1600 }, { note: 'F4', time: 1900 }, { note: 'F4', time: 2200 }, { note: 'F4', time: 2500 },
+    { note: 'F4', time: 2800 }, { note: 'E4', time: 3100 }, { note: 'F4', time: 3400 },
+    { note: 'G4', time: 4000 }, { note: 'G4', time: 4600 }, { note: 'C4', time: 5200 }
+  ],
+
+  // Rain Rain Go Away — very simple, great for beginners
+  rainrain: [
+    { note: 'G4', time: 1000 }, { note: 'G4', time: 1600 },
+    { note: 'E4', time: 2200 }, { note: 'A4', time: 2800 }, { note: 'G4', time: 3400 }, { note: 'E4', time: 4000 },
+    { note: 'G4', time: 5200 }, { note: 'G4', time: 5800 }, { note: 'E4', time: 6400 },
+    { note: 'G4', time: 7000 }, { note: 'A4', time: 7600 }, { note: 'G4', time: 8200 }, { note: 'E4', time: 8800 }
   ]
 };
 
@@ -190,7 +296,20 @@ const scoreDisplay = document.getElementById('score-display');
 const songSelect = document.getElementById('song-select');
 const startBtn = document.getElementById('start-song-btn');
 const listenBtn = document.getElementById('listen-song-btn');
+const stopBtn = document.getElementById('stop-song-btn');
 const feedbackText = document.getElementById('feedback-text');
+
+function stopCurrentSong() {
+  clearInterval(gameInterval);
+  gameInterval = null;
+  currentSong = [];
+  activeNotes.forEach(n => n.el && n.el.remove());
+  activeNotes = [];
+  notesTrack.innerHTML = '';
+  // Silence anything still ringing
+  Object.keys(activeOscillators).forEach(stopNote);
+  if (stopBtn) stopBtn.style.display = 'none';
+}
 
 if (songSelect) {
   songSelect.addEventListener('change', (e) => {
@@ -198,8 +317,7 @@ if (songSelect) {
       trackContainer.style.display = 'block';
     } else {
       trackContainer.style.display = 'none';
-      clearInterval(gameInterval);
-      notesTrack.innerHTML = '';
+      stopCurrentSong();
     }
   });
 
@@ -207,28 +325,33 @@ if (songSelect) {
   if (listenBtn) {
     listenBtn.addEventListener('click', () => startGame(true));
   }
+  if (stopBtn) {
+    stopBtn.addEventListener('click', stopCurrentSong);
+  }
 }
 
 function startGame(autoPlay = false) {
   const songId = songSelect.value;
   if (!songId) return;
-  
+
   initAudio();
-  
-  // Reset game
+
+  // Reset game state without re-showing the stop button via stopCurrentSong's side effects
   clearInterval(gameInterval);
+  activeNotes.forEach(n => n.el && n.el.remove());
   notesTrack.innerHTML = '';
   rhythmScore = 0;
   isAutoPlayMode = autoPlay === true;
   scoreDisplay.style.visibility = isAutoPlayMode ? 'hidden' : 'visible';
   scoreDisplay.textContent = `Score: ${rhythmScore}`;
   activeNotes = [];
-  
+
   // Clone song data
   currentSong = JSON.parse(JSON.stringify(songs[songId]));
-  
+
   gameStartTime = Date.now() + 1000; // Start in 1 second
-  
+
+  if (stopBtn) stopBtn.style.display = '';
   gameInterval = setInterval(gameLoop, 16); // ~60fps
 }
 
@@ -291,11 +414,44 @@ function gameLoop() {
   
   if (currentSong.length === 0 && activeNotes.length === 0) {
     clearInterval(gameInterval);
+    gameInterval = null;
+    if (stopBtn) stopBtn.style.display = 'none';
     if (!isAutoPlayMode) {
-      setTimeout(() => alert('จบเพลง! คะแนนรวม: ' + rhythmScore), 1000);
+      setTimeout(() => showGameOverModal(rhythmScore), 800);
     }
   }
 }
+
+function showGameOverModal(score) {
+  const modal = document.getElementById('game-over-modal');
+  if (!modal) return;
+  const lang = (typeof getPianoLang === 'function') ? getPianoLang() : 'en';
+  const titleMap = { th: 'จบเพลง! 🎉', en: 'Song Complete! 🎉', lao: 'ຈົບເພງ! 🎉' };
+  const scoreMap = { th: 'คะแนนรวม', en: 'Final Score', lao: 'ຄະແນນລວມ' };
+  document.getElementById('game-over-title').textContent = titleMap[lang] || titleMap.en;
+  document.getElementById('game-over-score-label').textContent = scoreMap[lang] || scoreMap.en;
+  document.getElementById('game-over-score').textContent = score;
+  modal.style.display = 'flex';
+}
+
+function hideGameOverModal() {
+  const modal = document.getElementById('game-over-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const playAgainBtn = document.getElementById('play-again-btn');
+  const closeModalBtn = document.getElementById('close-modal-btn');
+  if (playAgainBtn) {
+    playAgainBtn.addEventListener('click', () => {
+      hideGameOverModal();
+      startGame(false);
+    });
+  }
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', hideGameOverModal);
+  }
+});
 
 function spawnNoteElement(noteData) {
   const el = document.createElement('div');

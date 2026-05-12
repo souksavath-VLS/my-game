@@ -1,201 +1,400 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pac-Man Pro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <style>
-            @media (max-width: 600px) {
-              .pacman-container {
-                padding: 0.5rem 0.2rem 1.2rem 0.2rem !important;
-                margin-top: 0.5rem !important;
-                align-items: center !important;
-              }
-              #pacman-board {
-                width: 315px !important;
-                height: 315px !important;
-                max-width: 315px !important;
-                max-height: 315px !important;
-                margin: 0 auto 2rem auto !important;
-                box-shadow: 0 2px 12px #ffd60044 !important;
-                grid-template-rows: repeat(21, 15px) !important;
-                grid-template-columns: repeat(21, 15px) !important;
-              }
-              .pacman-cell {
-                width: 15px !important;
-                height: 15px !important;
-              }
-              .pacman-score-row {
-                margin-bottom: 0.7rem !important;
-              }
-              .arrow-btn-row {
-                display: flex !important;
-                justify-content: center !important;
-                gap: 12px !important;
-                margin: 0.5rem 0 1.2rem 0 !important; /* เพิ่มระยะห่างจาก board ให้มากขึ้น */
-              }
-              #arrow-up, #arrow-left, #arrow-down, #arrow-right {
-                width: 48px !important;
-                height: 48px !important;
-                font-size: 2rem !important;
-                margin: 0 4px !important;
-              }
-              #start-pacman-btn {
-                font-size: 1.2rem !important;
-                padding: 0.7rem 2.2rem !important;
-                border-radius: 16px !important;
-                margin-top: 1.2rem !important;
-              }
-            }
-        @media (max-width: 600px) {
-          #pacman-board {
-            width: 92vw !important;
-            height: 92vw !important;
-            max-width: 320px !important;
-            max-height: 320px !important;
-          }
-          #arrow-up, #arrow-left, #arrow-down, #arrow-right {
-            width: 48px !important;
-            height: 48px !important;
-            font-size: 2rem !important;
-          }
-          #start-pacman-btn {
-            font-size: 1.2rem !important;
-            padding: 0.7rem 2.2rem !important;
-            border-radius: 16px !important;
-            margin-bottom: 1.2rem !important;
-          }
-        }
-    body { background: #222; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
     .pacman-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 2rem;
+      padding-top: 12px;
+      height: 100vh;
+      box-sizing: border-box;
     }
+    .pacman-title {
+      color: #ffd600;
+      margin: 0 0 6px;
+      font-size: 1.6em;
+      letter-spacing: 1px;
+      text-shadow: 0 0 6px #ffd60088;
+    }
+    .pacman-statusbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      padding: 0 10px;
+    }
+    .pacman-statusbar .pill {
+      background: rgba(255, 214, 0, 0.12);
+      border: 1px solid rgba(255, 214, 0, 0.5);
+      padding: 4px 12px;
+      border-radius: 14px;
+      color: #ffe57f;
+    }
+    #pacman-lives {
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    /* Board — JS sets --cols / --rows */
     #pacman-board {
-      background: #111;
-      border: 4px solid #ffd600;
-      border-radius: 16px;
-      width: 440px;
-      height: 440px;
       display: grid;
-      grid-template-rows: repeat(21, 20px);
-      grid-template-columns: repeat(21, 20px);
+      grid-template-columns: repeat(var(--cols, 15), 1fr);
+      grid-template-rows: repeat(var(--rows, 15), 1fr);
+      aspect-ratio: var(--cols, 15) / var(--rows, 15);
       gap: 1px;
-      margin-bottom: 1.2rem;
-      box-shadow: 0 4px 24px #ffd60044;
+      background: #000;
+      border: 3px solid #ffd600;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(255, 214, 0, 0.55);
+      width: min(450px, 92vw, 60vh);
+      max-width: 100vw;
+      box-sizing: border-box;
+      margin: 0 auto;
+      touch-action: none;
     }
+
     .pacman-cell {
-      width: 20px;
-      height: 20px;
-      background: #222;
-      border-radius: 3px;
+      background: #000;
+      min-width: 0;
+      min-height: 0;
       position: relative;
     }
-    .pacman-cell.wall { background: #1976d2; }
-    .pacman-cell.dot { background: #222; }
-    .pacman-cell.dot:after {
+    .pacman-cell.wall {
+      background: #1976d2;
+      border-radius: 2px;
+      box-shadow: inset 0 0 4px rgba(0, 100, 255, 0.6);
+    }
+    .pacman-cell.dot::after {
       content: '';
-      display: block;
-      width: 6px;
-      height: 6px;
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 25%; height: 25%;
       background: #fff;
       border-radius: 50%;
-      position: absolute;
-      left: 7px; top: 7px;
     }
-    .pacman-cell.power { background: #222; }
-    .pacman-cell.power:after {
+    .pacman-cell.power::after {
       content: '';
-      display: block;
-      width: 12px;
-      height: 12px;
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 55%; height: 55%;
       background: #ffd600;
       border-radius: 50%;
-      position: absolute;
-      left: 4px; top: 4px;
+      box-shadow: 0 0 6px #ffd600;
+      animation: powerPulse 0.5s infinite alternate;
     }
-    .pacman {
-      width: 18px;
-      height: 18px;
+    @keyframes powerPulse {
+      from { transform: translate(-50%, -50%) scale(1); }
+      to   { transform: translate(-50%, -50%) scale(1.25); }
+    }
+
+    /* Pac-Man with a mouth, rotated by direction */
+    .pacman-cell.pacman {
+      background: transparent;
+    }
+    .pacman-cell.pacman::after {
+      content: '';
+      position: absolute;
+      inset: 8%;
       background: #ffd600;
       border-radius: 50%;
+      box-shadow: 0 0 6px #ffd60099;
+      clip-path: polygon(50% 50%, 100% 25%, 100% 0, 0 0, 0 100%, 100% 100%, 100% 75%);
+    }
+    .pacman-cell.pacman.dir-right::after { transform: rotate(0deg); }
+    .pacman-cell.pacman.dir-down::after  { transform: rotate(90deg); }
+    .pacman-cell.pacman.dir-left::after  { transform: rotate(180deg); }
+    .pacman-cell.pacman.dir-up::after    { transform: rotate(270deg); }
+
+    /* Ghosts: half-circle top, blocky bottom */
+    .pacman-cell.ghost {
+      background: transparent;
+    }
+    .pacman-cell.ghost::after {
+      content: '';
       position: absolute;
-      left: 1px; top: 1px;
-      z-index: 2;
-      box-shadow: 0 2px 8px #ffd60088;
+      inset: 8%;
+      border-radius: 50% 50% 15% 15% / 60% 60% 15% 15%;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
-    .ghost {
-      width: 18px;
-      height: 18px;
-      border-radius: 50% 50% 8px 8px;
-      position: absolute;
-      left: 1px; top: 1px;
-      z-index: 2;
-      background: #e040fb;
-      box-shadow: 0 2px 8px #e040fb88;
+    .pacman-cell.ghost-red::after    { background: #f44336; }
+    .pacman-cell.ghost-blue::after   { background: #1976d2; }
+    .pacman-cell.ghost-orange::after { background: #ff9800; }
+    .pacman-cell.ghost-green::after  { background: #4caf50; }
+    .pacman-cell.ghost-scared::after {
+      background: #2196f3;
+      box-shadow: 0 0 6px #2196f3;
     }
-    .ghost.red { background: #f44336; }
-    .ghost.blue { background: #1976d2; }
-    .ghost.orange { background: #ff9800; }
-    .ghost.green { background: #4caf50; }
-    .pacman-score {
-      color: #ffd600;
-      font-size: 1.2rem;
-      margin: 1rem 0;
-      font-weight: bold;
+    .pacman-cell.ghost-scared.flashing::after {
+      animation: scaredFlash 0.25s infinite alternate;
     }
-    .pacman-lives {
-      color: #fff;
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
+    @keyframes scaredFlash {
+      from { background: #2196f3; }
+      to   { background: #fff; }
     }
-    #start-pacman-btn {
-      font-size: 1.1rem;
-      padding: 0.6rem 1.8rem;
-      border-radius: 12px;
-      background: linear-gradient(90deg,#ffd600 60%,#fffde7 100%);
-      color: #222;
+    .pacman-cell.ghost-eaten::after {
+      background: transparent;
+      border: 2px solid #888;
+      box-shadow: none;
+    }
+
+    /* Buttons */
+    .pacman-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    .pacman-btn {
+      padding: 10px 22px;
+      font-size: 1em;
+      border-radius: 10px;
       border: none;
       font-weight: bold;
-      margin-bottom: 1.2rem;
       cursor: pointer;
-      box-shadow: 0 2px 8px #ffd60044;
-      transition: background 0.2s, color 0.2s, transform 0.1s;
+      box-shadow: 0 4px 0 rgba(160, 130, 0, 0.5);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    #start-pacman-btn:hover, #start-pacman-btn:active {
-      background: linear-gradient(90deg,#fffde7 60%,#ffd600 100%);
+    .pacman-btn.primary {
+      background: linear-gradient(135deg, #ffd600, #fffde7);
       color: #222;
-      transform: scale(0.98);
+    }
+    .pacman-btn.secondary {
+      background: #333;
+      color: #fff;
+      box-shadow: 0 4px 0 rgba(20, 20, 20, 0.6);
+    }
+    .pacman-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(160, 130, 0, 0.5); }
+
+    #pacman-hint {
+      margin: 8px 0 0;
+      opacity: 0.7;
+      font-size: 0.9rem;
+    }
+
+    /* Floating buttons */
+    #pacman-exit-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 30;
+      padding: 8px 14px;
+      background: #ff4444;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+    #pacman-mute-btn, #pacman-pause-btn {
+      position: fixed;
+      top: 10px;
+      z-index: 30;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      color: white;
+      border: 2px solid rgba(255, 214, 0, 0.55);
+      font-size: 1.2em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    #pacman-mute-btn  { right: 10px; }
+    #pacman-pause-btn { right: 60px; }
+
+    /* Overlays */
+    .pacman-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.78);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+    .pacman-card {
+      background: linear-gradient(145deg, #2a2200, #0d0d00);
+      border: 2px solid #ffd600;
+      border-radius: 16px;
+      padding: 28px 36px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(255, 214, 0, 0.55);
+      animation: pacmanCardPop 0.35s ease-out;
+    }
+    @keyframes pacmanCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pacman-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.5em;
+      color: #ffd600;
+      text-shadow: 0 0 8px #ffd600;
+    }
+    .pacman-score-big {
+      font-size: 2.6em;
+      font-weight: bold;
+      color: #ffd600;
+      text-shadow: 0 0 12px #ffd600;
+      margin: 10px 0;
+    }
+    #pacman-new-record {
+      display: inline-block;
+      background: #ff5252;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      animation: pacmanPulse 0.6s infinite alternate;
+    }
+    @keyframes pacmanPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+    .pacman-hi-line { color: #ffd700; font-size: 1.05em; margin: 8px 0; }
+
+    @media (max-width: 600px) {
+      .pacman-title { font-size: 1.3em; }
+      .pacman-statusbar { font-size: 0.9rem; gap: 8px; }
+      .pacman-btn { font-size: 0.9rem; padding: 8px 16px; }
+      .pacman-card { padding: 20px 24px; }
+      .pacman-card h2 { font-size: 1.25em; }
+      .pacman-score-big { font-size: 2.1em; }
     }
   </style>
 </head>
 <body>
+  <a id="pacman-exit-btn" href="index.html">Exit</a>
+  <button id="pacman-pause-btn" aria-label="Pause">⏸</button>
+  <button id="pacman-mute-btn"  aria-label="Mute">🔊</button>
+
   <div class="pacman-container">
-    <h2 style="color:#ffd600;">Pac-Man Pro</h2>
-    <div class="pacman-score-row" style="display:flex;justify-content:center;align-items:center;gap:32px;margin:1rem 0;">
-      <div class="pacman-score">คะแนน: <span id="pacman-score">0</span></div>
-      <div class="pacman-lives">ชีวิต: <span id="pacman-lives">3</span></div>
+    <h2 class="pacman-title" id="pacman-title">Pac-Man Pro</h2>
+
+    <div class="pacman-statusbar">
+      <span class="pill"><span id="label-score">Score:</span> <span id="pacman-score">0</span></span>
+      <span class="pill">🏆 <span id="label-hi">Best:</span> <span id="pacman-highscore">0</span></span>
+      <span class="pill"><span id="label-lives">Lives:</span> <span id="pacman-lives">❤️❤️❤️</span></span>
     </div>
+
     <div id="pacman-board"></div>
-    <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.2rem;">
-      <div class="arrow-btn-row">
-        <button id="arrow-left">◀</button>
-        <button id="arrow-up">▲</button>
-        <button id="arrow-down">▼</button>
-        <button id="arrow-right">▶</button>
-      </div>
-      <button id="start-pacman-btn">เริ่มเกม</button>
+
+    <p id="pacman-hint">Swipe on the board to control</p>
+
+    <div class="pacman-actions">
+      <button id="start-pacman-btn" class="pacman-btn primary">Start Game</button>
     </div>
   </div>
+
+  <!-- Pause overlay -->
+  <div id="pacman-pause-overlay" class="pacman-overlay" style="display:none;">
+    <div class="pacman-card">
+      <h2 id="pacman-pause-title">Paused</h2>
+      <button id="pacman-resume-btn" class="pacman-btn primary">Resume</button>
+    </div>
+  </div>
+
+  <!-- End-of-game / level-clear modal -->
+  <div id="pacman-end-modal" class="pacman-overlay" style="display:none;">
+    <div class="pacman-card">
+      <h2 id="pacman-end-title">Game Over</h2>
+      <div id="pacman-new-record" style="display:none;">NEW RECORD!</div>
+      <p id="pacman-final-label">Your Score</p>
+      <div class="pacman-score-big"><span id="pacman-final-score">0</span></div>
+      <p class="pacman-hi-line">🏆 <span id="pacman-final-hi-label">Best:</span> <span id="pacman-final-hi">0</span></p>
+      <button id="pacman-replay-btn" class="pacman-btn primary">Play Again</button>
+      <button id="pacman-next-btn" class="pacman-btn primary" style="display:none;">Next Level</button>
+    </div>
+  </div>
+
   <script src="js/pacman.js"></script>
   <script>
-    document.getElementById('arrow-up').onclick = ()=>movePacman('up');
-    document.getElementById('arrow-down').onclick = ()=>movePacman('down');
-    document.getElementById('arrow-left').onclick = ()=>movePacman('left');
-    document.getElementById('arrow-right').onclick = ()=>movePacman('right');
+    const pacmanLangData = {
+      th: {
+        title: 'Pac-Man Pro', score: 'คะแนน:', hi: 'สูงสุด:', lives: 'ชีวิต:',
+        start: 'เริ่มเกม', exit: 'ออกเกม',
+        hint: 'ปัดบนกระดานเพื่อบังคับ',
+        paused: 'หยุดชั่วคราว', resume: 'เล่นต่อ',
+        gameOver: 'จบเกม!', win: 'ผ่านด่าน!', newRecord: 'สถิติใหม่!',
+        finalLabel: 'คะแนนของคุณ', finalHi: 'สูงสุด:', playAgain: 'เล่นอีก', nextLevel: 'ด่านต่อไป'
+      },
+      en: {
+        title: 'Pac-Man Pro', score: 'Score:', hi: 'Best:', lives: 'Lives:',
+        start: 'Start Game', exit: 'Exit',
+        hint: 'Swipe on the board to control',
+        paused: 'Paused', resume: 'Resume',
+        gameOver: 'Game Over', win: 'Level Cleared!', newRecord: 'NEW RECORD!',
+        finalLabel: 'Your Score', finalHi: 'Best:', playAgain: 'Play Again', nextLevel: 'Next Level'
+      },
+      lao: {
+        title: 'Pac-Man Pro', score: 'ຄະແນນ:', hi: 'ສູງສຸດ:', lives: 'ຊີວິດ:',
+        start: 'ເລີ່ມເກມ', exit: 'ອອກເກມ',
+        hint: 'ປັດເທິງກະດານເພື່ອບັງຄັບ',
+        paused: 'ຢຸດຊົ່ວຄາວ', resume: 'ຫຼິ້ນຕໍ່',
+        gameOver: 'ຈົບເກມ!', win: 'ຜ່ານດ່ານ!', newRecord: 'ສະຖິຕິໃໝ່!',
+        finalLabel: 'ຄະແນນຂອງເຈົ້າ', finalHi: 'ສູງສຸດ:', playAgain: 'ຫຼິ້ນອີກ', nextLevel: 'ດ່ານຕໍ່ໄປ'
+      }
+    };
+    function setPacmanLang() {
+      let lang = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(lang)) lang = 'en';
+      const t = pacmanLangData[lang];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('pacman-title', t.title);
+      set('label-score', t.score);
+      set('label-hi', t.hi);
+      set('label-lives', t.lives);
+      set('start-pacman-btn', t.start);
+      set('pacman-exit-btn', t.exit);
+      set('pacman-hint', t.hint);
+      set('pacman-pause-title', t.paused);
+      set('pacman-resume-btn', t.resume);
+      set('pacman-end-title', t.gameOver);
+      set('pacman-new-record', t.newRecord);
+      set('pacman-final-label', t.finalLabel);
+      set('pacman-final-hi-label', t.finalHi);
+      set('pacman-replay-btn', t.playAgain);
+      set('pacman-next-btn', t.nextLevel);
+      window.pacmanLang = t;
+    }
+    document.addEventListener('DOMContentLoaded', setPacmanLang);
   </script>
 </body>
 </html>

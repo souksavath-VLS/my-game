@@ -38,6 +38,10 @@
       padding: 15px;
       border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      touch-action: none;
+      /* Required for multi-touch + glissando: stop browser from hijacking touches */
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .key {
@@ -326,10 +330,105 @@
         display: none !important;
       }
     }
+
+    /* Exit button — fixed top-left so it's always reachable */
+    #exit-game-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(220, 53, 69, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    #exit-game-btn:hover {
+      background: rgba(220, 53, 69, 1);
+    }
+
+    /* Game-over modal */
+    #game-over-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9998;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #game-over-modal .modal-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px 40px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: modalPop 0.3s ease-out;
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    #game-over-title {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    #game-over-score-label {
+      color: #666;
+      font-size: 1rem;
+    }
+
+    #game-over-score {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #ff9800;
+      margin: 10px 0 20px;
+    }
+
+    #game-over-modal .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
   </style>
 </head>
 
 <body>
+  <a href="index.html" id="exit-game-btn" title="Exit" aria-label="Exit">✕</a>
+
+  <div id="game-over-modal">
+    <div class="modal-card">
+      <h2 id="game-over-title">Song Complete! 🎉</h2>
+      <div id="game-over-score-label">Final Score</div>
+      <div id="game-over-score">0</div>
+      <div class="modal-buttons">
+        <button id="play-again-btn" class="btn btn-success" style="padding: 8px 20px; font-size: 1rem;">เล่นอีกครั้ง</button>
+        <button id="close-modal-btn" class="btn btn-secondary" style="padding: 8px 20px; font-size: 1rem;">ปิด</button>
+      </div>
+    </div>
+  </div>
+
   <div id="portrait-overlay">
     <svg viewBox="0 0 24 24" fill="white">
       <path
@@ -345,16 +444,25 @@
       style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
 
       <div id="rhythm-ui" class="mb-2 d-flex flex-wrap justify-content-center align-items-center gap-2">
-        <select id="song-select" class="form-select" style="max-width: 200px; font-size: 0.9rem; padding: 5px 10px;">
-          <option value="">-- เลือกเพลง (Choose Song) --</option>
+        <select id="song-select" class="form-select" style="max-width: 220px; font-size: 0.9rem; padding: 5px 10px;">
+          <option value="" id="song-select-placeholder">-- เลือกเพลง (Choose Song) --</option>
           <option value="twinkle">Twinkle Twinkle Little Star</option>
           <option value="mary">Mary Had a Little Lamb</option>
           <option value="happy">Happy Birthday</option>
+          <option value="hotcross">Hot Cross Buns (Easy)</option>
+          <option value="rainrain">Rain Rain Go Away</option>
+          <option value="row">Row Row Row Your Boat</option>
+          <option value="frere">Frère Jacques</option>
+          <option value="spider">Itsy Bitsy Spider</option>
+          <option value="oldmac">Old MacDonald</option>
+          <option value="london">London Bridge</option>
+          <option value="blindmice">Three Blind Mice</option>
+          <option value="happyclap">If You're Happy</option>
+          <option value="jingle">Jingle Bells</option>
         </select>
-        <button id="start-song-btn" class="btn btn-success" style="font-size: 0.9rem; padding: 5px 15px;">เริ่มเล่น
-          (Start)</button>
-        <button id="listen-song-btn" class="btn btn-info" style="font-size: 0.9rem; padding: 5px 15px; color: white;">ฟังเพลง
-          (Listen)</button>
+        <button id="start-song-btn" class="btn btn-success" style="font-size: 0.9rem; padding: 5px 15px;">Start</button>
+        <button id="listen-song-btn" class="btn btn-info" style="font-size: 0.9rem; padding: 5px 15px; color: white;">Listen</button>
+        <button id="stop-song-btn" class="btn btn-danger" style="font-size: 0.9rem; padding: 5px 15px; display: none;">Stop</button>
         <div id="score-display" class="fw-bold" style="font-size: 1.1rem; color: #ff9800; min-width: 80px;">Score: 0
         </div>
       </div>
@@ -400,7 +508,13 @@
         instruction: 'กดที่คีย์เพื่อเล่นเพลงสนุกๆ!',
         exit: 'ออกเกม',
         rotateTitle: 'กรุณาหมุนโทรศัพท์',
-        rotateDesc: 'เกมนี้ต้องเล่นในแนวนอนเพื่อประสบการณ์ที่ดีที่สุดครับ'
+        rotateDesc: 'เกมนี้ต้องเล่นในแนวนอนเพื่อประสบการณ์ที่ดีที่สุดครับ',
+        chooseSong: '-- เลือกเพลง --',
+        start: 'เริ่มเล่น',
+        listen: 'ฟังเพลง',
+        stop: 'หยุด',
+        playAgain: 'เล่นอีกครั้ง',
+        close: 'ปิด'
       },
       en: {
         title: 'Piano Game',
@@ -408,7 +522,13 @@
         instruction: 'Tap the keys to play music!',
         exit: 'Exit',
         rotateTitle: 'Please Rotate Phone',
-        rotateDesc: 'This game must be played in landscape mode.'
+        rotateDesc: 'This game must be played in landscape mode.',
+        chooseSong: '-- Choose Song --',
+        start: 'Start',
+        listen: 'Listen',
+        stop: 'Stop',
+        playAgain: 'Play Again',
+        close: 'Close'
       },
       lao: {
         title: 'ເກມເປຍໂນ',
@@ -416,7 +536,13 @@
         instruction: 'ກົດປຸ່ມເພື່ອຫຼິ້ນເພງ!',
         exit: 'ອອກເກມ',
         rotateTitle: 'ກະລຸນາໝຸນໂທລະສັບ',
-        rotateDesc: 'ເກມນີ້ຕ້ອງຫຼິ້ນໃນແນວນອນເພື່ອປະສົບການທີ່ດີທີ່ສຸດ.'
+        rotateDesc: 'ເກມນີ້ຕ້ອງຫຼິ້ນໃນແນວນອນເພື່ອປະສົບການທີ່ດີທີ່ສຸດ.',
+        chooseSong: '-- ເລືອກເພງ --',
+        start: 'ເລີ່ມຫຼິ້ນ',
+        listen: 'ຟັງເພງ',
+        stop: 'ຢຸດ',
+        playAgain: 'ຫຼິ້ນອີກຄັ້ງ',
+        close: 'ປິດ'
       }
     };
     function getPianoLang() {
@@ -426,12 +552,28 @@
     }
     function setPianoLangUI() {
       const lang = getPianoLang();
-      document.getElementById('piano-title').textContent = pianoLangData[lang].title;
-      document.getElementById('piano-header').textContent = pianoLangData[lang].header;
-      document.getElementById('piano-instruction').textContent = pianoLangData[lang].instruction;
-      document.getElementById('rotate-title').textContent = pianoLangData[lang].rotateTitle || 'Please Rotate Phone';
-      document.getElementById('rotate-desc').textContent = pianoLangData[lang].rotateDesc || 'This game is best played in landscape mode.';
+      const t = pianoLangData[lang];
+      document.getElementById('piano-title').textContent = t.title;
+      document.getElementById('piano-header').textContent = t.header;
+      document.getElementById('piano-instruction').textContent = t.instruction;
+      document.getElementById('rotate-title').textContent = t.rotateTitle || 'Please Rotate Phone';
+      document.getElementById('rotate-desc').textContent = t.rotateDesc || 'This game is best played in landscape mode.';
       document.getElementById('piano-lang').setAttribute('lang', lang);
+
+      const placeholder = document.getElementById('song-select-placeholder');
+      if (placeholder) placeholder.textContent = t.chooseSong;
+      const startBtn = document.getElementById('start-song-btn');
+      if (startBtn) startBtn.textContent = t.start;
+      const listenBtn = document.getElementById('listen-song-btn');
+      if (listenBtn) listenBtn.textContent = t.listen;
+      const stopBtn = document.getElementById('stop-song-btn');
+      if (stopBtn) stopBtn.textContent = t.stop;
+      const playAgainBtn = document.getElementById('play-again-btn');
+      if (playAgainBtn) playAgainBtn.textContent = t.playAgain;
+      const closeBtn = document.getElementById('close-modal-btn');
+      if (closeBtn) closeBtn.textContent = t.close;
+      const exitBtn = document.getElementById('exit-game-btn');
+      if (exitBtn) exitBtn.setAttribute('title', t.exit);
     }
     document.addEventListener('DOMContentLoaded', setPianoLangUI);
   </script>

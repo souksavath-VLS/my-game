@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FPS Balloon Shooter</title>
   <style>
     body {
@@ -11,13 +11,12 @@
       color: #fff;
       font-family: 'Segoe UI', Arial, sans-serif;
       overflow: hidden;
+      touch-action: none;
     }
     #fps-game-canvas {
       display: block;
       margin: 0 auto;
-      background: #333;
-      border: 2px solid #00ff99;
-      box-shadow: 0 0 24px #00ff99;
+      background: linear-gradient(to bottom, #1a2a4a 0%, #2a4a6a 70%, #3a6a8a 100%);
       width: 100vw;
       height: 100vh;
       max-width: 100vw;
@@ -34,88 +33,283 @@
       transform: translateX(-50%);
       z-index: 10;
       display: flex;
-      gap: 24px;
-      font-size: 1.2em;
-      background: rgba(0,0,0,0.5);
-      padding: 8px 24px;
+      gap: 18px;
+      font-size: 1.1em;
+      background: rgba(0,0,0,0.55);
+      padding: 8px 20px;
       border-radius: 12px;
       box-shadow: 0 0 8px #00ff99;
-      min-width: 180px;
-      max-width: 90vw;
       flex-wrap: wrap;
       justify-content: center;
+      align-items: center;
+    }
+    #fps-combo {
+      visibility: hidden;
+      color: #00ff99;
+      font-weight: bold;
+      text-shadow: 0 0 10px #00ff99;
     }
     #fps-exit-btn {
       position: absolute;
       top: 10px;
       left: 10px;
       z-index: 20;
-      padding: 8px 16px;
+      padding: 8px 14px;
       background: #ff4444;
       color: white;
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
+      font-size: 0.95em;
     }
+    #fps-mute-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      font-size: 1.3em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* Overlays (menu + game over) */
+    .fps-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+    .fps-card {
+      background: linear-gradient(145deg, #1e3a5a, #0d1f33);
+      border: 2px solid #00ff99;
+      border-radius: 16px;
+      padding: 30px 40px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(0,255,153,0.4);
+      animation: cardPop 0.35s ease-out;
+    }
+    @keyframes cardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .fps-card h1 {
+      margin: 0 0 8px;
+      font-size: 1.8em;
+      color: #00ff99;
+      text-shadow: 0 0 10px #00ff99;
+    }
+    .fps-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.5em;
+      color: #fff;
+    }
+    .fps-card p {
+      margin: 6px 0;
+      font-size: 1em;
+      color: #c0d0e0;
+    }
+    .fps-score-big {
+      font-size: 3em;
+      font-weight: bold;
+      color: #fff700;
+      text-shadow: 0 0 14px #fff700;
+      margin: 10px 0;
+    }
+    .fps-hi-line {
+      font-size: 1.1em;
+      color: #ffd700;
+      margin: 8px 0;
+    }
+    #fps-new-record {
+      display: inline-block;
+      background: #ff5252;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      animation: pulse 0.6s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+    .fps-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      margin: 6px;
+      font-size: 1.1em;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #00ff99;
+      color: #0d1f33;
+      box-shadow: 0 4px 0 rgba(0,180,100,0.6);
+      transition: transform 0.1s;
+    }
+    .fps-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,180,100,0.6); }
+    .fps-btn.secondary {
+      background: #4a6a8a;
+      color: white;
+      box-shadow: 0 4px 0 rgba(40,80,120,0.6);
+    }
+    .fps-legend {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin: 14px 0;
+      flex-wrap: wrap;
+      font-size: 0.9em;
+    }
+    .fps-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
     @media (max-width: 900px) {
-      #fps-ui {
-        font-size: 1em;
-        padding: 6px 12px;
-        gap: 12px;
-      }
+      #fps-ui { font-size: 1em; padding: 6px 12px; gap: 12px; }
     }
     @media (max-width: 600px) {
-      #fps-ui {
-        font-size: 0.9em;
-        padding: 4px 6px;
-        gap: 6px;
-      }
-      #fps-exit-btn {
-        padding: 6px 12px;
-        font-size: 0.9em;
-      }
+      #fps-ui { font-size: 0.85em; padding: 4px 8px; gap: 8px; }
+      #fps-exit-btn { padding: 6px 10px; font-size: 0.85em; }
+      #fps-mute-btn { width: 38px; height: 38px; font-size: 1.1em; }
+      .fps-card { padding: 20px 24px; }
+      .fps-card h1 { font-size: 1.4em; }
+      .fps-card h2 { font-size: 1.2em; }
+      .fps-score-big { font-size: 2.2em; }
+      .fps-btn { padding: 10px 20px; font-size: 1em; }
     }
   </style>
 </head>
 <body>
+  <canvas id="fps-game-canvas"></canvas>
+
   <a id="fps-exit-btn" href="index.html">Exit</a>
+  <button id="fps-mute-btn" aria-label="Mute">🔊</button>
+
   <div id="fps-ui">
     <span><span id="label-score">Score:</span> <span id="fps-score">0</span></span>
-    <span><span id="label-time">Time:</span> <span id="fps-timer">00:00</span></span>
+    <span><span id="label-time">Time:</span> <span id="fps-timer">01:00</span></span>
+    <span><span id="label-hi">Hi:</span> <span id="fps-highscore">0</span></span>
+    <span id="fps-combo">Combo x2</span>
   </div>
-  <canvas id="fps-game-canvas"></canvas>
+
+  <!-- Start menu overlay -->
+  <div id="fps-menu-overlay" class="fps-overlay">
+    <div class="fps-card">
+      <h1 id="fps-menu-title">🎈 Balloon Shooter</h1>
+      <p id="fps-menu-tagline">Pop balloons, avoid bombs!</p>
+      <div class="fps-legend">
+        <span>🎈 <span id="fps-legend-normal">+10</span></span>
+        <span>⭐ <span id="fps-legend-gold">+50</span></span>
+        <span>💣 <span id="fps-legend-bomb">-20</span></span>
+      </div>
+      <p class="fps-hi-line"><span id="fps-menu-hi-label">High Score:</span> <span id="fps-menu-highscore">0</span></p>
+      <button id="fps-start-btn" class="fps-btn">Start</button>
+    </div>
+  </div>
+
+  <!-- Game over modal -->
+  <div id="fps-gameover-modal" class="fps-overlay" style="display:none;">
+    <div class="fps-card">
+      <h2 id="fps-gameover-title">Time's Up!</h2>
+      <div id="fps-new-record" style="display:none;">NEW RECORD!</div>
+      <p id="fps-final-label">Your Score</p>
+      <div class="fps-score-big"><span id="fps-final-score">0</span></div>
+      <p class="fps-hi-line">🏆 <span id="fps-gameover-hi-label">Best:</span> <span id="fps-final-highscore">0</span></p>
+      <div>
+        <button id="fps-playagain-btn" class="fps-btn">Play Again</button>
+        <button id="fps-menu-btn" class="fps-btn secondary">Menu</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/fps-game.js"></script>
   <script>
     const fpsLangData = {
       th: {
-        score: 'คะแนน:',
-        time: 'เวลา:',
+        score: 'คะแนน:', time: 'เวลา:', hi: 'สถิติ:',
         exit: 'ออกเกม',
-        gameOverBomb: 'ว้า โดนระเบิด! หัก 10 คะแนน',
-        gameOverMsg: 'จบเกม! โดนระเบิด'
+        title: '🎈 ยิงลูกโป่ง',
+        tagline: 'ยิงลูกโป่ง หลบระเบิด!',
+        legendNormal: '+10', legendGold: '+50', legendBomb: '-20',
+        menuHi: 'คะแนนสูงสุด:',
+        start: 'เริ่มเล่น',
+        timeUp: 'หมดเวลา!',
+        newRecord: 'สถิติใหม่!',
+        finalLabel: 'คะแนนของคุณ',
+        gameoverHi: 'สูงสุด:',
+        playAgain: 'เล่นอีก',
+        menu: 'กลับเมนู'
       },
       en: {
-        score: 'Score:',
-        time: 'Time:',
+        score: 'Score:', time: 'Time:', hi: 'Hi:',
         exit: 'Exit',
-        gameOverBomb: 'Oops! Hit a bomb! -10 Points',
-        gameOverMsg: 'Game Over! You hit a bomb.'
+        title: '🎈 Balloon Shooter',
+        tagline: 'Pop balloons, avoid bombs!',
+        legendNormal: '+10', legendGold: '+50', legendBomb: '-20',
+        menuHi: 'High Score:',
+        start: 'Start',
+        timeUp: "Time's Up!",
+        newRecord: 'NEW RECORD!',
+        finalLabel: 'Your Score',
+        gameoverHi: 'Best:',
+        playAgain: 'Play Again',
+        menu: 'Menu'
       },
       lao: {
-        score: 'ຄະແນນ:',
-        time: 'ເວລາ:',
+        score: 'ຄະແນນ:', time: 'ເວລາ:', hi: 'ສະຖິຕິ:',
         exit: 'ອອກເກມ',
-        gameOverBomb: 'ໂອ້ຍ! ຖືກລະເບີດ! ຫັກ 10 ຄະແນນ',
-        gameOverMsg: 'ຈົບເກມ! ຖືກລະເບີດ'
+        title: '🎈 ຍິງລູກໂປ່ງ',
+        tagline: 'ຍິງລູກໂປ່ງ, ຫຼີກລະເບີດ!',
+        legendNormal: '+10', legendGold: '+50', legendBomb: '-20',
+        menuHi: 'ຄະແນນສູງສຸດ:',
+        start: 'ເລີ່ມຫຼິ້ນ',
+        timeUp: 'ໝົດເວລາ!',
+        newRecord: 'ສະຖິຕິໃໝ່!',
+        finalLabel: 'ຄະແນນຂອງເຈົ້າ',
+        gameoverHi: 'ສູງສຸດ:',
+        playAgain: 'ຫຼິ້ນອີກ',
+        menu: 'ກັບເມນູ'
       }
     };
     function setFpsLang() {
       let lang = localStorage.getItem('lang') || 'en';
       if (!['th','en','lao'].includes(lang)) lang = 'en';
-      document.getElementById('label-score').textContent = fpsLangData[lang].score;
-      document.getElementById('label-time').textContent = fpsLangData[lang].time;
-      document.getElementById('fps-exit-btn').textContent = fpsLangData[lang].exit;
-      window.fpsLang = fpsLangData[lang]; // Expose to fps-game.js
+      const t = fpsLangData[lang];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('label-score', t.score);
+      set('label-time', t.time);
+      set('label-hi', t.hi);
+      set('fps-exit-btn', t.exit);
+      set('fps-menu-title', t.title);
+      set('fps-menu-tagline', t.tagline);
+      set('fps-legend-normal', t.legendNormal);
+      set('fps-legend-gold', t.legendGold);
+      set('fps-legend-bomb', t.legendBomb);
+      set('fps-menu-hi-label', t.menuHi);
+      set('fps-start-btn', t.start);
+      set('fps-gameover-title', t.timeUp);
+      set('fps-new-record', t.newRecord);
+      set('fps-final-label', t.finalLabel);
+      set('fps-gameover-hi-label', t.gameoverHi);
+      set('fps-playagain-btn', t.playAgain);
+      set('fps-menu-btn', t.menu);
+      window.fpsLang = t;
     }
     document.addEventListener('DOMContentLoaded', setFpsLang);
   </script>

@@ -1,96 +1,391 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>World Map Puzzle</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .map-board {
-      position: relative;
-      width: 700px;
-      height: 400px;
-      margin: 24px auto 12px auto;
-      background: #e3f2fd;
-      border-radius: 18px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      color: #1a3a5a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
+      position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
-    .map-outline {
+
+    .wm-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 8px;
+      height: 100vh;
+      box-sizing: border-box;
       width: 100%;
-      height: 100%;
-      opacity: 0.9;
-      pointer-events: none;
-      position: absolute;
-      left: 0; top: 0;
+      max-width: 760px;
+      margin: 0 auto;
     }
-    .puzzle-piece {
-      width: 90px;
-      height: 60px;
-      border: 2px solid #1976d2;
-      border-radius: 10px;
+
+    .wm-title {
+      color: #1976d2;
+      margin: 0 0 6px;
+      font-size: 1.5em;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(25, 118, 210, 0.3);
+    }
+
+    .wm-statusbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      padding: 0 6px;
+    }
+    .wm-pill {
+      background: rgba(25, 118, 210, 0.10);
+      border: 1px solid rgba(25, 118, 210, 0.45);
+      padding: 4px 12px;
+      border-radius: 14px;
+      color: #1a3a5a;
+      white-space: nowrap;
+    }
+    .wm-pill strong { color: #1976d2; font-size: 1rem; }
+    .wm-pill.correct strong { color: #2e7d32; }
+    .wm-pill.wrong   strong { color: #c62828; }
+
+    /* Prompt board */
+    .wm-prompt-card {
       background: #fff;
+      border: 3px solid #1976d2;
+      border-radius: 18px;
+      padding: 18px 22px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 4px 18px rgba(25, 118, 210, 0.25);
+      margin: 6px 0 14px;
+    }
+    .wm-prompt-sub {
+      color: #5a7a9a;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    #wm-prompt {
+      font-size: 2em;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin: 4px 0;
+      text-shadow: 0 1px 0 #fff;
+    }
+    #wm-capital {
+      color: #2e7d32;
+      font-size: 1em;
+      font-weight: bold;
+      min-height: 1.2em;
+      margin: 2px 0 0;
+    }
+
+    /* Flag grid */
+    .wm-flag-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 600px;
+      padding: 0 4px;
+      box-sizing: border-box;
+    }
+    @media (min-width: 720px) {
+      .wm-flag-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .wm-flag-card {
+      background: #fff;
+      border: 3px solid #1976d2;
+      border-radius: 14px;
+      padding: 10px 8px 6px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      box-shadow: 0 3px 10px rgba(25, 118, 210, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wm-flag-card:active { transform: scale(0.96); }
+    .wm-flag-card img {
+      width: 100%;
+      max-width: 140px;
+      height: 90px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    .wm-flag-card.correct {
+      background: #c8e6c9;
+      border-color: #2e7d32;
+      box-shadow: 0 0 18px rgba(46, 125, 50, 0.6);
+      animation: wmPop 0.5s ease-out;
+    }
+    .wm-flag-card.wrong {
+      background: #ffcdd2;
+      border-color: #c62828;
+      animation: wmShake 0.4s;
+    }
+    .wm-flag-card.dim { opacity: 0.4; }
+    @keyframes wmPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes wmShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    .wm-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    .wm-btn {
+      padding: 9px 18px;
+      font-size: 0.95em;
+      border-radius: 10px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(15, 70, 130, 0.4);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wm-btn.primary { background: linear-gradient(135deg, #1976d2, #42a5f5); color: #fff; }
+    .wm-btn.secondary { background: #fff; color: #1976d2; border: 2px solid #1976d2; box-shadow: 0 4px 0 rgba(25, 118, 210, 0.3); }
+    .wm-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(15, 70, 130, 0.4); }
+
+    /* Floating buttons */
+    #wm-exit-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 30;
+      padding: 8px 14px;
+      background: #ff4444;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+    #wm-mute-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 30;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      color: #1976d2;
+      border: 2px solid rgba(25, 118, 210, 0.55);
+      font-size: 1.1em;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #1976d2;
-      margin: 0 10px 0 0;
-      cursor: grab;
-      box-shadow: 0 2px 8px rgba(25,118,210,0.10);
-      transition: background 0.3s;
-      position: relative;
+      padding: 0;
     }
-    .drop-zone {
-      position: absolute;
-      border: 2px dashed #1976d2;
-      border-radius: 10px;
-      opacity: 0.3;
-      transition: background 0.2s;
-    }
-    .drop-zone.active {
-      background: #c8e6c9;
-      opacity: 0.7;
-    }
-    .stats {
+
+    /* Result modal */
+    .wm-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
       text-align: center;
-      margin: 10px 0 0 0;
-      font-size: 1.1rem;
+    }
+    .wm-card {
+      background: linear-gradient(145deg, #fff, #e3f2fd);
+      border: 3px solid #1976d2;
+      border-radius: 16px;
+      padding: 26px 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(25, 118, 210, 0.55);
+      animation: wmCardPop 0.35s ease-out;
+    }
+    @keyframes wmCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .wm-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.6em;
       color: #1976d2;
     }
-    .level-select {
-      display: block;
-      margin: 0 auto 18px auto;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      padding: 0.3rem 1.2rem;
-      background: #fffbe7;
-      color: #1976d2;
-      border: 1.5px solid #1976d2;
+    .wm-result-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 14px 0;
+      font-size: 1.1em;
+    }
+    .wm-result-row span {
+      background: rgba(25, 118, 210, 0.12);
+      padding: 6px 14px;
+      border-radius: 12px;
+    }
+    #wm-new-record {
+      display: inline-block;
+      background: #ff5252;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      animation: wmPulse 0.6s infinite alternate;
+    }
+    @keyframes wmPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+
+    @media (max-width: 600px) {
+      .wm-title { font-size: 1.2em; }
+      .wm-statusbar { font-size: 0.8rem; gap: 6px; }
+      .wm-pill { padding: 3px 10px; }
+      .wm-prompt-card { padding: 12px 16px; }
+      #wm-prompt { font-size: 1.6em; }
+      .wm-flag-card img { height: 70px; max-width: 120px; }
+      .wm-card { padding: 20px 24px; }
+      .wm-card h2 { font-size: 1.3em; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    
-    <h1 style="text-align:center;">World Map Puzzle</h1>
-    <div id="pieces-row" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;"></div>
-    <div class="map-board" id="map-board">
-      <img id="map-outline" class="map-outline" src="" alt="World Map Outline">
+  <a id="wm-exit-btn" href="index.html">Exit</a>
+  <button id="wm-mute-btn" aria-label="Mute">🔊</button>
+
+  <div class="wm-container">
+    <h1 class="wm-title" id="wm-title">World Map Puzzle</h1>
+
+    <div class="wm-statusbar">
+      <span class="wm-pill"><span id="label-round">Round:</span> <strong id="wm-round">1 / 10</strong></span>
+      <span class="wm-pill correct">✓ <strong id="wm-correct">0</strong></span>
+      <span class="wm-pill wrong">✗ <strong id="wm-wrong">0</strong></span>
+      <span class="wm-pill">⏱ <strong id="wm-time">00:00</strong></span>
+      <span class="wm-pill">🏆 <strong id="wm-best">—</strong></span>
     </div>
-    <div id="country-name" style="text-align:center;font-size:1.2rem;color:#1976d2;margin-bottom:12px;"></div>
-    <div class="stats">
-      <span id="timer">เวลา: 0 วินาที</span> |
-      <span id="correct">ถูก: 0</span> |
-      <span id="wrong">ผิด: 0</span>
+
+    <div class="wm-prompt-card">
+      <p class="wm-prompt-sub" id="wm-prompt-sub">Find the flag of:</p>
+      <div id="wm-prompt">—</div>
+      <div id="wm-capital"></div>
     </div>
-    <div id="result" style="text-align:center;font-size:1.2rem;color:#388e3c;margin-top:10px;"></div>
-    <div style="text-align:center;margin-top:18px;">
-      <button onclick="window.location.href='index.html'" style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#fffbe7;color:#1976d2;border:1.5px solid #1976d2;">ย้อนกลับหน้าแรก</button>
-      <button onclick="resetGame()" disabled style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#e3f2fd;color:#1976d2;border:1.5px solid #1976d2;margin-left:12px;">เริ่มใหม่</button>
+
+    <div class="wm-flag-grid" id="wm-flag-grid"></div>
+
+    <div class="wm-actions">
+      <button id="wm-skip-btn" class="wm-btn secondary">Skip</button>
+      <button id="wm-newgame-btn" class="wm-btn primary">New Game</button>
     </div>
   </div>
+
+  <!-- Result modal -->
+  <div id="wm-result-modal" class="wm-overlay" style="display:none;">
+    <div class="wm-card">
+      <h2 id="wm-result-title">Game Complete! 🌍</h2>
+      <div id="wm-new-record" style="display:none;">NEW RECORD!</div>
+      <div class="wm-result-row">
+        <span>✓ <strong id="wm-result-correct">0</strong></span>
+        <span>✗ <strong id="wm-result-wrong">0</strong></span>
+      </div>
+      <p>⏱ <strong id="wm-result-time">00:00</strong></p>
+      <button id="wm-replay-btn" class="wm-btn primary">Play Again</button>
+    </div>
+  </div>
+
   <script src="js/world-map-puzzle.js"></script>
+  <script>
+    const worldMapLangData = {
+      th: {
+        title: 'จับคู่ธงประเทศ',
+        round: 'รอบที่:',
+        findFlag: 'ค้นหาธงของ:',
+        capital: 'เมืองหลวง',
+        skip: 'ข้าม',
+        newGame: 'เริ่มใหม่',
+        exit: 'ออกเกม',
+        resultTitle: 'จบเกม! 🌍',
+        newRecord: 'สถิติใหม่!',
+        playAgain: 'เล่นอีก'
+      },
+      en: {
+        title: 'World Map Puzzle',
+        round: 'Round:',
+        findFlag: 'Find the flag of:',
+        capital: 'Capital',
+        skip: 'Skip',
+        newGame: 'New Game',
+        exit: 'Exit',
+        resultTitle: 'Game Complete! 🌍',
+        newRecord: 'NEW RECORD!',
+        playAgain: 'Play Again'
+      },
+      lao: {
+        title: 'ຈັບຄູ່ທຸງປະເທດ',
+        round: 'ຮອບທີ:',
+        findFlag: 'ຄົ້ນຫາທຸງຂອງ:',
+        capital: 'ນະຄອນຫຼວງ',
+        skip: 'ຂ້າມ',
+        newGame: 'ເລີ່ມໃໝ່',
+        exit: 'ອອກເກມ',
+        resultTitle: 'ຈົບເກມ! 🌍',
+        newRecord: 'ສະຖິຕິໃໝ່!',
+        playAgain: 'ຫຼິ້ນອີກ'
+      }
+    };
+    function setWorldMapLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = worldMapLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('wm-title', t.title);
+      set('label-round', t.round);
+      set('wm-prompt-sub', t.findFlag);
+      set('wm-skip-btn', t.skip);
+      set('wm-newgame-btn', t.newGame);
+      set('wm-exit-btn', t.exit);
+      set('wm-result-title', t.resultTitle);
+      set('wm-new-record', t.newRecord);
+      set('wm-replay-btn', t.playAgain);
+      window.worldMapLang = t;
+    }
+    document.addEventListener('DOMContentLoaded', setWorldMapLang);
+  </script>
 </body>
 </html>
