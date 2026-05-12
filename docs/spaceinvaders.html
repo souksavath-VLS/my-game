@@ -2,138 +2,219 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Space Invaders Pro</title>
   <style>
-            @media (max-width: 600px) {
-              #spaceinvaders-board {
-                width: 320px !important;
-                height: 320px !important;
-                max-width: 320px !important;
-                max-height: 320px !important;
-                grid-template-columns: repeat(20, 16px) !important;
-                grid-template-rows: repeat(20, 16px) !important;
-                gap: 1px !important;
-              }
-              .spaceinvaders-cell {
-                width: 16px !important;
-                height: 16px !important;
-              }
-              .spaceinvaders-btn {
-                font-size: 1.1rem !important;
-                padding: 0.7rem 1.2rem !important;
-                min-width: 80px !important;
-              }
-              .spaceinvaders-score {
-                font-size: 1rem !important;
-              }
-              .spaceinvaders-title {
-                font-size: 1.3em !important;
-                margin-top: 18px !important;
-              }
-              /* ไม่กำหนด flex-direction: column ให้ .spaceinvaders-btn-row */
-            }
-        /* Remove responsive for button row: always row layout */
-        /* Keep only board/cell responsive if needed, but not button row */
-    body {
-      background: #111;
-      color: #fff;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      text-align: center;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      background: #0b0d18; color: #fff;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      overflow: hidden; user-select: none; -webkit-user-select: none;
+      touch-action: none;
     }
-    .spaceinvaders-title {
-      font-size: 2.2em;
-      margin-top: 32px;
-      color: #00eaff;
-      letter-spacing: 2px;
-      text-shadow: 0 0 8px #00eaff;
+    #game-wrap {
+      width: 100vw; height: 100vh;
+      display: flex; flex-direction: column;
     }
-    #spaceinvaders-board {
-      display: grid;
-      grid-template-columns: repeat(20, 24px);
-      grid-template-rows: repeat(20, 24px);
-      gap: 2px;
-      margin: 32px auto;
-      background: #222;
-      border: 4px solid #00eaff;
-      box-shadow: 0 0 24px #00eaff;
-      width: 500px;
-      height: 500px;
+
+    /* Top HUD */
+    .hud {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; background: linear-gradient(180deg, #0f1226, #060816);
+      border-bottom: 2px solid #00eaff;
+      box-shadow: 0 0 12px rgba(0, 234, 255, 0.3);
+      flex-shrink: 0;
     }
-    .spaceinvaders-cell {
-      width: 24px;
-      height: 24px;
-      background: #222;
-      border-radius: 4px;
+    .hud-block { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+    .hud-label { font-size: 9px; color: #8a91b0; letter-spacing: 1px; }
+    .hud-value { font-size: 16px; font-weight: bold; color: #00eaff; text-shadow: 0 0 6px rgba(0, 234, 255, 0.7); }
+    .hud-value.score { color: #fff700; text-shadow: 0 0 6px rgba(255, 247, 0, 0.7); }
+    .hud-value.lives { color: #ff4d6d; text-shadow: 0 0 6px rgba(255, 77, 109, 0.7); }
+    .hud-value.best { color: #b388ff; text-shadow: 0 0 6px rgba(179, 136, 255, 0.7); }
+    .hud-buttons { display: flex; gap: 6px; }
+    .hud-btn {
+      background: rgba(0, 234, 255, 0.15); border: 1px solid #00eaff; color: #00eaff;
+      border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 14px;
+      min-width: 32px; height: 28px;
     }
-    .spaceinvaders-player {
-      width: 100%;
-      height: 100%;
-      background: #fff700;
-      border-radius: 50% 50% 0 0;
-      box-shadow: 0 0 8px #fff700;
+    .hud-btn:active { background: rgba(0, 234, 255, 0.35); }
+    .hud-btn.on {
+      background: linear-gradient(180deg, #fff700, #f59e0b);
+      color: #050714; border-color: #fff700;
+      box-shadow: 0 0 10px rgba(255, 247, 0, 0.6);
     }
-    .spaceinvader {
-      width: 100%;
-      height: 100%;
-      background: #00eaff;
-      border-radius: 6px;
-      box-shadow: 0 0 8px #00eaff;
+
+    /* Game canvas */
+    #stage { position: relative; flex-grow: 1; overflow: hidden; }
+    #game { display: block; width: 100%; height: 100%; background: #050714; }
+    /* Starfield is drawn into the canvas; no DOM stars needed */
+
+    /* Modal overlays */
+    .overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(4px); z-index: 10;
     }
-    .spaceinvaders-bullet {
-      width: 8px;
-      height: 16px;
-      background: #fff;
-      margin: 0 auto;
-      border-radius: 2px;
-      box-shadow: 0 0 4px #fff;
+    .panel {
+      background: linear-gradient(180deg, #15192e, #0a0e1f);
+      border: 2px solid #00eaff; border-radius: 14px;
+      padding: 24px 28px; min-width: 280px; max-width: 92%;
+      box-shadow: 0 0 40px rgba(0, 234, 255, 0.4); text-align: center;
     }
-    .spaceinvaders-score {
-      font-size: 1.2em;
-      margin-top: 8px;
-      color: #fff700;
-      text-shadow: 0 0 4px #fff700;
+    .panel h1 {
+      margin: 0 0 12px; font-size: 28px; letter-spacing: 3px;
+      background: linear-gradient(90deg, #00eaff, #fff700, #ff4d6d);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: none;
     }
-    .spaceinvaders-btn {
-      margin-top: 16px;
-      padding: 10px 32px;
-      font-size: 1.1em;
-      background: linear-gradient(90deg,#00eaff,#fff700);
-      color: #222;
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 0 8px #00eaff;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.2s;
+    .panel .sub { font-size: 12px; color: #8a91b0; margin-bottom: 18px; }
+    .panel .stats-line { font-size: 11px; color: #8a91b0; margin: 8px 0 18px; }
+    .panel .stats-line b { color: #fff700; }
+    .big-btn {
+      display: inline-block; width: 100%;
+      background: linear-gradient(90deg, #00eaff, #00b8d4);
+      color: #050714; border: none; padding: 12px 28px; border-radius: 10px;
+      font-size: 16px; font-weight: bold; letter-spacing: 2px; cursor: pointer;
+      box-shadow: 0 0 16px rgba(0, 234, 255, 0.5);
+      text-transform: uppercase;
     }
-    .spaceinvaders-btn:hover {
-      background: linear-gradient(90deg,#fff700,#00eaff);
+    .big-btn:active { transform: translateY(2px); box-shadow: 0 0 8px rgba(0, 234, 255, 0.4); }
+    .new-best {
+      display: inline-block; background: #fff700; color: #050714;
+      font-size: 10px; font-weight: 900; padding: 3px 10px; border-radius: 99px;
+      letter-spacing: 1px; margin-bottom: 10px; box-shadow: 0 0 12px rgba(255, 247, 0, 0.6);
+    }
+    .score-board {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      background: #050714; border-radius: 8px; padding: 10px;
+      margin-bottom: 14px;
+    }
+    .score-board .lbl { font-size: 10px; color: #8a91b0; text-transform: uppercase; }
+    .score-board .val { font-size: 20px; font-weight: bold; }
+    .score-board .val.you { color: #fff700; }
+    .score-board .val.best { color: #b388ff; }
+
+    /* Controls */
+    .controls {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: #060816;
+      border-top: 2px solid #00eaff;
+      flex-shrink: 0; gap: 8px;
+    }
+    .ctrl-btn {
+      flex: 1; max-width: 110px; height: 54px;
+      background: linear-gradient(180deg, #15192e, #0a0e1f);
+      border: 2px solid #00eaff; border-radius: 10px;
+      color: #00eaff; font-size: 22px; font-weight: bold;
+      cursor: pointer; touch-action: none;
+      box-shadow: 0 0 8px rgba(0, 234, 255, 0.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrl-btn.fire { color: #ff4d6d; border-color: #ff4d6d; box-shadow: 0 0 8px rgba(255, 77, 109, 0.3); flex: 1.4; max-width: 130px; }
+    .ctrl-btn:active, .ctrl-btn.holding {
+      background: rgba(0, 234, 255, 0.25);
+      transform: scale(0.96);
+    }
+    .ctrl-btn.fire:active, .ctrl-btn.fire.holding {
+      background: rgba(255, 77, 109, 0.25);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 480px) {
+      .hud-value { font-size: 14px; }
+      .hud-block { min-width: 44px; }
+      .ctrl-btn { height: 48px; font-size: 20px; }
     }
   </style>
 </head>
 <body>
-  <div class="spaceinvaders-title">Space Invaders Pro</div>
-  <div class="spaceinvaders-score">
-    Score: <span id="spaceinvaders-score">0</span>
-    &nbsp;|&nbsp;
-    Time: <span id="spaceinvaders-timer">00:00</span>
+  <div id="game-wrap">
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-block">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-value score" id="ui-score">0</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">LIVES</div>
+        <div class="hud-value lives" id="ui-lives">❤❤❤❤</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">WAVE</div>
+        <div class="hud-value" id="ui-wave">1</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">BEST</div>
+        <div class="hud-value best" id="ui-best">0</div>
+      </div>
+      <div class="hud-buttons">
+        <button class="hud-btn" id="btn-auto" title="Auto Fire">🅰️</button>
+        <button class="hud-btn" id="btn-pause" title="Pause">⏸</button>
+        <button class="hud-btn" id="btn-mute" title="Mute">🔊</button>
+      </div>
+    </div>
+
+    <!-- Canvas stage -->
+    <div id="stage">
+      <canvas id="game"></canvas>
+
+      <!-- Start screen -->
+      <div class="overlay" id="overlay-start">
+        <div class="panel">
+          <h1>SPACE<br>INVADERS</h1>
+          <div class="sub">Defend Earth · Survive Endless Waves</div>
+          <div class="score-board" id="start-board">
+            <div>
+              <div class="lbl">Best Score</div>
+              <div class="val best" id="start-best">0</div>
+            </div>
+            <div>
+              <div class="lbl">Max Wave</div>
+              <div class="val you" id="start-wave">0</div>
+            </div>
+          </div>
+          <button class="big-btn" id="btn-start">▶ Start</button>
+        </div>
+      </div>
+
+      <!-- Game over screen -->
+      <div class="overlay hidden" id="overlay-gameover">
+        <div class="panel">
+          <h1 id="go-title">GAME OVER</h1>
+          <div class="new-best hidden" id="go-newbest">NEW BEST!</div>
+          <div class="score-board">
+            <div>
+              <div class="lbl">Score</div>
+              <div class="val you" id="go-score">0</div>
+            </div>
+            <div>
+              <div class="lbl">Best</div>
+              <div class="val best" id="go-best">0</div>
+            </div>
+          </div>
+          <div class="stats-line">Wave: <b id="go-wave">1</b> · Kills: <b id="go-kills">0</b></div>
+          <button class="big-btn" id="btn-restart">▶ Play Again</button>
+        </div>
+      </div>
+
+      <!-- Paused -->
+      <div class="overlay hidden" id="overlay-paused">
+        <div class="panel">
+          <h1>PAUSED</h1>
+          <button class="big-btn" id="btn-resume">▶ Resume</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- On-screen controls (always visible; keyboard also supported) -->
+    <div class="controls">
+      <button class="ctrl-btn" id="btn-left" aria-label="Left">◀</button>
+      <button class="ctrl-btn fire" id="btn-fire" aria-label="Fire">🔥 FIRE</button>
+      <button class="ctrl-btn" id="btn-right" aria-label="Right">▶</button>
+    </div>
   </div>
-  <div id="spaceinvaders-board"></div>
-  <div class="spaceinvaders-btn-row" style="display:flex;justify-content:center;align-items:center;margin-top:16px;gap:16px;">
-    <button class="spaceinvaders-btn" id="left-btn">&#8592; Left</button>
-    <button class="spaceinvaders-btn" id="start-spaceinvaders-btn">Start Game</button>
-    <button class="spaceinvaders-btn" id="right-btn">Right &#8594;</button>
-  </div>
-  <script src="js/spaceinvaders.js"></script>
-  <script>
-    document.getElementById('left-btn').onclick = function() {
-      window.movePlayer && window.movePlayer(-1);
-    };
-    document.getElementById('right-btn').onclick = function() {
-      window.movePlayer && window.movePlayer(1);
-    };
-  </script>
+
   <script src="js/spaceinvaders.js"></script>
 </body>
 </html>

@@ -34,7 +34,12 @@
         <div id="modal-container" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center backdrop-blur-sm z-50">
             <div id="screen-start" class="bg-gray-800 border-4 border-gray-600 rounded-2xl p-4 sm:p-8 flex flex-col items-center max-w-[260px] sm:max-w-xs w-11/12 shadow-2xl">
                 <h1 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-400 to-red-500 mb-2 tracking-wide text-center uppercase" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">Tower<br>Defense</h1>
-                <p class="text-xs sm:text-sm text-gray-400 mb-5 text-center font-medium">ป้องกันฐานจากศัตรู 1000 Waves!</p>
+                <p class="text-xs sm:text-sm text-gray-400 mb-3 text-center font-medium">ป้องกันฐานจากศัตรู 1000 Waves!</p>
+                <div id="start-stats" class="hidden w-full bg-gray-900 rounded-lg py-2 mb-4 text-center">
+                    <div class="text-[10px] text-gray-400 uppercase">Best Wave</div>
+                    <div class="text-2xl font-bold text-yellow-400" id="stats-best">0</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Games: <span id="stats-games">0</span> · Kills: <span id="stats-kills">0</span></div>
+                </div>
                 <button id="btn-start" class="w-full bg-gradient-to-b from-green-400 to-green-600 hover:from-green-300 hover:to-green-500 text-white font-bold py-2 px-6 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:translate-y-[4px] active:shadow-none transition-all text-base sm:text-lg uppercase tracking-wider">
                     Play Game
                 </button>
@@ -42,10 +47,12 @@
 
             <div id="screen-gameover" class="bg-gray-800 border-4 border-red-800 rounded-2xl p-4 flex flex-col items-center hidden max-w-[240px] w-11/12 shadow-2xl">
                 <h1 class="text-2xl sm:text-3xl font-black text-red-500 mb-2 uppercase tracking-wider text-center" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">Game Over</h1>
-                <div class="text-lg mb-4 text-center w-full bg-gray-900 rounded-lg py-2">
+                <div class="text-lg mb-2 text-center w-full bg-gray-900 rounded-lg py-2 relative">
                     <div class="text-gray-400 text-[10px] sm:text-xs uppercase">Reached Wave</div>
                     <div id="go-wave" class="text-2xl font-bold text-white">5</div>
+                    <div id="go-newbest" class="hidden absolute -top-2 -right-2 bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full rotate-12 shadow-lg">NEW BEST!</div>
                 </div>
+                <div class="text-[10px] text-gray-500 mb-3">Best: <span id="go-best" class="text-yellow-400 font-bold">0</span> · Kills: <span id="go-kills" class="text-white">0</span></div>
                 <button id="btn-restart" class="w-full bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold py-2 px-6 rounded-xl shadow-[0_4px_0_rgb(29,78,216)] active:translate-y-[4px] active:shadow-none transition-all text-base uppercase tracking-wider">
                     Try Again
                 </button>
@@ -84,7 +91,7 @@
             <div class="flex flex-col justify-center items-center min-w-[50px] sm:min-w-[60px] h-full">
                 <div class="text-[8px] sm:text-[9px] font-bold text-gray-400 leading-none">WAVE <span id="ui-wave" class="text-white text-[10px] sm:text-xs">1</span></div>
                 <div class="text-[8px] sm:text-[9px] text-gray-300 leading-none mt-0.5 sm:mt-1">Left: <span id="ui-enemies-left" class="text-white">0</span></div>
-                <div class="text-[7px] sm:text-[8px] text-blue-300 leading-none mt-0.5 sm:mt-1 truncate max-w-[50px] sm:max-w-[60px]"><span id="ui-next-wave">...</span></div>
+                <div class="text-[7px] sm:text-[8px] text-blue-300 leading-none mt-0.5 sm:mt-1 truncate max-w-[80px] sm:max-w-[110px]" title="3 คลื่นถัดไป"><span id="ui-next-wave">...</span></div>
             </div>
             <div class="flex gap-1 h-full items-center">
                 <button id="btn-speed" class="bg-blue-600 hover:bg-blue-500 rounded shadow flex items-center justify-center font-bold text-[10px] sm:text-xs w-6 h-6 sm:w-8 sm:h-8 transition-transform active:scale-95">x1</button>
@@ -98,8 +105,29 @@
         const ctx = canvas.getContext('2d');
         const gameArea = document.getElementById('game-area');
 
+        // ===== Persistent stats (localStorage) =====
+        const STATS_KEY = 'tdg_stats_v1';
+        function loadStats() {
+            try {
+                const s = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+                return {
+                    bestWave: s.bestWave || 0,
+                    gamesPlayed: s.gamesPlayed || 0,
+                    enemiesKilled: s.enemiesKilled || 0,
+                    muted: !!s.muted
+                };
+            } catch { return { bestWave: 0, gamesPlayed: 0, enemiesKilled: 0, muted: false }; }
+        }
+        function saveStats(patch) {
+            const cur = loadStats();
+            const updated = Object.assign({}, cur, patch);
+            try { localStorage.setItem(STATS_KEY, JSON.stringify(updated)); } catch {}
+            return updated;
+        }
+        let sessionKills = 0;
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let isMuted = false;
+        let isMuted = loadStats().muted;
         function playSound(type) {
             if (isMuted) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -325,10 +353,39 @@
         let currentWaveData = null;
         let waveState = { active: false, enemiesSpawned: 0, lastSpawnTime: 0, waveDelayTimer: 0 };
 
+        // Offscreen canvas — pre-rendered map (static) so we don't redraw 200 emoji tiles every frame
+        const mapCanvas = document.createElement('canvas');
+        const mapCtx = mapCanvas.getContext('2d');
+
+        // Emoji sprite cache — emoji fillText is ~100x slower than drawImage.
+        // We render each (emoji, size) once into an offscreen canvas, then blit it every frame.
+        const emojiSpriteCache = new Map();
+        function getEmojiSprite(emoji, size) {
+            const key = emoji + '|' + size;
+            let sprite = emojiSpriteCache.get(key);
+            if (!sprite) {
+                sprite = document.createElement('canvas');
+                // Slight padding so emoji glyphs that overflow the cell aren't clipped
+                const pad = Math.ceil(size * 0.15);
+                sprite.width = size + pad * 2;
+                sprite.height = size + pad * 2;
+                const sctx = sprite.getContext('2d');
+                sctx.font = `${size}px Arial`;
+                sctx.textAlign = 'center';
+                sctx.textBaseline = 'middle';
+                sctx.fillText(emoji, sprite.width / 2, sprite.height / 2);
+                sprite._pad = pad;
+                emojiSpriteCache.set(key, sprite);
+            }
+            return sprite;
+        }
+
         function resizeCanvas() {
             canvas.width = gameArea.clientWidth;
             canvas.height = gameArea.clientHeight;
             calculatePixelPath();
+            emojiSpriteCache.clear(); // cellSize changed → cached sprite sizes are stale
+            renderMapToCache();
             hideUpgradeModal();
             if(currentState === GAME_STATE.PAUSED || currentState === GAME_STATE.MENU) draw();
         }
@@ -502,21 +559,20 @@
 
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                const wobbleAngle = Math.sin(this.wobblePhase) * 0.2; 
+                const wobbleAngle = Math.sin(this.wobblePhase) * 0.2;
                 ctx.rotate(wobbleAngle);
 
-                ctx.font = `${this.radius*2}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
                 if (this.slowTimer > 0) {
                     ctx.beginPath();
                     ctx.arc(0, 0, this.radius*1.2, 0, Math.PI*2);
-                    ctx.fillStyle = 'rgba(6, 182, 212, 0.4)'; 
+                    ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
                     ctx.fill();
                 }
 
-                ctx.fillText(this.type.emoji, 0, 0);
+                // Blit cached emoji sprite instead of re-rendering glyph every frame
+                const spriteSize = Math.round(this.radius * 2);
+                const sprite = getEmojiSprite(this.type.emoji, spriteSize);
+                ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
                 ctx.restore();
 
                 const hpWidth = this.radius * 2;
@@ -537,6 +593,7 @@
 
             die() {
                 this.isDead = true;
+                sessionKills++;
                 if (this.type.isBoss) {
                     playSound('boss_die');
                     triggerShake(12, 600);
@@ -613,14 +670,18 @@
                 this._lastNow = now;
 
                 let buffFr = 1, buffDmg = 1;
+                let buffSources = 0;
                 for (let t of towers) {
                     if (t.typeDef.id === 'SUPPORT' && t !== this) {
                         if (dist(this.x, this.y, t.x, t.y) <= t.range * cellSize) {
                             buffFr += 0.2 + (0.05 * t.level);
                             buffDmg += 0.1 + (0.05 * t.level);
+                            buffSources++;
                         }
                     }
                 }
+                this.isBuffed = buffSources > 0;
+                this.buffSources = buffSources;
 
                 if (this.typeDef.id === 'SUPPORT') {
                     if (now - this.lastFiredTime > 1000) {
@@ -675,6 +736,19 @@
             }
 
             draw(ctx) {
+                // Buff aura (pulsing green ring) when this tower is being boosted by a SUPPORT
+                if (this.isBuffed) {
+                    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 250);
+                    ctx.save();
+                    ctx.globalAlpha = 0.35 + 0.25 * pulse;
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 2 + this.buffSources;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, cellSize * (0.42 + 0.06 * pulse), 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
                 ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.beginPath();
                 ctx.ellipse(this.x, this.y + cellSize*0.3, cellSize*0.4, cellSize*0.25, 0, 0, Math.PI*2);
@@ -833,6 +907,7 @@
             hp = maxHp;
             currentWave = 0;
             gameSpeed = 1;
+            sessionKills = 0;
             enemies = []; towers = []; bullets = []; particles = [];
             selectedTowerTypeToBuild = null;
             hideUpgradeModal();
@@ -855,7 +930,20 @@
         function gameOver() {
             currentState = GAME_STATE.GAMEOVER; playSound('error');
             modalContainer.classList.remove('hidden'); screenGameover.classList.remove('hidden');
-            goWave.innerText = currentWave + 1;
+            const reached = currentWave + 1;
+            goWave.innerText = reached;
+            const prev = loadStats();
+            const isNewBest = reached > prev.bestWave;
+            const updated = saveStats({
+                bestWave: Math.max(prev.bestWave, reached),
+                gamesPlayed: prev.gamesPlayed + 1,
+                enemiesKilled: prev.enemiesKilled + sessionKills
+            });
+            document.getElementById('go-best').innerText = updated.bestWave;
+            document.getElementById('go-kills').innerText = sessionKills;
+            const newBestEl = document.getElementById('go-newbest');
+            if (isNewBest && reached > 1) newBestEl.classList.remove('hidden');
+            else newBestEl.classList.add('hidden');
         }
 
         function gameWin() {
@@ -936,29 +1024,34 @@
             for (let i = particles.length - 1; i >= 0; i--) { particles[i].update(dt); if (particles[i].life <= 0) particles.splice(i, 1); }
         }
 
-        function drawMap() {
-            // Background grass for map area
-            ctx.fillStyle = '#22c55e';
-            ctx.fillRect(mapOffsetX, mapOffsetY, MAP_COLS * cellSize, MAP_ROWS * cellSize);
+        // Renders the static map (grass, trees, water, path) into the offscreen cache canvas.
+        // Called once on resize/init; main draw() then blits it with a single drawImage call.
+        function renderMapToCache() {
+            mapCanvas.width = canvas.width;
+            mapCanvas.height = canvas.height;
+            const c2 = mapCtx;
+            // Full background
+            c2.fillStyle = '#22c55e';
+            c2.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+            // Map area
+            c2.fillStyle = '#22c55e';
+            c2.fillRect(mapOffsetX, mapOffsetY, MAP_COLS * cellSize, MAP_ROWS * cellSize);
 
-            // Draw path first
-            ctx.strokeStyle = '#d97706'; // Brighter outer path
-            ctx.lineWidth = cellSize * 0.9;
-            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            ctx.beginPath();
+            // Path (outer + inner)
+            c2.strokeStyle = '#d97706';
+            c2.lineWidth = cellSize * 0.9;
+            c2.lineCap = 'round'; c2.lineJoin = 'round';
+            c2.beginPath();
             if (pixelPath.length > 0) {
-                ctx.moveTo(pixelPath[0].x, pixelPath[0].y);
-                for(let i=1; i<pixelPath.length; i++) {
-                    ctx.lineTo(pixelPath[i].x, pixelPath[i].y);
-                }
+                c2.moveTo(pixelPath[0].x, pixelPath[0].y);
+                for (let i=1; i<pixelPath.length; i++) c2.lineTo(pixelPath[i].x, pixelPath[i].y);
             }
-            ctx.stroke();
-            
-            // Inner path highlight for depth
-            ctx.strokeStyle = '#f59e0b'; // Even brighter inner path
-            ctx.lineWidth = cellSize * 0.6;
-            ctx.stroke();
+            c2.stroke();
+            c2.strokeStyle = '#f59e0b';
+            c2.lineWidth = cellSize * 0.6;
+            c2.stroke();
 
+            // Tiles
             for (let r=0; r<MAP_ROWS; r++) {
                 for (let c=0; c<MAP_COLS; c++) {
                     const tile = mapGrid[r][c];
@@ -966,32 +1059,36 @@
                     const py = mapOffsetY + r * cellSize;
                     const cx = px + cellSize/2;
                     const cy = py + cellSize/2;
-                    
                     if (tile === 0 || tile === 3) {
-                        ctx.font = `${cellSize*0.6}px Arial`;
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        c2.font = `${cellSize*0.6}px Arial`;
+                        c2.textAlign = 'center'; c2.textBaseline = 'middle';
                         const vis = visualMapGrid[r][c];
                         if (vis) {
-                            ctx.fillText(vis.grass, cx, cy);
+                            c2.fillText(vis.grass, cx, cy);
                             if (tile === 3 && vis.tree) {
-                                ctx.fillStyle = 'rgba(0,0,0,0.3)'; 
-                                ctx.beginPath(); ctx.ellipse(cx, cy + cellSize*0.3, cellSize*0.3, cellSize*0.15, 0, 0, Math.PI*2); ctx.fill();
-                                ctx.font = `${cellSize*0.8}px Arial`;
-                                ctx.fillText(vis.tree, cx, cy - cellSize*0.1);
+                                c2.fillStyle = 'rgba(0,0,0,0.3)';
+                                c2.beginPath(); c2.ellipse(cx, cy + cellSize*0.3, cellSize*0.3, cellSize*0.15, 0, 0, Math.PI*2); c2.fill();
+                                c2.font = `${cellSize*0.8}px Arial`;
+                                c2.fillText(vis.tree, cx, cy - cellSize*0.1);
                             }
                         }
                     } else if (tile === 2) {
-                        ctx.fillStyle = '#3b82f6'; // Brighter water
-                        ctx.fillRect(px, py, cellSize, cellSize);
-                        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px+cellSize, py+cellSize); ctx.stroke();
-                        ctx.font = `${cellSize*0.5}px Arial`;
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.fillText('💧', cx, cy);
+                        c2.fillStyle = '#3b82f6';
+                        c2.fillRect(px, py, cellSize, cellSize);
+                        c2.strokeStyle = 'rgba(255,255,255,0.2)';
+                        c2.lineWidth = 1;
+                        c2.beginPath(); c2.moveTo(px, py); c2.lineTo(px+cellSize, py+cellSize); c2.stroke();
+                        c2.font = `${cellSize*0.5}px Arial`;
+                        c2.textAlign = 'center'; c2.textBaseline = 'middle';
+                        c2.fillText('💧', cx, cy);
                     }
                 }
             }
+        }
+
+        // Per-frame: just blit the cached map. Fast.
+        function drawMap() {
+            ctx.drawImage(mapCanvas, 0, 0);
         }
 
         function draw() {
@@ -1061,6 +1158,12 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Cache markers so updateUI() avoids rebuilding the tower bar / regenerating wave preview
+        // on every enemy-death call. Rebuild only when the underlying state actually changed.
+        let _uiLastMoney = -1;
+        let _uiLastSelected = '__init__';
+        let _uiLastWave = -1;
+
         function updateUI() {
             uiHp.innerText = hp; uiMoney.innerText = money;
             if(hp <= 5) uiHp.classList.add('text-red-500'); else uiHp.classList.remove('text-red-500');
@@ -1070,11 +1173,25 @@
             if(!waveState.active) left = currentWaveData.count;
             uiEnemiesLeft.innerText = left;
 
-            const nextWaveData = generateWave(currentWave + 1);
-            const nextEnemy = ENEMY_TYPES[nextWaveData.type];
-            uiNextWave.innerText = nextEnemy ? `${nextEnemy.emoji} x${nextWaveData.count}` : `? x${nextWaveData.count}`;
+            // Wave preview only refreshes when the wave number changes
+            if (currentWave !== _uiLastWave) {
+                _uiLastWave = currentWave;
+                const parts = [];
+                for (let k = 1; k <= 3; k++) {
+                    const wd = generateWave(currentWave + k);
+                    const e = ENEMY_TYPES[wd.type];
+                    const tag = e && e.isBoss ? '👑' : '';
+                    parts.push(`${tag}${e ? e.emoji : '?'}${wd.count}`);
+                }
+                uiNextWave.innerText = parts.join(' › ');
+            }
 
-            renderTowerSelection(); 
+            // Tower bar is a heavy DOM rebuild; only do it when money or selection state changed
+            if (money !== _uiLastMoney || selectedTowerTypeToBuild !== _uiLastSelected) {
+                _uiLastMoney = money;
+                _uiLastSelected = selectedTowerTypeToBuild;
+                renderTowerSelection();
+            }
         }
 
         function updateSpeedUI() {
@@ -1188,6 +1305,20 @@
             }
         });
 
+        function renderStartStats() {
+            const s = loadStats();
+            const wrap = document.getElementById('start-stats');
+            if (s.gamesPlayed > 0) {
+                wrap.classList.remove('hidden');
+                document.getElementById('stats-best').innerText = s.bestWave;
+                document.getElementById('stats-games').innerText = s.gamesPlayed;
+                document.getElementById('stats-kills').innerText = s.enemiesKilled;
+            } else {
+                wrap.classList.add('hidden');
+            }
+        }
+        renderStartStats();
+
         document.getElementById('btn-start').addEventListener('click', startGame);
         document.getElementById('btn-restart').addEventListener('click', () => {
             // Reset win styling before restart
@@ -1201,11 +1332,15 @@
         btnPause.addEventListener('click', togglePause);
         btnSpeed.addEventListener('click', toggleSpeed);
         const btnMute = document.getElementById('btn-mute');
+        // Apply persisted mute state to the icon at load time
+        btnMute.textContent = isMuted ? '🔇' : '🔊';
+        btnMute.style.opacity = isMuted ? '0.5' : '1';
         btnMute.addEventListener('click', (e) => {
             e.stopPropagation();
             isMuted = !isMuted;
             btnMute.textContent = isMuted ? '🔇' : '🔊';
             btnMute.style.opacity = isMuted ? '0.5' : '1';
+            saveStats({ muted: isMuted });
         });
         window.addEventListener('contextmenu', e => e.preventDefault());
 

@@ -28,7 +28,14 @@
       <a href="#faq">คำถามที่พบบ่อย</a>
       <a href="index.html">กลับหน้าหลัก</a>
     </div>
-    <button class="lang-sel">🌐 ไทย ▾</button>
+    <div class="lang-sel-wrap">
+      <button class="lang-sel" id="langSelBtn" type="button">🌐 ไทย ▾</button>
+      <div class="lang-dropdown" id="langDropdown">
+        <button type="button" data-lang="th">🇹🇭 ไทย</button>
+        <button type="button" data-lang="lao">🇱🇦 ລາວ</button>
+        <button type="button" data-lang="en">🇬🇧 English</button>
+      </div>
+    </div>
   </nav>
 
   <!-- Back Link -->
@@ -61,12 +68,36 @@
     <button class="fi-remove" id="removeFile" title="ลบไฟล์">✕</button>
   </div>
 
+  <!-- Convert action -->
+  <div class="convert-area" id="convertArea">
+    <button class="convert-btn" id="convertBtn">🔄 แปลงไฟล์</button>
+    <button class="cancel-btn" id="cancelBtn">ยกเลิก</button>
+  </div>
+
   <!-- Progress -->
   <div class="progress-wrap" id="progressWrap">
     <p class="progress-text" id="progressText">กำลังแปลงไฟล์...</p>
     <div class="progress-bar-bg">
       <div class="progress-bar-fill" id="progressBar"></div>
     </div>
+  </div>
+
+  <!-- OCR Prompt -->
+  <div class="ocr-prompt" id="ocrPrompt">
+    <div class="ocr-icon">📷</div>
+    <h3 id="ocrTitle">ดูเหมือนเป็น PDF สแกน</h3>
+    <p id="ocrDesc">ตรวจไม่พบข้อความที่อ่านได้ ต้องการใช้ OCR เพื่อสกัดข้อความจากภาพหรือไม่?</p>
+    <p class="note" id="ocrNote">⚠ ใช้เวลาหลายนาที และต้องดาวน์โหลดโมเดลภาษา (~10-15MB ต่อภาษา)</p>
+    <button class="ocr-btn" id="ocrStartBtn">เริ่ม OCR</button>
+    <button class="ocr-btn secondary" id="ocrSkipBtn">ข้าม (ใช้ผลที่มี)</button>
+  </div>
+
+  <!-- Error -->
+  <div class="error-area" id="errorArea">
+    <div class="err-icon">❌</div>
+    <h2 id="errorTitle">เกิดข้อผิดพลาด</h2>
+    <p id="errorMsg"></p>
+    <button class="upload-btn" id="retryBtn">🔄 ลองใหม่</button>
   </div>
 
   <!-- Result -->
@@ -171,8 +202,8 @@
       </div>
       <div class="step">
         <div class="num">2</div>
-        <h3>ระบบแปลงไฟล์</h3>
-        <p>ระบบจะทำการแปลงไฟล์โดยอัตโนมัติ</p>
+        <h3>กดปุ่มแปลง</h3>
+        <p>ระบบจะแปลงไฟล์ตามที่คุณสั่ง</p>
       </div>
       <div class="step">
         <div class="num">3</div>
@@ -199,8 +230,8 @@
         <details>
           <summary style="cursor:pointer;font-weight:600;color:#1e293b">รองรับ PDF ที่เป็นรูปภาพ (สแกน) หรือไม่?
           </summary>
-          <p style="color:#64748b;margin-top:.5rem;font-size:.9rem">ระบบรองรับ PDF ที่มีข้อความ (text-based) หาก PDF
-            เป็นรูปภาพสแกน จะต้องใช้ OCR เพิ่มเติม</p>
+          <p style="color:#64748b;margin-top:.5rem;font-size:.9rem">รองรับ! ระบบจะตรวจจับ PDF สแกนอัตโนมัติ
+            และเสนอตัวเลือก OCR (Tesseract.js) เพื่อสกัดข้อความออกจากภาพ รองรับภาษาลาว ไทย จีน อังกฤษ</p>
         </details>
       </div>
     </div>
@@ -213,13 +244,105 @@
 
   <!-- Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script>
+    // Minimal Buffer polyfill — docx.js uses Node.js Buffer internally for font embedding
+    if (typeof window.Buffer === 'undefined') {
+      window.Buffer = class extends Uint8Array {
+        static from(data, encoding) {
+          if (data instanceof ArrayBuffer) {
+            const a = new window.Buffer(data.byteLength);
+            a.set(new Uint8Array(data));
+            return a;
+          }
+          if (ArrayBuffer.isView(data)) {
+            const a = new window.Buffer(data.byteLength);
+            a.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+            return a;
+          }
+          if (Array.isArray(data)) {
+            const a = new window.Buffer(data.length);
+            for (let i = 0; i < data.length; i++) a[i] = data[i] & 0xff;
+            return a;
+          }
+          if (typeof data === 'string') {
+            if (encoding === 'base64') {
+              const bin = atob(data);
+              const a = new window.Buffer(bin.length);
+              for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+              return a;
+            }
+            if (encoding === 'hex') {
+              const a = new window.Buffer(data.length / 2);
+              for (let i = 0; i < a.length; i++) a[i] = parseInt(data.substr(i * 2, 2), 16);
+              return a;
+            }
+            const enc = new TextEncoder().encode(data);
+            return window.Buffer.from(enc);
+          }
+          if (typeof data === 'number') return new window.Buffer(data);
+          throw new TypeError('Buffer.from: unsupported input ' + typeof data);
+        }
+        static alloc(size, fill) {
+          const b = new window.Buffer(size);
+          if (fill !== undefined) b.fill(typeof fill === 'string' ? fill.charCodeAt(0) : fill);
+          return b;
+        }
+        static allocUnsafe(size) { return new window.Buffer(size); }
+        static isBuffer(obj) { return obj instanceof window.Buffer; }
+        static byteLength(str, encoding) {
+          if (typeof str !== 'string') return str.length;
+          if (encoding === 'base64') return Math.floor(str.length * 3 / 4);
+          return new TextEncoder().encode(str).length;
+        }
+        static concat(list, totalLen) {
+          let len = totalLen;
+          if (len === undefined) { len = 0; for (const b of list) len += b.length; }
+          const out = new window.Buffer(len);
+          let off = 0;
+          for (const b of list) {
+            const take = Math.min(b.length, len - off);
+            if (take <= 0) break;
+            out.set(b.subarray(0, take), off);
+            off += take;
+          }
+          return out;
+        }
+        toString(encoding) {
+          if (encoding === 'base64') {
+            let bin = '';
+            for (let i = 0; i < this.length; i++) bin += String.fromCharCode(this[i]);
+            return btoa(bin);
+          }
+          if (encoding === 'hex') {
+            let s = '';
+            for (let i = 0; i < this.length; i++) s += this[i].toString(16).padStart(2, '0');
+            return s;
+          }
+          if (encoding === 'binary' || encoding === 'latin1') {
+            let s = '';
+            for (let i = 0; i < this.length; i++) s += String.fromCharCode(this[i]);
+            return s;
+          }
+          return new TextDecoder('utf-8').decode(this);
+        }
+        write(str, offset, length, encoding) {
+          if (typeof offset === 'string') { encoding = offset; offset = 0; length = this.length; }
+          const enc = new TextEncoder().encode(str);
+          const len = Math.min(enc.length, length !== undefined ? length : enc.length, this.length - (offset || 0));
+          this.set(enc.subarray(0, len), offset || 0);
+          return len;
+        }
+        slice(start, end) { return window.Buffer.from(super.slice(start, end)); }
+      };
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 
   <script>
-    // PDF.js worker
+    // ===== PDF.js worker =====
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    // ===== DOM refs =====
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -227,38 +350,66 @@
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
     const removeFile = document.getElementById('removeFile');
+    const convertArea = document.getElementById('convertArea');
+    const convertBtn = document.getElementById('convertBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
     const progressWrap = document.getElementById('progressWrap');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const resultArea = document.getElementById('resultArea');
     const downloadBtn = document.getElementById('downloadBtn');
     const convertAnother = document.getElementById('convertAnother');
+    const errorArea = document.getElementById('errorArea');
+    const errorMsg = document.getElementById('errorMsg');
+    const retryBtn = document.getElementById('retryBtn');
+    const ocrPrompt = document.getElementById('ocrPrompt');
+    const ocrStartBtn = document.getElementById('ocrStartBtn');
+    const ocrSkipBtn = document.getElementById('ocrSkipBtn');
+    const langSelBtn = document.getElementById('langSelBtn');
+    const langDropdown = document.getElementById('langDropdown');
 
+    // ===== State =====
     let currentFile = null;
     let docxBlob = null;
+    let cachedPdf = null;       // pdf.js document, for OCR fallback
+    let cachedRichPages = null; // text-extracted pages, kept in case user skips OCR
+    let cachedHeaderBlocks = [];
+    let cachedFooterBlocks = [];
+    let cachedHeaderImages = [];
+    let cachedIsCoverPage = false;
 
-    // Upload button click
+    // ===== Constants =====
+    // Lao: Phetsarath (Google Fonts). Embedded as Regular + Bold so it ships inside the DOCX
+    const SCRIPT_FONTS = {
+      lao: 'Phetsarath',
+      thai: 'TH Sarabun New',
+      chinese: 'SimSun',
+      latin: 'Times New Roman'
+    };
+
+    // ===== File selection =====
     uploadBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
     uploadZone.addEventListener('click', () => fileInput.click());
 
-    // Drag and drop
     uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', (e) => {
       e.preventDefault();
       uploadZone.classList.remove('drag-over');
       const files = e.dataTransfer.files;
-      if (files.length > 0 && files[0].type === 'application/pdf') {
-        handleFile(files[0]);
-      }
+      if (files.length > 0 && files[0].type === 'application/pdf') handleFile(files[0]);
     });
-
     fileInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) handleFile(e.target.files[0]);
     });
 
     removeFile.addEventListener('click', resetUI);
+    cancelBtn.addEventListener('click', resetUI);
     convertAnother.addEventListener('click', resetUI);
+    retryBtn.addEventListener('click', resetUI);
+    convertBtn.addEventListener('click', () => startConversion(currentFile));
+    ocrSkipBtn.addEventListener('click', () => finalizeWithPages(cachedRichPages, currentFile.name));
+    ocrStartBtn.addEventListener('click', runOcrFlow);
 
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
@@ -268,7 +419,7 @@
 
     function handleFile(file) {
       if (file.size > 100 * 1048576) {
-        alert('ไฟล์ขนาดเกิน 100MB กรุณาเลือกไฟล์ที่เล็กกว่า');
+        showError('ไฟล์ขนาดเกิน 100MB กรุณาเลือกไฟล์ที่เล็กกว่า');
         return;
       }
       currentFile = file;
@@ -276,24 +427,48 @@
       fileSize.textContent = formatSize(file.size);
       fileInfo.style.display = 'flex';
       uploadZone.style.display = 'none';
-      startConversion(file);
+      convertArea.classList.add('show');
     }
 
     function resetUI() {
       currentFile = null;
       docxBlob = null;
+      cachedPdf = null;
+      cachedRichPages = null;
+      cachedHeaderBlocks = [];
+      cachedFooterBlocks = [];
+      cachedHeaderImages = [];
+      cachedIsCoverPage = false;
       fileInput.value = '';
       fileInfo.style.display = 'none';
+      convertArea.classList.remove('show');
       progressWrap.style.display = 'none';
       resultArea.style.display = 'none';
+      errorArea.style.display = 'none';
+      ocrPrompt.style.display = 'none';
       uploadZone.style.display = 'block';
       progressBar.style.width = '0%';
+      progressBar.style.background = '';
     }
 
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      progressWrap.style.display = 'none';
+      convertArea.classList.remove('show');
+      ocrPrompt.style.display = 'none';
+      errorArea.style.display = 'block';
+    }
+
+    // ===== Conversion =====
     async function startConversion(file) {
+      if (!file) return;
+      convertArea.classList.remove('show');
       progressWrap.style.display = 'block';
       resultArea.style.display = 'none';
+      errorArea.style.display = 'none';
+      ocrPrompt.style.display = 'none';
       progressBar.style.width = '10%';
+      progressBar.style.background = '';
       progressText.textContent = 'กำลังอ่านไฟล์ PDF...';
 
       try {
@@ -301,119 +476,1167 @@
         progressBar.style.width = '20%';
         progressText.textContent = 'กำลังวิเคราะห์เอกสาร...';
 
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjsLib.getDocument({
+          data: arrayBuffer,
+          useSystemFonts: true,
+          isEvalSupported: true,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/'
+        }).promise;
+        cachedPdf = pdf;
         const totalPages = pdf.numPages;
-        const pages = [];
+        const richPages = [];
+        let totalChars = 0;
 
         for (let i = 1; i <= totalPages; i++) {
-          progressBar.style.width = (20 + (i / totalPages) * 50) + '%';
+          progressBar.style.width = (20 + (i / totalPages) * 55) + '%';
           progressText.textContent = `กำลังแปลงหน้า ${i} จาก ${totalPages}...`;
-
           const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-
-          // Group text items by Y position to preserve line structure
-          const lines = {};
-          textContent.items.forEach(item => {
-            const y = Math.round(item.transform[5]);
-            if (!lines[y]) lines[y] = [];
-            lines[y].push({ x: item.transform[4], text: item.str });
-          });
-
-          // Sort by Y (descending = top to bottom) then X
-          const sortedYs = Object.keys(lines).map(Number).sort((a, b) => b - a);
-          const pageLines = [];
-          sortedYs.forEach(y => {
-            const lineItems = lines[y].sort((a, b) => a.x - b.x);
-            const lineText = lineItems.map(item => item.text).join(' ');
-            if (lineText.trim()) pageLines.push(lineText);
-          });
-
-          pages.push({ pageNum: i, lines: pageLines });
+          const result = await processPage(page, i, { extractImages: true });
+          richPages.push(result);
+          totalChars += result.charCount;
         }
 
-        progressBar.style.width = '80%';
-        progressText.textContent = 'กำลังสร้างไฟล์ Word...';
+        // Post-processing: page numbers, headers/footers, repeated images, cover page detection
+        progressText.textContent = 'กำลังวิเคราะห์โครงสร้างเอกสาร...';
+        filterPageNumbers(richPages);
 
-        // Build DOCX using the docx library
-        await generateDocx(pages, file.name);
+        // Recompute heading levels using GLOBAL body font size (not per-page)
+        const allLines = [];
+        for (const page of richPages) {
+          for (const b of page.blocks) {
+            if (b.type === 'paragraph') for (const ln of b.lines) allLines.push(ln);
+          }
+        }
+        const globalBodySize = estimateBodyFontSize(allLines);
+        console.log('[pdf2w] globalBodySize =', globalBodySize, 'pt');
+        let h1=0, h2=0, h3=0, demoted=0;
+        for (const page of richPages) {
+          for (const b of page.blocks) {
+            if (b.type !== 'paragraph') continue;
+            const firstLine = b.lines[0];
+            if (!firstLine || !firstLine.items.length) continue;
+            const fs = avgFontSize(firstLine);
+            const ratio = globalBodySize > 0 ? fs / globalBodySize : 1;
+            // Demote list to heading if font is heading-sized (e.g., "2.1 ວິທີສ້າງ Contact")
+            if (b.listInfo && ratio >= 1.15) {
+              b.listInfo = null;
+              demoted++;
+            }
+            if (!b.listInfo) {
+              b.headingLevel = detectHeading(firstLine, globalBodySize);
+              if (b.headingLevel === 1) h1++;
+              else if (b.headingLevel === 2) h2++;
+              else if (b.headingLevel === 3) h3++;
+            }
+          }
+        }
+        console.log('[pdf2w] headings: H1=' + h1 + ' H2=' + h2 + ' H3=' + h3 +
+                    ' (demoted ' + demoted + ' list-pattern items to headings)');
 
-        progressBar.style.width = '100%';
-        progressText.textContent = 'แปลงไฟล์สำเร็จ!';
+        const hf = detectRunningHeaderFooter(richPages);
+        cachedHeaderBlocks = hf.header;
+        cachedFooterBlocks = hf.footer;
+        cachedHeaderImages = detectRunningImages(richPages);
+        cachedIsCoverPage = detectCoverPage(richPages);
 
-        setTimeout(() => {
+        cachedRichPages = richPages;
+
+        // Detect scanned PDF OR broken Unicode (PDF embeds fonts without ToUnicode CMap)
+        const avgChars = totalChars / Math.max(totalPages, 1);
+        const puaInfo = countBrokenUnicode(richPages);
+        const puaRatio = puaInfo.total > 0 ? puaInfo.bad / puaInfo.total : 0;
+        console.log('[pdf2w] avgChars=' + avgChars.toFixed(1) +
+                    ' PUA=' + puaInfo.bad + '/' + puaInfo.total +
+                    ' ratio=' + (puaRatio * 100).toFixed(1) + '%');
+
+        const isScanned = avgChars < 30;
+        const isBrokenFont = puaRatio > 0.05; // lowered threshold; even small PUA% means broken font
+
+        if (isScanned || isBrokenFont) {
           progressWrap.style.display = 'none';
-          resultArea.style.display = 'block';
-        }, 500);
+          ocrPrompt.style.display = 'block';
+          if (isBrokenFont && !isScanned) {
+            document.getElementById('ocrTitle').textContent = 'ฟอนต์ใน PDF ไม่มี ToUnicode mapping';
+            document.getElementById('ocrDesc').textContent =
+              `pdf.js แกะตัวอักษรกลับเป็น Unicode ไม่ได้ (PUA ${(puaRatio * 100).toFixed(0)}%) — ` +
+              'ตัวอักษรลาว/ไทย/จีนจะกลายเป็น □. ต้องใช้ OCR เพื่อแกะกลับเป็น Unicode ที่ถูกต้อง.';
+          }
+          return;
+        }
 
+        await finalizeWithPages(richPages, file.name);
       } catch (err) {
         console.error(err);
-        progressText.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
-        progressBar.style.width = '0%';
-        progressBar.style.background = '#ef4444';
+        showError(err.message || String(err));
       }
     }
 
-    async function generateDocx(pages, originalName) {
-      const { Document, Packer, Paragraph, TextRun, PageBreak, AlignmentType } = window.docx;
+    async function finalizeWithPages(richPages, originalName) {
+      ocrPrompt.style.display = 'none';
+      progressWrap.style.display = 'block';
+      progressBar.style.width = '85%';
+      progressBar.style.background = '';
+      progressText.textContent = 'กำลังสร้างไฟล์ Word...';
+      try {
+        await generateDocx(richPages, originalName);
+        progressBar.style.width = '100%';
+        progressText.textContent = 'แปลงไฟล์สำเร็จ!';
+        setTimeout(() => {
+          progressWrap.style.display = 'none';
+          resultArea.style.display = 'block';
+        }, 400);
+      } catch (err) {
+        console.error(err);
+        showError(err.message || String(err));
+      }
+    }
 
+    // ===== Line grouping with Y-tolerance =====
+    function groupIntoLines(items) {
+      const sorted = [...items].sort((a, b) => b.y - a.y);
+      const lines = [];
+      let current = null;
+      for (const item of sorted) {
+        const tol = Math.max(item.fontSize * 0.4, 2);
+        if (current && Math.abs(current.y - item.y) <= tol) {
+          current.items.push(item);
+        } else {
+          current = { y: item.y, items: [item] };
+          lines.push(current);
+        }
+      }
+      lines.forEach(line => line.items.sort((a, b) => a.x - b.x));
+      return lines;
+    }
+
+    // ===== Script detection =====
+    function detectScript(ch) {
+      const code = ch.codePointAt(0);
+      if (code >= 0x0E80 && code <= 0x0EFF) return 'lao';
+      if (code >= 0x0E00 && code <= 0x0E7F) return 'thai';
+      if ((code >= 0x3400 && code <= 0x9FFF) ||
+          (code >= 0xF900 && code <= 0xFAFF) ||
+          (code >= 0x3000 && code <= 0x303F)) return 'chinese';
+      return 'latin';
+    }
+
+    // Whitespace and punctuation inherit the previous script to avoid font-flipping
+    const INHERIT_RE = /[\s\d.,;:!?()[\]{}"'/\\\-_=+*&^%$#@~`<>|·•—– ]/;
+
+    function splitByScript(text) {
+      const segs = [];
+      let current = null;
+      for (const ch of text) {
+        let s = detectScript(ch);
+        if (INHERIT_RE.test(ch) && current) s = current.script;
+        if (current && current.script === s) {
+          current.text += ch;
+        } else {
+          if (current) segs.push(current);
+          current = { text: ch, script: s };
+        }
+      }
+      if (current) segs.push(current);
+      return segs;
+    }
+
+    // ===== Matrix helpers =====
+    function mulMatrix(a, b) {
+      return [
+        a[0]*b[0] + a[2]*b[1],
+        a[1]*b[0] + a[3]*b[1],
+        a[0]*b[2] + a[2]*b[3],
+        a[1]*b[2] + a[3]*b[3],
+        a[0]*b[4] + a[2]*b[5] + a[4],
+        a[1]*b[4] + a[3]*b[5] + a[5]
+      ];
+    }
+    function applyMatrix(m, p) {
+      return [m[0]*p[0] + m[2]*p[1] + m[4], m[1]*p[0] + m[3]*p[1] + m[5]];
+    }
+
+    // ===== Multi-column detection (gutter histogram) =====
+    function detectColumns(items, pageWidth) {
+      if (!items || items.length < 12 || !pageWidth) return null;
+      const binSize = Math.max(pageWidth / 60, 5);
+      const numBins = Math.ceil(pageWidth / binSize);
+      const bins = new Array(numBins).fill(0);
+      for (const it of items) {
+        const xL = Math.max(0, it.x);
+        const xR = Math.min(pageWidth - 1, it.x + (it.width || 0));
+        const lb = Math.floor(xL / binSize);
+        const rb = Math.floor(xR / binSize);
+        for (let b = lb; b <= rb; b++) if (b >= 0 && b < numBins) bins[b] += 1;
+      }
+      const startB = Math.floor(numBins * 0.30);
+      const endB = Math.floor(numBins * 0.70);
+      const threshold = items.length * 0.03;
+      let bestStart = -1, bestLen = 0;
+      let curStart = -1, curLen = 0;
+      for (let b = startB; b < endB; b++) {
+        if (bins[b] <= threshold) {
+          if (curStart < 0) curStart = b;
+          curLen++;
+          if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+        } else { curStart = -1; curLen = 0; }
+      }
+      if (bestLen < 2) return null;
+      const gutter = (bestStart + bestLen / 2) * binSize;
+      let leftN = 0, rightN = 0;
+      for (const it of items) {
+        const cx = it.x + (it.width || 0) / 2;
+        if (cx < gutter) leftN++; else rightN++;
+      }
+      if (Math.min(leftN, rightN) < items.length * 0.20) return null;
+      return { gutter };
+    }
+
+    function splitItemsByColumns(items, colInfo) {
+      if (!colInfo) return { fullWidth: items, columns: [[], []] };
+      const g = colInfo.gutter;
+      const full = [], left = [], right = [];
+      for (const it of items) {
+        const xR = it.x + (it.width || 0);
+        if (it.x < g - 20 && xR > g + 20) full.push(it);
+        else if (xR <= g) left.push(it);
+        else if (it.x >= g) right.push(it);
+        else (it.x + (it.width || 0) / 2 < g ? left : right).push(it);
+      }
+      return { fullWidth: full, columns: [left, right] };
+    }
+
+    function splitImagesByColumns(images, colInfo) {
+      if (!colInfo) return { fullWidth: images, columns: [[], []] };
+      const g = colInfo.gutter;
+      const full = [], left = [], right = [];
+      for (const im of images) {
+        const xR = im.pageX + im.pageW;
+        if (im.pageX < g - 20 && xR > g + 20) full.push(im);
+        else if (xR <= g) left.push(im);
+        else if (im.pageX >= g) right.push(im);
+        else (im.pageX + im.pageW / 2 < g ? left : right).push(im);
+      }
+      return { fullWidth: full, columns: [left, right] };
+    }
+
+    // ===== Image extraction (walk operatorList for image refs + crop from rendered canvas) =====
+    async function extractImages(page, viewport, pageCanvas) {
+      let ops;
+      try { ops = await page.getOperatorList(); } catch (e) { return []; }
+      const OPS = pdfjsLib.OPS;
+      const stack = [];
+      let ctm = [1, 0, 0, 1, 0, 0];
+      const found = [];
+      for (let i = 0; i < ops.fnArray.length; i++) {
+        const fn = ops.fnArray[i];
+        const args = ops.argsArray[i];
+        if (fn === OPS.save) {
+          stack.push(ctm.slice());
+        } else if (fn === OPS.restore) {
+          ctm = stack.pop() || [1, 0, 0, 1, 0, 0];
+        } else if (fn === OPS.transform) {
+          ctm = mulMatrix(ctm, args);
+        } else if (
+          fn === OPS.paintImageXObject ||
+          fn === OPS.paintJpegXObject ||
+          fn === OPS.paintInlineImageXObject
+        ) {
+          const corners = [[0, 0], [1, 0], [0, 1], [1, 1]].map(p => applyMatrix(ctm, p));
+          const xs = corners.map(c => c[0]);
+          const ys = corners.map(c => c[1]);
+          found.push({
+            pageX: Math.min(...xs),
+            pageY: Math.min(...ys),
+            pageW: Math.max(...xs) - Math.min(...xs),
+            pageH: Math.max(...ys) - Math.min(...ys)
+          });
+        }
+      }
+      // Dedupe by bounding box (same image painted multiple times = keep one)
+      const seen = new Set();
+      const sizable = [];
+      for (const f of found) {
+        if (f.pageW <= 24 || f.pageH <= 24) continue;
+        const key = [
+          Math.round(f.pageX / 2) * 2,
+          Math.round(f.pageY / 2) * 2,
+          Math.round(f.pageW / 2) * 2,
+          Math.round(f.pageH / 2) * 2
+        ].join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        sizable.push(f);
+      }
+      const results = [];
+      for (const im of sizable) {
+        const [vx1, vy1] = viewport.convertToViewportPoint(im.pageX, im.pageY);
+        const [vx2, vy2] = viewport.convertToViewportPoint(im.pageX + im.pageW, im.pageY + im.pageH);
+        const cx = Math.max(0, Math.round(Math.min(vx1, vx2)));
+        const cy = Math.max(0, Math.round(Math.min(vy1, vy2)));
+        const cw = Math.min(pageCanvas.width - cx, Math.round(Math.abs(vx2 - vx1)));
+        const ch = Math.min(pageCanvas.height - cy, Math.round(Math.abs(vy2 - vy1)));
+        if (cw < 12 || ch < 12) continue;
+        const crop = document.createElement('canvas');
+        crop.width = cw;
+        crop.height = ch;
+        crop.getContext('2d').drawImage(pageCanvas, cx, cy, cw, ch, 0, 0, cw, ch);
+        const blob = await new Promise(r => crop.toBlob(r, 'image/png'));
+        if (!blob) continue;
+        const data = await blob.arrayBuffer();
+        let docxW = Math.round(im.pageW * 96 / 72);
+        let docxH = Math.round(im.pageH * 96 / 72);
+        const cap = 600;
+        if (docxW > cap) { docxH = Math.round(docxH * cap / docxW); docxW = cap; }
+        if (docxH > cap) { docxW = Math.round(docxW * cap / docxH); docxH = cap; }
+        results.push({
+          pageX: im.pageX,
+          pageY: im.pageY + im.pageH,
+          pageW: im.pageW,
+          pageH: im.pageH,
+          data, docxW, docxH
+        });
+      }
+      return results;
+    }
+
+    // ===== Table detection =====
+    function getColumnAnchors(line) {
+      const groups = [];
+      let cur = null;
+      for (const it of line.items) {
+        const itEnd = it.x + (it.width || 0);
+        if (cur && it.x - cur.endX < it.fontSize * 2.5) {
+          cur.endX = Math.max(cur.endX, itEnd);
+          cur.items.push(it);
+        } else {
+          cur = { startX: it.x, endX: itEnd, items: [it] };
+          groups.push(cur);
+        }
+      }
+      return groups;
+    }
+
+    function isPotentialTableRow(line) {
+      return getColumnAnchors(line).length >= 2;
+    }
+
+    function hasConsistentColumns(rows) {
+      const a0 = getColumnAnchors(rows[0]).map(g => g.startX);
+      if (a0.length < 2) return false;
+      const tol = 30;
+      for (let r = 1; r < rows.length; r++) {
+        const a = getColumnAnchors(rows[r]).map(g => g.startX);
+        if (Math.abs(a.length - a0.length) > 1) return false;
+        let matched = 0;
+        for (const x of a) {
+          if (a0.some(ax => Math.abs(ax - x) < tol)) matched++;
+        }
+        if (matched / a.length < 0.6) return false;
+      }
+      return true;
+    }
+
+    // ===== List & paragraph detection =====
+    const BULLET_RE = /^[•·▪●◦‣⁃∙⋅•·▪●○\-\*]\s+/;
+    const NUMBERED_RE = /^(\d+|[a-zA-Z]|[ivxIVX]+)[.)]\s+/;
+    const SENTENCE_END_RE = /[.!?。!?]["']?\s*$/;
+
+    function lineText(line) {
+      return line.items.map(it => it.text).join('');
+    }
+    function avgFontSize(line) {
+      if (!line.items.length) return 11;
+      return line.items.reduce((s, it) => s + it.fontSize, 0) / line.items.length;
+    }
+    function minX(line) {
+      return line.items.reduce((m, it) => Math.min(m, it.x), Infinity);
+    }
+    function detectListPrefix(line) {
+      const t = lineText(line).trim();
+      if (BULLET_RE.test(t)) return { kind: 'bullet', level: 0 };
+      if (NUMBERED_RE.test(t)) return { kind: 'numbered', level: 0 };
+      return null;
+    }
+    function stripListPrefix(items) {
+      if (!items.length) return items;
+      const first = items[0];
+      let stripped = first.text.replace(BULLET_RE, '');
+      if (stripped === first.text) stripped = first.text.replace(NUMBERED_RE, '');
+      if (stripped === first.text) return items;
+      if (!stripped.trim()) return items.slice(1);
+      return [{ ...first, text: stripped }, ...items.slice(1)];
+    }
+
+    function groupLinesIntoParagraphs(lines) {
+      const paragraphs = [];
+      let cur = null;
+      for (const line of lines) {
+        if (!line.items.length) continue;
+        const fs = avgFontSize(line);
+        const lInfo = detectListPrefix(line);
+
+        if (cur && !lInfo) {
+          const prev = cur.lines[cur.lines.length - 1];
+          const prevFs = avgFontSize(prev);
+          const gap = prev.y - line.y;
+          const expected = Math.max(prevFs, fs) * 1.6;
+          const sameSize = Math.abs(prevFs - fs) < Math.max(0.6, prevFs * 0.1);
+          const noBigGap = gap > 0 && gap < expected;
+          const noTerminator = !SENTENCE_END_RE.test(lineText(prev).trim());
+          const indentSimilar = Math.abs(minX(prev) - minX(line)) < Math.max(prevFs, fs) * 1.0;
+          if (sameSize && noBigGap && (noTerminator || indentSimilar) && !cur.listInfo) {
+            cur.lines.push(line);
+            continue;
+          }
+          if (sameSize && noBigGap && cur.listInfo && indentSimilar) {
+            // Wrapped continuation of a list item
+            cur.lines.push(line);
+            continue;
+          }
+        }
+        cur = { lines: [line], listInfo: lInfo };
+        paragraphs.push(cur);
+      }
+      return paragraphs;
+    }
+
+    // ===== Body font size estimation =====
+    function estimateBodyFontSize(lines) {
+      const counts = new Map();
+      for (const ln of lines) {
+        for (const it of ln.items) {
+          const k = Math.round(it.fontSize * 2) / 2;
+          counts.set(k, (counts.get(k) || 0) + (it.text.length || 1));
+        }
+      }
+      if (counts.size === 0) return 11;
+      let best = 11, bestC = -1;
+      for (const [k, c] of counts) {
+        if (c > bestC) { best = k; bestC = c; }
+      }
+      return best;
+    }
+
+    function detectHeading(line, bodySize) {
+      if (!line.items.length) return 0;
+      const fs = avgFontSize(line);
+      if (bodySize <= 0) return 0;
+      const ratio = fs / bodySize;
+      const allBold = line.items.every(it => it.isBold);
+      // Word documents commonly use H1≈1.6-2x, H2≈1.2-1.4x, H3≈1.1-1.2x of body
+      if (ratio >= 1.55) return 1;
+      if (ratio >= 1.2) return 2;
+      if (ratio >= 1.08 && allBold) return 3;
+      return 0;
+    }
+
+    // ===== Block builder (tables + paragraphs unified) =====
+    function buildBlocks(lines, bodySize) {
+      const blocks = [];
+      let i = 0;
+      while (i < lines.length) {
+        const candidate = [];
+        let j = i;
+        while (j < lines.length && isPotentialTableRow(lines[j])) {
+          candidate.push(lines[j]);
+          j++;
+        }
+        if (candidate.length >= 2 && hasConsistentColumns(candidate)) {
+          blocks.push({ type: 'table', y: candidate[0].y, rows: candidate });
+          i = j;
+          continue;
+        }
+        const start = i;
+        let end = i + 1;
+        while (end < lines.length && !isPotentialTableRow(lines[end])) end++;
+        const segment = lines.slice(start, end);
+        const paragraphs = groupLinesIntoParagraphs(segment);
+        for (const p of paragraphs) {
+          const headingLevel = p.listInfo ? 0 : detectHeading(p.lines[0], bodySize);
+          blocks.push({
+            type: 'paragraph',
+            y: p.lines[0].y,
+            lines: p.lines,
+            listInfo: p.listInfo,
+            headingLevel
+          });
+        }
+        i = end;
+      }
+      return blocks;
+    }
+
+    // ===== Per-page processing → ordered blocks (paragraph / image / table) =====
+    function itemsFromTextContent(textContent) {
+      const styles = textContent.styles || {};
+      return textContent.items
+        .filter(it => it.str && it.transform)
+        .map(it => {
+          const style = styles[it.fontName] || {};
+          const fam = ((style.fontFamily || '') + ' ' + (it.fontName || '')).toLowerCase();
+          return {
+            x: it.transform[4],
+            y: it.transform[5],
+            width: it.width || 0,
+            text: it.str,
+            fontSize: Math.abs(it.transform[3]) || Math.abs(it.transform[0]) || 11,
+            isBold: /bold|black|heavy|semibold/.test(fam),
+            isItalic: /italic|oblique/.test(fam)
+          };
+        });
+    }
+
+    async function extractLinks(page) {
+      let annots;
+      try {
+        annots = await page.getAnnotations({ intent: 'any' });
+      } catch (e) {
+        try { annots = await page.getAnnotations(); } catch (e2) { return []; }
+      }
+      const allLinks = (annots || []).filter(a => a && a.subtype === 'Link');
+      if (page.pageNumber === 1 || (allLinks.length > 0 && !window._pdf2w_loggedLinks)) {
+        // Diagnostic: dump first page's link annotation shape so we know what pdf.js gives us
+        console.log('[pdf2w] page', page.pageNumber, 'link annotations:', allLinks.length,
+          allLinks.slice(0, 2).map(a => ({
+            url: a.url, unsafeUrl: a.unsafeUrl,
+            dest: typeof a.dest === 'string' ? a.dest : Array.isArray(a.dest) ? 'Array[' + a.dest.length + ']' : a.dest,
+            action: a.action, rect: a.rect
+          })));
+        window._pdf2w_loggedLinks = true;
+      }
+      return allLinks
+        .map(a => {
+          const r = a.rect || [0, 0, 0, 0];
+          const url = a.url || a.unsafeUrl || null;
+          return {
+            x1: Math.min(r[0], r[2]),
+            y1: Math.min(r[1], r[3]),
+            x2: Math.max(r[0], r[2]),
+            y2: Math.max(r[1], r[3]),
+            url: url,
+            isInternal: !url && (a.dest !== undefined && a.dest !== null || a.action !== undefined && a.action !== null)
+          };
+        })
+        .filter(lk => lk.url || lk.isInternal);
+    }
+
+    function attachLinks(items, links) {
+      if (!links.length) return;
+      for (const it of items) {
+        const itX1 = it.x;
+        const itX2 = it.x + (it.width || 0);
+        const itY = it.y;
+        const fs = it.fontSize || 11;
+        const itWidth = Math.max(1, itX2 - itX1);
+        for (const lk of links) {
+          // Horizontal overlap: at least 50% of item width must be inside link rect
+          const ox = Math.max(0, Math.min(itX2, lk.x2) - Math.max(itX1, lk.x1));
+          if (ox < itWidth * 0.5) continue;
+          // Vertical proximity: baseline inside rect (with font-height tolerance above)
+          if (itY >= lk.y1 - 2 && itY <= lk.y2 + fs + 2) {
+            if (lk.url) it.link = lk.url;
+            else it.linkStyle = true;
+            break;
+          }
+        }
+      }
+    }
+
+    async function processPage(page, pageNum, opts) {
+      const plain = page.getViewport({ scale: 1 });
+      const pageWidth = plain.width;
+      const pageHeight = plain.height;
+      const textContent = await page.getTextContent();
+      const items = itemsFromTextContent(textContent);
+      const links = await extractLinks(page);
+      attachLinks(items, links);
+      const charCount = items.reduce((s, it) => s + it.text.length, 0);
+
+      let pageCanvas = null, vpRender = null;
+      if (opts.extractImages) {
+        const scale = 2;
+        vpRender = page.getViewport({ scale });
+        pageCanvas = document.createElement('canvas');
+        pageCanvas.width = vpRender.width;
+        pageCanvas.height = vpRender.height;
+        try {
+          await page.render({ canvasContext: pageCanvas.getContext('2d'), viewport: vpRender }).promise;
+        } catch (e) {
+          pageCanvas = null;
+        }
+      }
+      const images = pageCanvas ? await extractImages(page, vpRender, pageCanvas) : [];
+
+      const colInfo = detectColumns(items, pageWidth);
+      const groups = colInfo
+        ? (() => {
+            const ti = splitItemsByColumns(items, colInfo);
+            const ii = splitImagesByColumns(images, colInfo);
+            return [
+              { items: ti.fullWidth, images: ii.fullWidth },
+              { items: ti.columns[0], images: ii.columns[0] },
+              { items: ti.columns[1], images: ii.columns[1] }
+            ];
+          })()
+        : [{ items, images }];
+
+      // Estimate body font size from ALL items on the page (not per column)
+      const allLinesForBody = groupIntoLines(items);
+      const bodySize = estimateBodyFontSize(allLinesForBody);
+
+      const allBlocks = [];
+      for (const g of groups) {
+        const lines = groupIntoLines(g.items);
+        const textBlocks = buildBlocks(lines, bodySize);
+        const imgBlocks = g.images.map(im => ({
+          type: 'image', y: im.pageY,
+          pageX: im.pageX, pageW: im.pageW, pageH: im.pageH,
+          data: im.data, docxW: im.docxW, docxH: im.docxH
+        }));
+        const merged = [...textBlocks, ...imgBlocks].sort((a, b) => b.y - a.y);
+        for (const b of merged) allBlocks.push(b);
+      }
+
+      return { pageNum, blocks: allBlocks, charCount, pageHeight, pageWidth };
+    }
+
+    // ===== Broken-Unicode detection (PDF subset fonts without ToUnicode CMap) =====
+    function countBrokenUnicode(richPages) {
+      let total = 0, bad = 0;
+      for (const page of richPages) {
+        for (const b of page.blocks) {
+          if (b.type === 'paragraph') {
+            for (const line of b.lines) {
+              for (const it of line.items) {
+                for (const ch of it.text) {
+                  const code = ch.codePointAt(0);
+                  if (code < 0x20) continue; // control chars
+                  total++;
+                  if (code >= 0xE000 && code <= 0xF8FF) bad++;        // PUA
+                  else if (code === 0xFFFD) bad++;                    // replacement
+                  else if (code >= 0xF0000 && code <= 0x10FFFF) bad++;// supplemental PUA
+                }
+              }
+            }
+          } else if (b.type === 'table') {
+            for (const row of b.rows) {
+              for (const it of row.items) {
+                for (const ch of it.text) {
+                  const code = ch.codePointAt(0);
+                  if (code < 0x20) continue;
+                  total++;
+                  if (code >= 0xE000 && code <= 0xF8FF) bad++;
+                  else if (code === 0xFFFD) bad++;
+                }
+              }
+            }
+          }
+        }
+      }
+      return { total, bad };
+    }
+
+    // ===== Post-processing: page numbers, headers/footers, cover page =====
+    function blockText(block) {
+      if (block.type !== 'paragraph') return '';
+      return block.lines
+        .flatMap(l => l.items.map(it => it.text))
+        .join('').trim();
+    }
+
+    function filterPageNumbers(richPages) {
+      for (const page of richPages) {
+        const pH = page.pageHeight || 800;
+        const topY = pH * 0.92;
+        const bottomY = pH * 0.10;
+        page.blocks = page.blocks.filter(block => {
+          if (block.type !== 'paragraph') return true;
+          if (block.y < bottomY || block.y > topY) {
+            const t = blockText(block);
+            if (/^[\d\s/\-—–.,]{1,8}$/.test(t)) return false;
+          }
+          return true;
+        });
+      }
+    }
+
+    function detectRunningHeaderFooter(richPages) {
+      if (richPages.length < 3) return { header: [], footer: [] };
+      const TOP_BAND = 0.18;
+      const BOTTOM_BAND = 0.10;
+      const headerMap = new Map();
+      const footerMap = new Map();
+      for (const page of richPages) {
+        const pH = page.pageHeight || 800;
+        const topY = pH * (1 - TOP_BAND);
+        const bottomY = pH * BOTTOM_BAND;
+        for (const block of page.blocks) {
+          if (block.type !== 'paragraph') continue;
+          const t = blockText(block);
+          if (!t) continue;
+          if (block.y >= topY) {
+            if (!headerMap.has(t)) headerMap.set(t, { block, pages: [] });
+            headerMap.get(t).pages.push(page.pageNum);
+          } else if (block.y <= bottomY) {
+            if (/^[\d\s/\-—–.,]{1,8}$/.test(t)) continue;
+            if (!footerMap.has(t)) footerMap.set(t, { block, pages: [] });
+            footerMap.get(t).pages.push(page.pageNum);
+          }
+        }
+      }
+      const minRepeat = Math.max(2, Math.floor(richPages.length * 0.5));
+      const headerTexts = new Set();
+      const footerTexts = new Set();
+      const headerBlocks = [];
+      const footerBlocks = [];
+      for (const [t, info] of headerMap) {
+        if (info.pages.length >= minRepeat) {
+          headerTexts.add(t);
+          headerBlocks.push(info.block);
+        }
+      }
+      for (const [t, info] of footerMap) {
+        if (info.pages.length >= minRepeat) {
+          footerTexts.add(t);
+          footerBlocks.push(info.block);
+        }
+      }
+      // Remove header/footer blocks from page content
+      for (const page of richPages) {
+        const pH = page.pageHeight || 800;
+        const topY = pH * (1 - TOP_BAND);
+        const bottomY = pH * BOTTOM_BAND;
+        page.blocks = page.blocks.filter(block => {
+          if (block.type !== 'paragraph') return true;
+          const t = blockText(block);
+          if (block.y >= topY && headerTexts.has(t)) return false;
+          if (block.y <= bottomY && footerTexts.has(t)) return false;
+          return true;
+        });
+      }
+      // Sort: header blocks by Y desc (top first), footer by Y desc (top of footer first)
+      headerBlocks.sort((a, b) => b.y - a.y);
+      footerBlocks.sort((a, b) => b.y - a.y);
+      return { header: headerBlocks, footer: footerBlocks };
+    }
+
+    function detectRunningImages(richPages) {
+      if (richPages.length < 3) return [];
+      const buckets = new Map();
+      for (const page of richPages) {
+        const pH = page.pageHeight || 800;
+        const topZone = pH * 0.82;    // image top must be in upper 18% of page
+        const bottomZone = pH * 0.18; // OR image top must be in lower 18%
+        for (const block of page.blocks) {
+          if (block.type !== 'image' || block.pageX === undefined) continue;
+          // block.y is the top edge in PDF coords (Y-up); header img: y>=topZone, footer img: y<=bottomZone
+          const inHeaderZone = block.y >= topZone;
+          const inFooterZone = block.y <= bottomZone;
+          if (!inHeaderZone && !inFooterZone) continue;
+          const key = [
+            inHeaderZone ? 'H' : 'F',
+            Math.round(block.pageX / 5),
+            Math.round(block.pageW / 5),
+            Math.round(block.pageH / 5)
+          ].join('|');
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key).push({ page, block });
+        }
+      }
+      const minRepeat = Math.max(2, Math.floor(richPages.length * 0.5));
+      const running = [];
+      for (const [, group] of buckets) {
+        if (group.length >= minRepeat) {
+          running.push(group[0].block);
+          for (const g of group) {
+            g.page.blocks = g.page.blocks.filter(b => b !== g.block);
+          }
+        }
+      }
+      return running;
+    }
+
+    function detectCoverPage(richPages) {
+      if (richPages.length < 2) return false;
+      const p1 = richPages[0];
+      if (!p1) return false;
+      if (p1.charCount > 250) return false;
+      // Use body size estimate from rest of document (skip p1)
+      const restLines = [];
+      for (let i = 1; i < Math.min(richPages.length, 5); i++) {
+        for (const b of richPages[i].blocks) {
+          if (b.type === 'paragraph') for (const ln of b.lines) restLines.push(ln);
+        }
+      }
+      const restBody = restLines.length ? estimateBodyFontSize(restLines) : 11;
+      for (const b of p1.blocks) {
+        if (b.type !== 'paragraph') continue;
+        const fs = b.lines[0] ? avgFontSize(b.lines[0]) : 0;
+        if (fs > restBody * 1.5) return true;
+      }
+      return false;
+    }
+
+    // ===== DOCX generation =====
+    const NUMBERING_REF = 'pdf2w-numbered';
+
+    // Cached embedded fonts (Google Fonts Phetsarath: Regular + Bold) so Word users without the font can still read Lao
+    let cachedLaoFonts = null; // [{name, data}] | false (failed) | null (untried)
+    async function loadEmbeddedLaoFonts() {
+      if (cachedLaoFonts !== null) return cachedLaoFonts || null;
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch('fonts/Phetsarath-Regular.ttf'),
+          fetch('fonts/Phetsarath-Bold.ttf')
+        ]);
+        if (!r1.ok || !r2.ok) throw new Error('HTTP ' + r1.status + '/' + r2.status);
+        const [regBuf, boldBuf] = await Promise.all([r1.arrayBuffer(), r2.arrayBuffer()]);
+        cachedLaoFonts = [
+          { name: 'Phetsarath', data: new Uint8Array(regBuf) },
+          { name: 'Phetsarath Bold', data: new Uint8Array(boldBuf) }
+        ];
+      } catch (e) {
+        console.warn('Could not load Phetsarath for embedding:', e.message);
+        cachedLaoFonts = false;
+      }
+      return cachedLaoFonts || null;
+    }
+
+    async function generateDocx(richPages, originalName) {
+      const D = window.docx;
+      const {
+        Document, Packer, Paragraph, TextRun, PageBreak, AlignmentType,
+        ImageRun, Table, TableRow, TableCell, WidthType, ExternalHyperlink,
+        LevelFormat, HeadingLevel, Header, Footer, PageNumber
+      } = D;
+      const HEADING_MAP = HeadingLevel ? {
+        1: HeadingLevel.HEADING_1,
+        2: HeadingLevel.HEADING_2,
+        3: HeadingLevel.HEADING_3
+      } : null;
+      const numberingEnabled = !!LevelFormat;
       const children = [];
 
-      children.push(new Paragraph({
-        children: [new TextRun({ text: originalName.replace(/\.pdf$/i, ''), bold: true, size: 32, font: 'Arial' })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 300 }
-      }));
+      const insertCoverBreak = cachedIsCoverPage && richPages.length > 1;
 
-      pages.forEach((page, idx) => {
-        children.push(new Paragraph({
-          children: [new TextRun({ text: `--- Page ${page.pageNum} ---`, color: '999999', size: 18, font: 'Arial' })],
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: 100 }
-        }));
-
-        page.lines.forEach(line => {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: line, size: 24, font: 'Arial' })],
-            spacing: { after: 80 }
-          }));
+      richPages.forEach((page, idx) => {
+        (page.blocks || []).forEach(block => {
+          if (block.type === 'paragraph') {
+            const runs = buildParagraphRuns(block, TextRun, ExternalHyperlink);
+            if (!runs.length) return;
+            const paragraphOpts = { children: runs, spacing: { after: 80 } };
+            if (block.listInfo) {
+              if (block.listInfo.kind === 'bullet') {
+                paragraphOpts.bullet = { level: block.listInfo.level || 0 };
+              } else if (block.listInfo.kind === 'numbered' && numberingEnabled) {
+                paragraphOpts.numbering = {
+                  reference: NUMBERING_REF,
+                  level: block.listInfo.level || 0
+                };
+              }
+            } else if (block.headingLevel && HEADING_MAP && HEADING_MAP[block.headingLevel]) {
+              paragraphOpts.heading = HEADING_MAP[block.headingLevel];
+            }
+            children.push(new Paragraph(paragraphOpts));
+          } else if (block.type === 'image' && ImageRun) {
+            try {
+              children.push(new Paragraph({
+                children: [new ImageRun({
+                  data: block.data,
+                  transformation: { width: block.docxW, height: block.docxH }
+                })],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 100, after: 100 }
+              }));
+            } catch (e) {
+              console.warn('Failed to embed image:', e);
+            }
+          } else if (block.type === 'table' && Table) {
+            try {
+              children.push(buildDocxTable(block, {
+                TextRun, Paragraph, Table, TableRow, TableCell, WidthType, ExternalHyperlink
+              }));
+            } catch (e) {
+              console.warn('Failed to build table, falling back to paragraphs:', e);
+              for (const row of block.rows) {
+                const runs = buildLineRuns(row, TextRun, ExternalHyperlink);
+                if (runs.length) children.push(new Paragraph({ children: runs, spacing: { after: 80 } }));
+              }
+            }
+          }
         });
 
-        if (idx < pages.length - 1) {
+        if (idx === 0 && insertCoverBreak && PageBreak) {
           children.push(new Paragraph({ children: [new PageBreak()] }));
         }
       });
 
-      const doc = new Document({
-        sections: [{
-          properties: {
-            page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } }
-          },
-          children: children
-        }]
-      });
-
+      const section = {
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children
+      };
+      // ===== Header: text blocks + repeated images (logo etc) =====
+      if (Header) {
+        const headerChildren = [];
+        for (const im of (cachedHeaderImages || [])) {
+          if (!ImageRun) break;
+          try {
+            headerChildren.push(new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new ImageRun({
+                data: im.data,
+                transformation: { width: im.docxW, height: im.docxH }
+              })]
+            }));
+          } catch (e) { console.warn('header image failed:', e); }
+        }
+        for (const b of (cachedHeaderBlocks || [])) {
+          const runs = buildParagraphRuns(b, TextRun, ExternalHyperlink);
+          if (runs.length) headerChildren.push(new Paragraph({ children: runs }));
+        }
+        if (headerChildren.length) section.headers = { default: new Header({ children: headerChildren }) };
+      }
+      // ===== Footer: explicit footer blocks, or fall back to auto page number =====
+      if (Footer) {
+        const footerChildren = [];
+        for (const b of (cachedFooterBlocks || [])) {
+          const runs = buildParagraphRuns(b, TextRun, ExternalHyperlink);
+          if (runs.length) footerChildren.push(new Paragraph({ children: runs }));
+        }
+        if (footerChildren.length) {
+          section.footers = { default: new Footer({ children: footerChildren }) };
+        } else if (PageNumber && richPages.length > 1) {
+          // No detected text footer — use Word auto page number (matches typical Word documents)
+          section.footers = {
+            default: new Footer({
+              children: [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ children: [PageNumber.CURRENT] })]
+              })]
+            })
+          };
+        }
+      }
+      const docOpts = { sections: [section] };
+      const laoFonts = await loadEmbeddedLaoFonts();
+      if (laoFonts && laoFonts.length) {
+        docOpts.fonts = laoFonts;
+      }
+      if (numberingEnabled) {
+        docOpts.numbering = {
+          config: [{
+            reference: NUMBERING_REF,
+            levels: [
+              { level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT,
+                style: { paragraph: { indent: { left: 720, hanging: 360 } } } },
+              { level: 1, format: LevelFormat.LOWER_LETTER, text: '%2)', alignment: AlignmentType.LEFT,
+                style: { paragraph: { indent: { left: 1440, hanging: 360 } } } }
+            ]
+          }]
+        };
+      }
+      const doc = new Document(docOpts);
       docxBlob = await Packer.toBlob(doc);
     }
 
-    downloadBtn.addEventListener('click', () => {
-      if (docxBlob) {
-        const baseName = currentFile ? currentFile.name.replace(/\.pdf$/i, '') : 'document';
-        const fileName = baseName + '_converted.docx';
-        // Create a proper blob with explicit MIME type
-        const wordBlob = new Blob([docxBlob], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        const url = URL.createObjectURL(wordBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    function buildDocxTable(block, d) {
+      const rowCells = block.rows.map(row => getColumnAnchors(row));
+      const colCount = Math.max(...rowCells.map(rc => rc.length));
+      const tableRows = rowCells.map(cells => {
+        const tc = [];
+        for (let c = 0; c < colCount; c++) {
+          const cellGroup = cells[c];
+          const runs = cellGroup
+            ? buildLineRuns({ items: cellGroup.items }, d.TextRun, d.ExternalHyperlink)
+            : [new d.TextRun({ text: '' })];
+          tc.push(new d.TableCell({
+            children: [new d.Paragraph({ children: runs })],
+            width: { size: Math.floor(100 / colCount), type: d.WidthType.PERCENTAGE }
+          }));
+        }
+        return new d.TableRow({ children: tc });
+      });
+      return new d.Table({
+        rows: tableRows,
+        width: { size: 100, type: d.WidthType.PERCENTAGE }
+      });
+    }
+
+    function makeItemRuns(item, TextRun, ExternalHyperlink) {
+      const out = [];
+      const isHyperlinkStyled = !!(item.link || item.linkStyle);
+      const segs = splitByScript(item.text);
+      for (const seg of segs) {
+        if (!seg.text) continue;
+        const tr = new TextRun({
+          text: seg.text,
+          font: SCRIPT_FONTS[seg.script] || SCRIPT_FONTS.latin,
+          size: Math.round(item.fontSize * 2),
+          bold: item.isBold,
+          italics: item.isItalic,
+          style: isHyperlinkStyled ? 'Hyperlink' : undefined
+        });
+        out.push(tr);
       }
+      if (item.link && ExternalHyperlink && out.length) {
+        return [new ExternalHyperlink({ link: item.link, children: out })];
+      }
+      return out;
+    }
+
+    function buildLineRuns(line, TextRun, ExternalHyperlink) {
+      const runs = [];
+      let prevItem = null;
+      for (const item of line.items) {
+        if (prevItem) {
+          const prevRight = prevItem.x + (prevItem.width || 0);
+          const gap = item.x - prevRight;
+          if (gap > prevItem.fontSize * 0.3) {
+            runs.push(new TextRun({
+              text: ' ',
+              font: SCRIPT_FONTS.latin,
+              size: Math.round(prevItem.fontSize * 2)
+            }));
+          }
+        }
+        for (const r of makeItemRuns(item, TextRun, ExternalHyperlink)) runs.push(r);
+        prevItem = item;
+      }
+      return runs;
+    }
+
+    function buildParagraphRuns(paragraph, TextRun, ExternalHyperlink) {
+      const runs = [];
+      for (let li = 0; li < paragraph.lines.length; li++) {
+        const line = paragraph.lines[li];
+        let items = line.items;
+        if (li === 0 && paragraph.listInfo) items = stripListPrefix(items);
+        if (!items.length) continue;
+
+        if (li > 0) {
+          const prevLineText = lineText(paragraph.lines[li - 1]).trimEnd();
+          const hyphenated = /[A-Za-z]-$/.test(prevLineText);
+          if (hyphenated && runs.length) {
+            // Strip trailing '-' from last TextRun (best-effort)
+            const last = runs[runs.length - 1];
+            try {
+              if (last && last.root) {
+                // docx internal: ignore - safer fallback below
+              }
+            } catch (e) {}
+            // Easier: just don't add space (it will glue). For accuracy, push a marker:
+            runs.push(new TextRun({ text: '', font: SCRIPT_FONTS.latin }));
+          } else {
+            runs.push(new TextRun({
+              text: ' ',
+              font: SCRIPT_FONTS.latin,
+              size: Math.round(avgFontSize(line) * 2)
+            }));
+          }
+        }
+        const lineRuns = buildLineRuns({ items }, TextRun, ExternalHyperlink);
+        for (const r of lineRuns) runs.push(r);
+      }
+      return runs;
+    }
+
+    // ===== OCR flow =====
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load ' + src));
+        document.head.appendChild(s);
+      });
+    }
+
+    async function runOcrFlow() {
+      ocrPrompt.style.display = 'none';
+      progressWrap.style.display = 'block';
+      progressBar.style.background = '';
+      progressBar.style.width = '5%';
+      progressText.textContent = 'กำลังโหลด OCR engine...';
+
+      try {
+        if (!window.Tesseract) {
+          await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js');
+        }
+        progressBar.style.width = '15%';
+        progressText.textContent = 'กำลังเตรียมโมเดลภาษา (lao + tha + chi_sim + eng)...';
+
+        const worker = await Tesseract.createWorker(['lao', 'tha', 'chi_sim', 'eng'], 1, {
+          logger: () => {}
+        });
+
+        const pdf = cachedPdf;
+        const total = pdf.numPages;
+        const ocrPages = [];
+
+        for (let i = 1; i <= total; i++) {
+          progressBar.style.width = (15 + (i / total) * 75) + '%';
+          progressText.textContent = `OCR หน้า ${i}/${total}...`;
+
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          const { data } = await worker.recognize(canvas);
+          const rawText = (data && data.text) || '';
+
+          // Build a synthetic paragraph block per OCR line
+          const blocks = rawText
+            .split(/\r?\n/)
+            .map(s => s.trim())
+            .filter(Boolean)
+            .map(s => ({
+              type: 'paragraph',
+              y: 0,
+              line: {
+                y: 0,
+                items: [{
+                  x: 0, y: 0, width: 0, text: s,
+                  fontSize: 11, isBold: false, isItalic: false
+                }]
+              }
+            }));
+
+          ocrPages.push({ pageNum: i, blocks });
+        }
+
+        await worker.terminate();
+        await finalizeWithPages(ocrPages, currentFile.name);
+      } catch (err) {
+        console.error(err);
+        showError('OCR ล้มเหลว: ' + (err.message || err));
+      }
+    }
+
+    // ===== Download =====
+    downloadBtn.addEventListener('click', () => {
+      if (!docxBlob) return;
+      const baseName = currentFile ? currentFile.name.replace(/\.pdf$/i, '') : 'document';
+      const outName = baseName + '_converted.docx';
+      const wordBlob = new Blob([docxBlob], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      const url = URL.createObjectURL(wordBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     });
 
-    // ===== Language sync from index page =====
+    // ===== Language sync =====
     const pageLang = {
       th: {
         title: 'แปลง PDF เป็น Word', sub: 'แปลงไฟล์ PDF เป็น Word (.docx) ที่สามารถแก้ไขได้ รองรับทุกภาษา',
@@ -423,6 +1646,11 @@
         backLink: '← กลับหน้าหลัก', langBtn: '🌐 ไทย ▾',
         successTitle: 'แปลงไฟล์สำเร็จ!', successSub: 'ไฟล์ Word (.docx) พร้อมดาวน์โหลด',
         dlBtn: '⬇ ดาวน์โหลด Word', convertMore: '🔄 แปลงไฟล์อื่น',
+        convertBtn: '🔄 แปลงไฟล์', cancelBtn: 'ยกเลิก', retryBtn: '🔄 ลองใหม่',
+        errTitle: 'เกิดข้อผิดพลาด',
+        ocrTitle: 'ดูเหมือนเป็น PDF สแกน', ocrDesc: 'ตรวจไม่พบข้อความที่อ่านได้ ต้องการใช้ OCR เพื่อสกัดข้อความจากภาพหรือไม่?',
+        ocrNote: '⚠ ใช้เวลาหลายนาที และต้องดาวน์โหลดโมเดลภาษา (~10-15MB ต่อภาษา)',
+        ocrStart: 'เริ่ม OCR', ocrSkip: 'ข้าม (ใช้ผลที่มี)',
         f1t: 'ปลอดภัย 100%', f1d: 'ไฟล์ของคุณถูกประมวลผลบนเบราว์เซอร์ ไม่ส่งไปเซิร์ฟเวอร์',
         f2t: 'แปลงรวดเร็ว', f2d: 'ใช้เทคโนโลยี JavaScript ขั้นสูง แปลงได้อย่างรวดเร็ว',
         f3t: 'รักษารูปแบบเดิม', f3d: 'คงรูปแบบ ตาราง รูปภาพ และเลเอาท์ ให้ใกล้เคียงต้นฉบับ'
@@ -435,6 +1663,11 @@
         backLink: '← Back to Main', langBtn: '🌐 English ▾',
         successTitle: 'Conversion Complete!', successSub: 'Word (.docx) file ready to download',
         dlBtn: '⬇ Download Word', convertMore: '🔄 Convert Another',
+        convertBtn: '🔄 Convert', cancelBtn: 'Cancel', retryBtn: '🔄 Try Again',
+        errTitle: 'Something went wrong',
+        ocrTitle: 'Looks like a scanned PDF', ocrDesc: 'No readable text found. Run OCR to extract text from images?',
+        ocrNote: '⚠ Takes several minutes and downloads language models (~10-15MB per language)',
+        ocrStart: 'Start OCR', ocrSkip: 'Skip (use current result)',
         f1t: '100% Secure', f1d: 'Files processed in your browser. Never uploaded to any server.',
         f2t: 'Fast Conversion', f2d: 'Uses advanced JavaScript technology for quick conversion.',
         f3t: 'Preserve Format', f3d: 'Maintains tables, images, and layout close to the original.'
@@ -447,15 +1680,23 @@
         backLink: '← ກັບໜ້າຫຼັກ', langBtn: '🌐 ລາວ ▾',
         successTitle: 'ແປງໄຟລ໌ສຳເລັດ!', successSub: 'ໄຟລ໌ Word (.docx) ພ້ອມດາວໂຫຼດ',
         dlBtn: '⬇ ດາວໂຫຼດ Word', convertMore: '🔄 ແປງໄຟລ໌ອື່ນ',
+        convertBtn: '🔄 ແປງໄຟລ໌', cancelBtn: 'ຍົກເລີກ', retryBtn: '🔄 ລອງໃໝ່',
+        errTitle: 'ເກີດຂໍ້ຜິດພາດ',
+        ocrTitle: 'ເບິ່ງຄືກັບ PDF ສະແກນ', ocrDesc: 'ບໍ່ພົບຂໍ້ຄວາມທີ່ອ່ານໄດ້ ຕ້ອງການໃຊ້ OCR ເພື່ອສະກັດຂໍ້ຄວາມຈາກພາບບໍ?',
+        ocrNote: '⚠ ໃຊ້ເວລາຫຼາຍນາທີ ແລະຕ້ອງດາວໂຫຼດໂມເດລພາສາ (~10-15MB ຕໍ່ພາສາ)',
+        ocrStart: 'ເລີ່ມ OCR', ocrSkip: 'ຂ້າມ (ໃຊ້ຜົນທີ່ມີ)',
         f1t: 'ປອດໄພ 100%', f1d: 'ໄຟລ໌ຖືກປະມວນຜົນໃນບຣາວເຊີ ບໍ່ສົ່ງໄປເຊີບເວີ',
         f2t: 'ແປງໄວ', f2d: 'ໃຊ້ເທັກໂນໂລຍີ JavaScript ຂັ້ນສູງ',
         f3t: 'ຮັກສາຮູບແບບເດີມ', f3d: 'ຄົງຮູບແບບ ຕາຕະລາງ ຮູບພາບ ແລະເລເອົາທ໌'
       }
     };
+
     function applyLang(lang) {
       const d = pageLang[lang] || pageLang.th;
       const h1 = document.querySelector('.hero h1');
-      h1.innerHTML = d.title.replace('PDF', '<span class="blue">PDF</span>').replace('Word', '<span class="blue">Word</span>');
+      h1.innerHTML = d.title
+        .replace('PDF', '<span class="blue">PDF</span>')
+        .replace('Word', '<span class="blue">Word</span>');
       document.querySelector('.hero > p:not(.lang-line)').textContent = d.sub;
       document.querySelector('.hero .lang-line').textContent = d.langLine;
       document.querySelector('#uploadZone > p:first-of-type').textContent = d.drag;
@@ -469,16 +1710,45 @@
       if (navLinks[3]) navLinks[3].textContent = d.navFaq;
       if (navLinks[4]) navLinks[4].textContent = d.navBack;
       document.querySelector('.back-link').textContent = d.backLink;
-      document.querySelector('.lang-sel').textContent = d.langBtn;
+      langSelBtn.textContent = d.langBtn;
       document.querySelector('#resultArea h2').textContent = d.successTitle;
       document.querySelector('#resultArea p').textContent = d.successSub;
       downloadBtn.textContent = d.dlBtn;
       convertAnother.textContent = d.convertMore;
+      convertBtn.textContent = d.convertBtn;
+      cancelBtn.textContent = d.cancelBtn;
+      retryBtn.textContent = d.retryBtn;
+      document.getElementById('errorTitle').textContent = d.errTitle;
+      document.getElementById('ocrTitle').textContent = d.ocrTitle;
+      document.getElementById('ocrDesc').textContent = d.ocrDesc;
+      document.getElementById('ocrNote').textContent = d.ocrNote;
+      ocrStartBtn.textContent = d.ocrStart;
+      ocrSkipBtn.textContent = d.ocrSkip;
       const feats = document.querySelectorAll('.feat');
       if (feats[0]) { feats[0].querySelector('h3').textContent = d.f1t; feats[0].querySelector('p').textContent = d.f1d; }
       if (feats[1]) { feats[1].querySelector('h3').textContent = d.f2t; feats[1].querySelector('p').textContent = d.f2d; }
       if (feats[2]) { feats[2].querySelector('h3').textContent = d.f3t; feats[2].querySelector('p').textContent = d.f3d; }
     }
+
+    // ===== Language dropdown =====
+    langSelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      langDropdown.classList.toggle('open');
+    });
+    langDropdown.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-lang]');
+      if (!btn) return;
+      const lang = btn.dataset.lang;
+      localStorage.setItem('lang', lang);
+      applyLang(lang);
+      langDropdown.classList.remove('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!langDropdown.contains(e.target) && e.target !== langSelBtn) {
+        langDropdown.classList.remove('open');
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
       const lang = localStorage.getItem('lang') || 'th';
       applyLang(lang);
