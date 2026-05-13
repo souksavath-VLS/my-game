@@ -2,53 +2,178 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมซ่อนหา</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>เกมซ่อนหา · Shell Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    .hide-seek-area {
-      display: flex;
-      justify-content: center;
-      gap: 18px;
-      margin: 32px 0 16px 0;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7, #fde68a);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
     }
-    .hide-seek-box {
-      width: 70px;
-      height: 70px;
-      background: #fffbe7;
-      border: 2.5px solid #ffd54f;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.2rem;
-      font-weight: bold;
-      color: #1976d2;
+    .hs-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .hs-header {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(245,158,11,0.3); margin-bottom: 10px;
+    }
+    .hs-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .hs-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    /* HUD: level / score / lives / best */
+    .hs-hud {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;
+    }
+    .hs-stat {
+      background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .hs-stat .lbl { font-size: 9px; color: #92400e; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .hs-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; margin-top: 1px; }
+    .hs-stat .val.score { color: #2563eb; }
+    .hs-stat .val.lives { color: #ef4444; letter-spacing: 1px; }
+    .hs-stat .val.best  { color: #8b5cf6; }
+
+    /* Status / instruction */
+    .hs-status {
+      text-align: center; min-height: 32px; font-size: 1rem;
+      font-weight: 700; color: #92400e; margin-bottom: 10px;
+    }
+
+    /* Box track */
+    .hs-stage {
+      background: #fff; border-radius: 16px;
+      padding: 28px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      margin-bottom: 12px;
+    }
+    .hs-track {
+      position: relative;
+      height: 130px;
+      margin: 0 auto;
+    }
+    .hs-box {
+      position: absolute;
+      width: 78px; height: 110px;
+      top: 10px; left: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.6rem;
+      background: linear-gradient(180deg, #fde68a, #fbbf24);
+      border-radius: 14px;
+      border: 3px solid #b45309;
+      box-shadow: 0 6px 0 #92400e, 0 8px 16px rgba(0,0,0,.18);
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(255,213,79,0.10);
-      transition: background 0.18s, color 0.18s;
-      user-select: none;
+      transition: transform .35s cubic-bezier(.4,.2,.3,1.2),
+                  filter .15s, box-shadow .15s, border-color .15s;
+      will-change: transform;
     }
-    .hide-seek-box:active {
-      background: #ffe082;
-      color: #388e3c;
+    .hs-box.locked { cursor: default; }
+    .hs-box.revealing {
+      background: linear-gradient(180deg, #fef9c3, #fde68a);
+    }
+    .hs-box.correct {
+      border-color: #16a34a;
+      box-shadow: 0 6px 0 #15803d, 0 0 24px rgba(22,163,74,.5);
+    }
+    .hs-box.wrong {
+      border-color: #dc2626;
+      box-shadow: 0 6px 0 #991b1b, 0 0 24px rgba(220,38,38,.5);
+    }
+    .hs-box:active:not(.locked) { transform-origin: center; filter: brightness(1.08); }
+
+    .hs-actions {
+      display: flex; gap: 8px;
+    }
+    .hs-btn {
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-weight: 800; font-size: 1rem; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.15);
+    }
+    .hs-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+    .hs-btn.primary { background: linear-gradient(180deg, #f59e0b, #d97706); color: #fff; }
+    .hs-btn.secondary { background: #fff; color: #1e293b; border: 2px solid #cbd5e1; }
+
+    /* Game over overlay */
+    .hs-over {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none;
+      align-items: center; justify-content: center; z-index: 50;
+      backdrop-filter: blur(4px);
+    }
+    .hs-over.show { display: flex; }
+    .hs-over-card {
+      background: linear-gradient(180deg, #fff, #fef9c3);
+      border-radius: 18px; padding: 28px 32px; min-width: 280px; max-width: 92%;
+      text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    }
+    .hs-over-card h2 { margin: 0 0 14px; color: #d97706; font-size: 1.6rem; letter-spacing: 1px; }
+    .hs-over-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .hs-over-stat { background: #fef3c7; padding: 10px; border-radius: 10px; }
+    .hs-over-stat .lbl { font-size: 10px; color: #92400e; text-transform: uppercase; }
+    .hs-over-stat .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: linear-gradient(90deg, #fbbf24, #f59e0b);
+      color: #1f2937; font-weight: 900; font-size: .8rem; padding: 3px 14px;
+      border-radius: 99px; margin-bottom: 10px; box-shadow: 0 0 12px rgba(251, 191, 36, .7);
+    }
+
+    @media (max-width: 380px) {
+      .hs-box { width: 64px; height: 92px; font-size: 2.9rem; }
+      .hs-track { height: 110px; }
+      .hs-stat .val { font-size: 16px; }
     }
   </style>
 </head>
 <body>
-  <div class="header">เกมซ่อนหา</div>
-  <div class="container py-4">
-    <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
-      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+  <div class="hs-wrap">
+    <div class="hs-header">
+      <div class="hs-title" id="hdr-title">🎩 เกมซ่อนหา</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="hide-seek-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
-    <div id="hide-seek-game-area" class="hide-seek-area"></div>
-    <div id="hide-seek-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+
+    <div class="hs-hud">
+      <div class="hs-stat"><div class="lbl" id="lbl-level">เลเวล</div><div class="val" id="ui-level">1</div></div>
+      <div class="hs-stat"><div class="lbl" id="lbl-score">คะแนน</div><div class="val score" id="ui-score">0</div></div>
+      <div class="hs-stat"><div class="lbl" id="lbl-lives">หัวใจ</div><div class="val lives" id="ui-lives">❤❤❤</div></div>
+      <div class="hs-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">0</div></div>
+    </div>
+
+    <div class="hs-status" id="status">กดเริ่ม เพื่อเล่น</div>
+
+    <div class="hs-stage">
+      <div class="hs-track" id="track"></div>
+    </div>
+
+    <div class="hs-actions">
+      <button class="hs-btn primary" id="btn-start">▶ เริ่ม</button>
+      <button class="hs-btn secondary" id="btn-skip" disabled style="opacity:.5">⏭ ข้าม</button>
+    </div>
   </div>
+
+  <!-- Game over modal -->
+  <div class="hs-over" id="overlay-over">
+    <div class="hs-over-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="over-title">เกมจบ</h2>
+      <div class="hs-over-stat-grid">
+        <div class="hs-over-stat">
+          <div class="lbl" id="over-lbl-score">คะแนน</div>
+          <div class="val" id="over-score">0</div>
+        </div>
+        <div class="hs-over-stat">
+          <div class="lbl" id="over-lbl-level">ถึงเลเวล</div>
+          <div class="val" id="over-level">1</div>
+        </div>
+      </div>
+      <button class="hs-btn primary" id="btn-restart" style="width:100%">▶ เล่นใหม่</button>
+    </div>
+  </div>
+
   <script src="js/hide-and-seek-game.js"></script>
-  <script>
-    document.getElementById('restartBtn').onclick = function() { startHideSeekGame(); };
-    window.onload = function() { startHideSeekGame(); };
-  </script>
 </body>
 </html>

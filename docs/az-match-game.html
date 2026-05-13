@@ -2,117 +2,233 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมจับคู่ตัวอักษร A-Z</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A-Z · จับคู่ตัวอักษร</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      background: linear-gradient(135deg, #e0e7ff 0%, #fffbe7 100%);
-      min-height: 100vh;
-      margin: 0;
-      font-family: 'Kanit', 'Prompt', 'Noto Sans Thai', 'Noto Sans Lao', Arial, sans-serif;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #ede9fe, #fce7f3);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
     }
-    .az-match-card {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 6px 32px 0 rgba(60,60,120,0.10), 0 1.5px 6px 0 rgba(60,60,120,0.08);
-      max-width: 480px;
-      margin: 40px auto 0 auto;
-      padding: 32px 24px 28px 24px;
-      position: relative;
+    .az-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .az-header {
+      background: linear-gradient(135deg, #6366f1, #4338ca);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(99,102,241,0.3); margin-bottom: 10px;
     }
-    .az-match-header {
-      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
-      color: #fff;
-      font-size: 2.1rem;
-      font-weight: bold;
-      border-radius: 14px 14px 0 0;
-      padding: 18px 0 14px 0;
-      text-align: center;
-      letter-spacing: 1px;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 8px 0 rgba(79,140,255,0.08);
+    .az-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .az-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .az-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .az-tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-weight: 700; font-size: .95rem; color: #475569;
     }
-    .az-match-upper, .az-match-lower {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 54px;
-      height: 54px;
-      font-size: 2.1rem;
-      margin: 6px;
-      text-align: center;
-      border-radius: 12px;
-      border: 2.5px solid #bdbdbd;
-      background: #f5f8ff;
-      cursor: pointer;
-      user-select: none;
-      transition: box-shadow 0.2s, background 0.2s;
-      box-shadow: 0 1.5px 6px 0 rgba(60,60,120,0.07);
-      font-weight: 600;
-    }
-    .az-match-upper:hover {
-      background: #e3f2fd;
-      border-color: #4f8cff;
-      box-shadow: 0 4px 16px 0 rgba(79,140,255,0.13);
-    }
-    .az-match-lower {
-      opacity: 0.7;
-      background: #f3e8ff;
-      border-color: #b39ddb;
-    }
-    .az-match-timer {
-      font-size: 1.2rem;
-      color: #4caf50;
+    .az-tab.active { background: #6366f1; color: #fff; border-color: #6366f1; box-shadow: 0 2px 8px rgba(99,102,241,.3); }
+
+    .az-hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+    .az-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .az-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .az-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .az-stat .val.time { color: #2563eb; }
+    .az-stat .val.miss { color: #ef4444; }
+    .az-stat .val.best { color: #b45309; }
+
+    /* Progress bar */
+    .az-prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .az-prog-bar { flex: 1; background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; }
+    .az-prog-fill { background: linear-gradient(90deg, #6366f1, #ec4899); height: 100%; width: 0%;
+                    transition: width .35s; border-radius: 99px; }
+    .az-prog-text { font-size: .85rem; font-weight: 700; color: #475569; min-width: 50px; text-align: right; }
+
+    /* ==== LEARN MODE ==== */
+    .az-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
       margin-bottom: 10px;
-      font-weight: 500;
     }
-    .az-match-btn {
-      background: linear-gradient(90deg, #4f8cff 0%, #7f53ac 100%);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 22px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0 8px 12px 0;
-      cursor: pointer;
-      box-shadow: 0 1.5px 6px 0 rgba(60,60,120,0.07);
-      transition: background 0.2s, box-shadow 0.2s;
+    .az-cell {
+      background: #fff; border-radius: 10px;
+      padding: 6px 4px; text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      cursor: pointer; min-height: 70px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; transition: transform .15s;
     }
-    .az-match-btn:hover {
-      background: linear-gradient(90deg, #7f53ac 0%, #4f8cff 100%);
-      box-shadow: 0 4px 16px 0 rgba(127,83,172,0.13);
+    .az-cell:active { transform: scale(.95); }
+    .az-cell .em { font-size: 1.4rem; line-height: 1; }
+    .az-cell .letters { font-weight: 900; color: #4338ca; font-size: 1.1rem; line-height: 1; }
+    .az-cell.correct { animation: pop .5s; background: #d1fae5; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
     }
-    .az-match-result {
-      font-size: 1.3rem;
-      font-weight: bold;
-      color: #ff9800;
-      margin-top: 18px;
-      min-height: 32px;
+
+    /* Info card (Learn) */
+    .az-info {
+      background: #fff; border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 10px;
+      display: none; align-items: center; gap: 12px;
     }
-    @media (max-width: 600px) {
-      .az-match-card { padding: 16px 4px 18px 4px; }
-      .az-match-header { font-size: 1.3rem; padding: 12px 0 8px 0; }
-      .az-match-upper, .az-match-lower { width: 38px; height: 38px; font-size: 1.1rem; margin: 3px; }
+    .az-info.show { display: flex; }
+    .az-info .em { font-size: 2.8rem; }
+    .az-info .letters { font-size: 2.2rem; font-weight: 900; color: #4338ca;
+                        background: #eef2ff; padding: 4px 14px; border-radius: 10px; }
+    .az-info .text { flex: 1; min-width: 0; }
+    .az-info .word { font-weight: 800; font-size: 1.05rem; color: #1e293b;
+                     font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif; }
+    .az-info .sub { font-size: .8rem; color: #64748b; margin-top: 2px; }
+
+    /* ==== QUIZ MODE ==== */
+    .az-quiz-card {
+      background: #fff; border-radius: 18px; padding: 20px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08); margin-bottom: 10px;
+      text-align: center;
+    }
+    .az-quiz-emoji { font-size: 3rem; margin-bottom: 4px; }
+    .az-quiz-letter {
+      font-size: 5rem; font-weight: 900; color: #4338ca;
+      line-height: 1; margin-bottom: 6px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .az-quiz-hint {
+      font-size: .9rem; color: #64748b; font-weight: 700;
+    }
+    .az-quiz-options {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .az-quiz-opt {
+      padding: 18px 8px; border-radius: 14px;
+      background: #fff; border: 3px solid #cbd5e1;
+      font-size: 2rem; font-weight: 900; color: #1e293b;
+      cursor: pointer; text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+      transition: all .15s;
+      min-height: 70px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .az-quiz-opt:active { transform: scale(.95); }
+    .az-quiz-opt.correct { background: #10b981; color: #fff; border-color: #059669; animation: pop .4s; }
+    .az-quiz-opt.wrong { background: #ef4444; color: #fff; border-color: #b91c1c; animation: shake .3s; }
+    .az-quiz-opt.dim { opacity: .35; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Modal */
+    .az-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .az-modal.show { display: flex; }
+    .az-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .az-modal-card h2 { margin: 0 0 8px; color: #4338ca; font-size: 1.5rem; }
+    .az-stars { font-size: 2.6rem; margin: 10px 0; letter-spacing: 4px; }
+    .az-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .az-stats-grid .cell { background: #eef2ff; padding: 10px; border-radius: 10px; }
+    .az-stats-grid .lbl { font-size: 10px; color: #4338ca; text-transform: uppercase; font-weight: 700; }
+    .az-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .az-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #6366f1, #4338ca);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(99,102,241,.35);
+    }
+    .az-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(99,102,241,.35); }
+    .hidden { display: none !important; }
+
+    @media (max-width: 380px) {
+      .az-cell { min-height: 60px; padding: 5px 3px; }
+      .az-cell .em { font-size: 1.2rem; }
+      .az-cell .letters { font-size: 1rem; }
+      .az-quiz-letter { font-size: 4rem; }
+      .az-quiz-opt { font-size: 1.6rem; padding: 14px 6px; min-height: 60px; }
     }
   </style>
 </head>
 <body>
-  <div class="az-match-card">
-    <div class="az-match-header">เกมจับคู่ตัวอักษร A-Z</div>
-    <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="az-match-btn">ออกเกม</button>
-      <button id="restartBtn" class="az-match-btn">เริ่มใหม่</button>
+  <div class="az-wrap">
+    <div class="az-header">
+      <div class="az-title" id="hdr-title">🔤 A-Z จับคู่</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="az-match-timer" class="az-match-timer text-center mt-2"></div>
-    <div id="az-match-shadow" style="margin: 16px 0; min-height: 60px;"></div>
-    <div id="az-match-options" style="margin: 16px 0;"></div>
-    <div id="az-match-result" class="az-match-result text-center mt-4"></div>
+
+    <div class="az-tabs">
+      <button class="az-tab active" data-mode="learn" id="tab-learn">📖 <span>Learn</span></button>
+      <button class="az-tab" data-mode="quiz" id="tab-quiz">🎯 <span>Quiz</span></button>
+    </div>
+
+    <div class="az-hud">
+      <div class="az-stat"><div class="lbl" id="lbl-time">เวลา</div><div class="val time" id="ui-time">0s</div></div>
+      <div class="az-stat"><div class="lbl" id="lbl-miss">พลาด</div><div class="val miss" id="ui-miss">0</div></div>
+      <div class="az-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">—</div></div>
+    </div>
+
+    <div class="az-prog-row" id="prog-row">
+      <div class="az-prog-bar"><div class="az-prog-fill" id="prog-fill"></div></div>
+      <div class="az-prog-text"><span id="prog-cur">0</span>/<span id="prog-total">26</span></div>
+    </div>
+
+    <!-- Learn mode -->
+    <div class="az-info" id="info">
+      <div class="em" id="info-em">🍎</div>
+      <div class="letters" id="info-letters">Aa</div>
+      <div class="text">
+        <div class="word" id="info-word"></div>
+        <div class="sub" id="info-sub"></div>
+      </div>
+    </div>
+    <div class="az-grid" id="grid"></div>
+
+    <!-- Quiz mode -->
+    <div class="az-quiz-card hidden" id="quiz-card">
+      <div class="az-quiz-emoji" id="quiz-emoji">🍎</div>
+      <div class="az-quiz-letter" id="quiz-letter">A</div>
+      <div class="az-quiz-hint" id="quiz-hint">แตะตัวเล็กที่ตรงกัน</div>
+    </div>
+    <div class="az-quiz-options hidden" id="quiz-options"></div>
   </div>
+
+  <div class="az-modal" id="modal-win">
+    <div class="az-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="win-title">เก่งมาก!</h2>
+      <div class="az-stars" id="win-stars">⭐⭐⭐</div>
+      <div class="az-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="win-lbl-time">เวลา</div>
+          <div class="val" id="win-time">0s</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="win-lbl-miss">พลาด</div>
+          <div class="val" id="win-miss">0</div>
+        </div>
+      </div>
+      <button class="az-btn" id="btn-again">▶ เล่นใหม่</button>
+    </div>
+  </div>
+
   <script src="js/az-match-game.js"></script>
-  <script>
-    document.getElementById('restartBtn').onclick = function() { startAZMatchGame(); };
-    window.onload = function() { startAZMatchGame(); };
-  </script>
 </body>
 </html>

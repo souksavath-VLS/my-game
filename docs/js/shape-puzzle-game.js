@@ -1,225 +1,355 @@
-// เกมวางรูปร่าง (Shape Puzzle)
+// Shape Puzzle — Learn + Quiz modes. Tap-based, multi-language, TTS, star rating.
 
-const SHAPES = [
-  { name: 'วงกลม', icon: '⚪' },
-  { name: 'สี่เหลี่ยม', icon: '⬛' },
-  { name: 'สามเหลี่ยม', icon: '🔺' },
-  { name: 'ดาว', icon: '⭐' },
-  { name: 'หัวใจ', icon: '❤️' },
-  { name: 'ห้าเหลี่ยม', icon: '⬟' },
-  { name: 'หกเหลี่ยม', icon: '⬢' },
-  { name: 'วงรี', icon: '🟠' },
-  { name: 'สี่เหลี่ยมผืนผ้า', icon: '▬' },
-  { name: 'กากบาท', icon: '✖️' },
-  { name: 'ลูกศรขึ้น', icon: '⬆️' },
-  { name: 'ลูกศรลง', icon: '⬇️' },
-  { name: 'ลูกศรซ้าย', icon: '⬅️' },
-  { name: 'ลูกศรขวา', icon: '➡️' },
-  { name: 'พระจันทร์', icon: '🌙' },
-  { name: 'ดวงอาทิตย์', icon: '☀️' },
-  { name: 'เมฆ', icon: '☁️' },
-  { name: 'ร่ม', icon: '☂️' },
-  { name: 'เพชร', icon: '🔷' },
-  { name: 'ดอกไม้', icon: '🌸' }
-];
+(() => {
+  'use strict';
 
-let answer = null;
-let options = [];
-let finished = false;
-let startTime = null;
-let endTime = null;
-let timer = null;
-let currentLevel = 1;
-let totalCorrect = 0;
+  // ===== 14 shapes with names per language =====
+  const SHAPES = [
+    { em:'⚪', en:'Circle',     th:'วงกลม',          lo:'ວົງມົນ' },
+    { em:'🟦', en:'Square',     th:'สี่เหลี่ยมจตุรัส',lo:'ສີ່ຫຼ່ຽມຈັດຕຸລັດ' },
+    { em:'🔺', en:'Triangle',   th:'สามเหลี่ยม',     lo:'ສາມຫຼ່ຽມ' },
+    { em:'🔶', en:'Diamond',    th:'ข้าวหลามตัด',    lo:'ຮູບເພັດ' },
+    { em:'⭐', en:'Star',       th:'ดาว',            lo:'ດາວ' },
+    { em:'❤️', en:'Heart',      th:'หัวใจ',          lo:'ຫົວໃຈ' },
+    { em:'🟧', en:'Rectangle',  th:'สี่เหลี่ยมผืนผ้า',lo:'ສີ່ຫຼ່ຽມຍາວ' },
+    { em:'➕', en:'Plus',       th:'บวก',            lo:'ບວກ' },
+    { em:'⬆️', en:'Up arrow',   th:'ลูกศรขึ้น',      lo:'ລູກສອນຂຶ້ນ' },
+    { em:'⬇️', en:'Down arrow', th:'ลูกศรลง',        lo:'ລູກສອນລົງ' },
+    { em:'⬅️', en:'Left arrow', th:'ลูกศรซ้าย',     lo:'ລູກສອນຊ້າຍ' },
+    { em:'➡️', en:'Right arrow',th:'ลูกศรขวา',      lo:'ລູກສອນຂວາ' },
+    { em:'🌙', en:'Moon',       th:'พระจันทร์',     lo:'ດວງເດືອນ' },
+    { em:'☀️', en:'Sun',        th:'พระอาทิตย์',    lo:'ດວງຕາເວັນ' }
+  ];
 
-function startGame() {
-  finished = false;
-  if (currentLevel > 10) {
-    document.getElementById('shape-shadow').innerHTML = '';
-    document.getElementById('shape-puzzle-options').innerHTML = '';
-    document.getElementById('shape-puzzle-result').textContent = `จบเกม! คุณผ่านครบ 10 ลำดับ\nถูกต้องทั้งหมด: ${totalCorrect} / 10`;
-    document.getElementById('shape-puzzle-timer').textContent = '';
-    return;
+  const I18N = {
+    th: {
+      title:'🔷 รูปร่าง', back:'← หน้าหลัก',
+      learn:'เรียน', quiz:'ทดสอบ',
+      time:'เวลา', miss:'พลาด', best:'ดีที่สุด',
+      quizHint:'แตะรูปร่างที่ตรงกัน',
+      winTitle:'เก่งมาก!', winLblTime:'เวลา', winLblMiss:'พลาด', again:'▶ เล่นใหม่'
+    },
+    en: {
+      title:'🔷 Shapes', back:'← Home',
+      learn:'Learn', quiz:'Quiz',
+      time:'Time', miss:'Miss', best:'Best',
+      quizHint:'Tap the matching shape',
+      winTitle:'Well done!', winLblTime:'Time', winLblMiss:'Miss', again:'▶ Play Again'
+    },
+    lao: {
+      title:'🔷 ຮູບຮ່າງ', back:'← ໜ້າຫຼັກ',
+      learn:'ຮຽນ', quiz:'ທົດສອບ',
+      time:'ເວລາ', miss:'ພາດ', best:'ດີສຸດ',
+      quizHint:'ກົດຮູບຮ່າງທີ່ຄ່ຽງກັນ',
+      winTitle:'ເກັ່ງຫຼາຍ!', winLblTime:'ເວລາ', winLblMiss:'ພາດ', again:'▶ ຫຼິ້ນອີກ'
+    }
+  };
+
+  // ===== Persistent stats =====
+  const STATS_KEY = 'shape_stats_v1';
+  function loadStats() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+      return { bestTime: s.bestTime || 0, bestStars: s.bestStars || 0, plays: s.plays || 0 };
+    } catch { return { bestTime: 0, bestStars: 0, plays: 0 }; }
   }
-  const shapeSet = SHAPES.slice(currentLevel - 1, currentLevel + 9);
-  answer = shapeSet[Math.floor(Math.random() * shapeSet.length)];
-  options = shuffle([
-    answer,
-    ...getRandomOptions(answer, 3, shapeSet)
-  ]);
-  renderShadow();
-  renderOptions(shapeSet);
-  document.getElementById('shape-puzzle-result').textContent = '';
-  startTimer();
-}
+  function saveStats(patch) {
+    const cur = loadStats();
+    const upd = Object.assign({}, cur, patch);
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(upd)); } catch {}
+    return upd;
+  }
 
-function renderShadow() {
-  const shadow = document.getElementById('shape-shadow');
-  shadow.innerHTML = answer.icon;
-}
+  // ===== Audio =====
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function beep(f, d, type, vol) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(f, now);
+    g.gain.setValueAtTime(vol || 0.06, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + d);
+    osc.start(now); osc.stop(now + d + 0.02);
+  }
+  function play(kind) {
+    if (!audioCtx) return;
+    if (kind === 'correct') beep(660 + Math.random()*200, 0.1, 'triangle', 0.06);
+    if (kind === 'wrong')   { beep(220, 0.18, 'sawtooth', 0.07); setTimeout(() => beep(160, 0.16, 'sawtooth', 0.06), 150); }
+    if (kind === 'win')     {
+      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.07), i*110));
+    }
+  }
 
-function renderOptions() {
-  const container = document.getElementById('shape-puzzle-options');
-  container.innerHTML = '';
-  options.forEach(shape => {
-    const div = document.createElement('div');
-    div.className = 'draggable-shape';
-    div.style.display = 'inline-block';
-    div.style.margin = '0 12px';
-    div.style.fontSize = '2.2rem';
-    div.style.fontWeight = 'bold';
-    div.style.cursor = 'grab';
-    div.draggable = true;
-    div.innerHTML = shape.icon;
-    // Mouse drag
-    div.ondragstart = e => {
-      e.dataTransfer.setData('shape', shape.name);
-    };
-    // Touch drag
-    let touchDragging = false;
-    let touchShape = null;
-    div.addEventListener('touchstart', function(e) {
-      touchDragging = true;
-      touchShape = shape.name;
-      div.style.opacity = 0.5;
+  // ===== State =====
+  let lang = (() => {
+    const v = localStorage.getItem('lang');
+    return (v === 'th' || v === 'en' || v === 'lao') ? v : 'th';
+  })();
+  let mode = 'learn';
+  let quizQueue = [];
+  let quizIdx = 0;
+  let current = null;
+  let missCount = 0;
+  let startTime = 0;
+  let timerId = null;
+  let inProgress = false;
+  let answering = false;
+
+  // ===== DOM =====
+  const $ = id => document.getElementById(id);
+  const elGrid = $('grid');
+  const elInfo = $('info');
+  const elTabLearn = $('tab-learn');
+  const elTabQuiz = $('tab-quiz');
+  const elTime = $('ui-time');
+  const elMiss = $('ui-miss');
+  const elBest = $('ui-best');
+  const elQuizCard = $('quiz-card');
+  const elQuizOptions = $('quiz-options');
+  const elModalWin = $('modal-win');
+  const elProgFill = $('prog-fill');
+  const elProgCur = $('prog-cur');
+  const elProgTotal = $('prog-total');
+
+  function nameFor(s, l) {
+    if (l === 'th') return s.th;
+    if (l === 'lao') return s.lo;
+    return s.en;
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length-1; i>0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function fmtTime(sec) {
+    if (sec >= 60) return Math.floor(sec/60)+'m '+(sec%60)+'s';
+    return sec+'s';
+  }
+
+  function speak(s) {
+    const text = s.en;
+    if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+      try { window.AndroidTTS.speak(text, 'en-US'); return; } catch {}
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US'; u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+  }
+
+  // ===== LEARN MODE =====
+  function renderGrid() {
+    elGrid.innerHTML = '';
+    for (const s of SHAPES) {
+      const cell = document.createElement('div');
+      cell.className = 'sp-cell';
+      cell.innerHTML = `
+        <div class="em">${s.em}</div>
+        <div class="name">${nameFor(s, lang)}</div>
+      `;
+      cell.addEventListener('click', () => onLearnTap(cell, s));
+      elGrid.appendChild(cell);
+    }
+  }
+  function onLearnTap(cell, s) {
+    ensureAudio();
+    cell.classList.add('correct');
+    setTimeout(() => cell.classList.remove('correct'), 460);
+    $('info-em').textContent = s.em;
+    $('info-word').textContent = nameFor(s, lang);
+    const others = ['en','th','lao'].filter(k => k !== lang).map(k => nameFor(s, k)).join(' · ');
+    $('info-sub').textContent = others;
+    elInfo.classList.add('show');
+    speak(s);
+    play('correct');
+  }
+
+  // ===== QUIZ MODE =====
+  function startQuiz() {
+    quizQueue = shuffle(SHAPES);
+    quizIdx = 0;
+    missCount = 0;
+    answering = false;
+    inProgress = false;
+    elMiss.textContent = '0';
+    elTime.textContent = '0s';
+    elModalWin.classList.remove('show');
+    renderQuizRound();
+  }
+  function renderQuizRound() {
+    if (quizIdx >= quizQueue.length) { finishQuiz(); return; }
+    current = quizQueue[quizIdx];
+    $('quiz-shadow').textContent = current.em;
+    $('quiz-name').textContent = nameFor(current, lang);
+    elProgCur.textContent = quizIdx;
+    elProgTotal.textContent = SHAPES.length;
+    elProgFill.style.width = ((quizIdx) / SHAPES.length * 100) + '%';
+    buildQuizOptions();
+    answering = false;
+  }
+  function buildQuizOptions() {
+    elQuizOptions.innerHTML = '';
+    const others = SHAPES.filter(x => x.em !== current.em);
+    const wrong = shuffle(others).slice(0, 3);
+    const all = shuffle([current, ...wrong]);
+    for (const opt of all) {
+      const btn = document.createElement('button');
+      btn.className = 'sp-quiz-opt';
+      btn.textContent = opt.em;
+      btn.dataset.em = opt.em;
+      btn.addEventListener('click', () => onQuizAnswer(btn, opt));
+      elQuizOptions.appendChild(btn);
+    }
+  }
+  function onQuizAnswer(btn, opt) {
+    if (answering) return;
+    ensureAudio();
+    if (!inProgress) { startQuizTimer(); inProgress = true; }
+    answering = true;
+    const correct = opt.em === current.em;
+    [...elQuizOptions.querySelectorAll('.sp-quiz-opt')].forEach(b => {
+      if (b.dataset.em === current.em) b.classList.add('correct');
+      else if (b === btn) b.classList.add('wrong');
+      else b.classList.add('dim');
     });
-    div.addEventListener('touchmove', function(e) {
-      if (!touchDragging) return;
-      const touch = e.touches[0];
-      div.style.position = 'absolute';
-      div.style.left = (touch.pageX - 40) + 'px';
-      div.style.top = (touch.pageY - 40) + 'px';
-      div.style.zIndex = 999;
-      e.preventDefault();
-    });
-    div.addEventListener('touchend', function(e) {
-      if (!touchDragging) return;
-      div.style.opacity = 1;
-      div.style.position = '';
-      div.style.left = '';
-      div.style.top = '';
-      div.style.zIndex = '';
-      // ตรวจสอบว่าปล่อยนิ้วบน shadow
-      const shadow = document.getElementById('shape-shadow');
-      const rect = shadow.getBoundingClientRect();
-      const touch = e.changedTouches[0];
-      const x = touch.clientX;
-      const y = touch.clientY;
-      if (
-        x >= rect.left && x <= rect.right &&
-        y >= rect.top && y <= rect.bottom
-      ) {
-        onDropShapeTouch(touchShape);
+    if (correct) {
+      play('correct');
+      speak(current);
+    } else {
+      missCount++;
+      elMiss.textContent = missCount;
+      play('wrong');
+    }
+    setTimeout(() => {
+      if (correct) {
+        quizIdx++;
+        renderQuizRound();
+      } else {
+        answering = false;
+        buildQuizOptions();
       }
-      touchDragging = false;
-      touchShape = null;
+    }, correct ? 700 : 1100);
+  }
+
+  function startQuizTimer() {
+    startTime = Date.now();
+    timerId = setInterval(() => {
+      const sec = Math.floor((Date.now() - startTime) / 1000);
+      elTime.textContent = fmtTime(sec);
+    }, 250);
+  }
+  function stopQuizTimer() {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+  }
+
+  function finishQuiz() {
+    stopQuizTimer();
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    elTime.textContent = fmtTime(sec);
+    elProgFill.style.width = '100%';
+    elProgCur.textContent = SHAPES.length;
+    let stars = 3;
+    if (missCount > 1 || sec > 50) stars = 2;
+    if (missCount > 4 || sec > 90) stars = 1;
+    const prev = loadStats();
+    const isNewBest = !prev.bestTime || sec < prev.bestTime || stars > prev.bestStars;
+    const updated = saveStats({
+      bestTime: (!prev.bestTime || sec < prev.bestTime) ? sec : prev.bestTime,
+      bestStars: Math.max(prev.bestStars, stars),
+      plays: prev.plays + 1
     });
-    container.appendChild(div);
+    $('win-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+    $('win-time').textContent = fmtTime(sec);
+    $('win-miss').textContent = missCount;
+    $('newbest').style.display = (isNewBest && sec > 0) ? 'inline-block' : 'none';
+    elBest.textContent = updated.bestTime ? fmtTime(updated.bestTime) : '—';
+    play('win');
+    setTimeout(() => elModalWin.classList.add('show'), 500);
+  }
+
+  // ===== Mode switch =====
+  function setMode(m) {
+    mode = m;
+    elTabLearn.classList.toggle('active', m === 'learn');
+    elTabQuiz.classList.toggle('active', m === 'quiz');
+    if (m === 'learn') {
+      $('prog-row').style.display = 'none';
+      elInfo.style.display = '';
+      elGrid.classList.remove('hidden');
+      elQuizCard.classList.add('hidden');
+      elQuizOptions.classList.add('hidden');
+      stopQuizTimer();
+      elTime.textContent = '0s';
+      elMiss.textContent = '0';
+      elInfo.classList.remove('show');
+    } else {
+      $('prog-row').style.display = 'flex';
+      elInfo.style.display = 'none';
+      elGrid.classList.add('hidden');
+      elQuizCard.classList.remove('hidden');
+      elQuizOptions.classList.remove('hidden');
+      startQuiz();
+    }
+    refreshHud();
+  }
+  function refreshHud() {
+    const s = loadStats();
+    elBest.textContent = (mode === 'quiz' && s.bestTime) ? fmtTime(s.bestTime) : '—';
+  }
+
+  // ===== Buttons =====
+  elTabLearn.addEventListener('click', () => setMode('learn'));
+  elTabQuiz.addEventListener('click', () => setMode('quiz'));
+  $('btn-again').addEventListener('click', () => {
+    elModalWin.classList.remove('show');
+    startQuiz();
   });
-// สำหรับ touch event
-function onDropShapeTouch(dropped) {
-  if (finished) return;
-  finished = true;
-  endTimer();
-  if (dropped === answer.name) {
-    playSound('shapeCorrectSound');
-    playSound('shapeWinSound');
-    document.getElementById('shape-puzzle-result').textContent = 'ถูกต้อง!';
-    saveStats(true);
-    totalCorrect++;
-    setTimeout(() => {
-      currentLevel++;
-      startGame();
-    }, 900);
-  } else {
-    playSound('shapeWrongSound');
-    document.getElementById('shape-puzzle-result').textContent = 'ผิด ลองใหม่!';
-    saveStats(false);
+
+  // ===== Localization =====
+  function applyLang() {
+    const t = I18N[lang];
+    $('hdr-title').textContent = t.title;
+    $('hdr-back').textContent = t.back;
+    document.querySelector('#tab-learn span').textContent = t.learn;
+    document.querySelector('#tab-quiz span').textContent = t.quiz;
+    $('lbl-time').textContent = t.time;
+    $('lbl-miss').textContent = t.miss;
+    $('lbl-best').textContent = t.best;
+    $('quiz-hint').textContent = t.quizHint;
+    $('win-title').textContent = t.winTitle;
+    $('win-lbl-time').textContent = t.winLblTime;
+    $('win-lbl-miss').textContent = t.winLblMiss;
+    $('btn-again').textContent = t.again;
+    document.title = t.title;
+    renderGrid();
+    if (mode === 'quiz' && current) {
+      $('quiz-name').textContent = nameFor(current, lang);
+    }
   }
-}
-}
 
-function onDropShape(e) {
-  if (finished) return;
-  const dropped = e.dataTransfer.getData('shape');
-  finished = true;
-  endTimer();
-  if (dropped === answer.name) {
-    playSound('shapeCorrectSound');
-    playSound('shapeWinSound');
-    document.getElementById('shape-puzzle-result').textContent = 'ถูกต้อง!';
-    saveStats(true);
-    totalCorrect++;
-    setTimeout(() => {
-      currentLevel++;
-      startGame();
-    }, 900);
-  } else {
-    playSound('shapeWrongSound');
-    document.getElementById('shape-puzzle-result').textContent = 'ผิด ลองใหม่!';
-    saveStats(false);
-  }
-}
-
-function startTimer() {
-  startTime = Date.now();
-  endTime = null;
-  timer = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById('shape-puzzle-timer').textContent = 'เวลา: ' + elapsed + ' วินาที';
-  }, 500);
-}
-
-function endTimer() {
-  endTime = Date.now();
-  clearInterval(timer);
-  const elapsed = Math.floor((endTime - startTime) / 1000);
-  document.getElementById('shape-puzzle-timer').textContent = 'ใช้เวลา: ' + elapsed + ' วินาที';
-}
-
-function playSound(id) {
-  const audio = document.getElementById(id);
-  if (audio) {
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = 1.0;
-    audio.play();
-  }
-}
-
-function saveStats(success) {
-  const stats = JSON.parse(localStorage.getItem('shapePuzzleStats') || '[]');
-  stats.push({
-    date: new Date().toISOString(),
-    success,
-    time: endTime && startTime ? Math.floor((endTime - startTime) / 1000) : null
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'lang') {
+      const v = e.newValue;
+      if (v === 'th' || v === 'en' || v === 'lao') { lang = v; applyLang(); }
+    }
   });
-  localStorage.setItem('shapePuzzleStats', JSON.stringify(stats));
-}
 
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-
-function getRandomOptions(exclude, count) {
-  // เพิ่ม shapeSet เป็น argument เพื่อรองรับแต่ละ level
-  const arr = (arguments[2] ? arguments[2] : SHAPES).filter(s => s.name !== exclude.name);
-  const res = [];
-  while (res.length < count) {
-    const idx = Math.floor(Math.random() * arr.length);
-    if (!res.includes(arr[idx])) res.push(arr[idx]);
-  }
-  return res;
-}
-
-document.getElementById('restartShapePuzzleBtn').onclick = startGame;
-document.getElementById('restartShapePuzzleBtn').onclick = () => {
-  currentLevel = 1;
-  totalCorrect = 0;
-  startGame();
-};
-window.onload = () => {
-  currentLevel = 1;
-  totalCorrect = 0;
-  startGame();
-};
+  // ===== Init =====
+  applyLang();
+  refreshHud();
+})();

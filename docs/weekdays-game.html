@@ -2,81 +2,236 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมวันในสัปดาห์</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>วันในสัปดาห์ · Weekdays</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    .weekdays-board {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 18px;
-      margin: 32px 0 16px 0;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7, #fce7f3);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
     }
-    .weekdays-card {
-      width: 90px;
-      height: 90px;
-      perspective: 600px;
-      cursor: pointer;
+    .wd-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .wd-header {
+      background: linear-gradient(135deg, #0ea5e9, #0369a1);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.3); margin-bottom: 10px;
     }
-    .weekdays-card-inner {
-      width: 100%;
-      height: 100%;
-      transition: transform 0.5s;
-      transform-style: preserve-3d;
-      position: relative;
+    .wd-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .wd-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    /* Today widget */
+    .wd-today {
+      background: #fff; border-radius: 12px; padding: 10px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 10px;
     }
-    .weekdays-card.flipped .weekdays-card-inner,
-    .weekdays-card.matched .weekdays-card-inner {
-      transform: rotateY(180deg);
+    .wd-today .pill {
+      padding: 4px 12px; border-radius: 99px;
+      color: #fff; font-weight: 800; font-size: .85rem;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
     }
-    .weekdays-card-front, .weekdays-card-back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.2rem;
-      font-weight: bold;
-      background: #fffbe7;
-      border: 3px solid #ffd54f;
-      box-shadow: 0 2px 8px rgba(255,213,79,0.10);
+    .wd-today .lbl {
+      font-size: .85rem; color: #475569; font-weight: 700;
     }
-    .weekdays-card-front {
-      background: #ffe082;
-      border: 3px solid #ffd54f;
+    .wd-today .em { font-size: 1.5rem; }
+
+    .wd-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .wd-tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-weight: 700; font-size: .95rem; color: #475569;
     }
-    .weekdays-card-back {
-      transform: rotateY(180deg);
-      flex-direction: column;
-      font-size: 2.2rem;
-      color: #1976d2;
-      background: #fffbe7;
+    .wd-tab.active { background: #0ea5e9; color: #fff; border-color: #0ea5e9; box-shadow: 0 2px 8px rgba(14,165,233,.3); }
+
+    .wd-hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+    .wd-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .wd-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .wd-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .wd-stat .val.time { color: #2563eb; }
+    .wd-stat .val.miss { color: #ef4444; }
+    .wd-stat .val.best { color: #b45309; }
+
+    /* Timeline */
+    .wd-timeline {
+      display: flex; gap: 4px; padding: 8px;
+      background: #fff; border-radius: 10px; margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
     }
-    .weekdays-card-back span {
-      font-size: 1.1rem;
-      color: #616161;
-      margin-top: 4px;
+    .wd-step {
+      flex: 1; height: 12px; background: #e2e8f0; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; color: #cbd5e1;
+      transition: all .3s;
+    }
+    .wd-step.done { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .wd-step.current { background: #fde68a; color: #92400e; }
+
+    /* Day grid */
+    .wd-grid {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .wd-cell {
+      flex: 0 0 calc(25% - 8px);
+      min-width: 76px;
+      background: #fff; border-radius: 12px;
+      padding: 10px 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.08);
+      border-top: 4px solid var(--day-color, #94a3b8);
+      cursor: pointer; position: relative;
+      display: flex; flex-direction: column; align-items: center;
+      transition: transform .15s;
+      min-height: 96px;
+    }
+    .wd-cell:active { transform: scale(.96); }
+    .wd-cell .em { font-size: 1.7rem; line-height: 1; margin-bottom: 3px; }
+    .wd-cell .name {
+      font-weight: 800; font-size: .92rem; color: #1e293b;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      text-align: center; line-height: 1.1;
+    }
+    .wd-cell .num {
+      position: absolute; top: 4px; left: 6px;
+      font-size: 10px; font-weight: 800; color: #94a3b8;
+    }
+    .wd-grid.quiz .wd-cell .num { display: none; }
+    .wd-cell.done {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    }
+    .wd-cell.today { box-shadow: 0 0 0 3px rgba(14,165,233,.4), 0 2px 6px rgba(0,0,0,.1); }
+    .wd-cell.correct { animation: pop .5s; }
+    .wd-cell.wrong { animation: shake .4s; background: #fee2e2; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Info card (Learn) */
+    .wd-info {
+      background: #fff; border-radius: 12px; padding: 10px 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.05);
+      display: none; margin-bottom: 10px;
+      align-items: center; gap: 10px;
+    }
+    .wd-info.show { display: flex; }
+    .wd-info .em { font-size: 2.4rem; }
+    .wd-info .text { flex: 1; min-width: 0; }
+    .wd-info .nm { font-weight: 800; font-size: 1.05rem; color: #1e293b;
+                   font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif; }
+    .wd-info .sb { font-size: .8rem; color: #64748b; margin-top: 2px; }
+    .wd-info .col-chip {
+      padding: 4px 10px; border-radius: 99px; color: #fff;
+      font-weight: 700; font-size: .8rem;
+    }
+
+    /* Modal */
+    .wd-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px);
+      z-index: 20;
+    }
+    .wd-modal.show { display: flex; }
+    .wd-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .wd-modal-card h2 { margin: 0 0 8px; color: #0ea5e9; font-size: 1.5rem; }
+    .wd-stars { font-size: 2.6rem; margin: 10px 0; letter-spacing: 4px; }
+    .wd-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .wd-stats-grid .cell { background: #f1f5f9; padding: 10px; border-radius: 10px; }
+    .wd-stats-grid .lbl { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; }
+    .wd-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .wd-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #0ea5e9, #0369a1);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(14,165,233,.35);
+    }
+    .wd-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(14,165,233,.35); }
+
+    @media (max-width: 350px) {
+      .wd-cell { flex: 0 0 calc(33% - 8px); min-height: 88px; }
+      .wd-cell .em { font-size: 1.5rem; }
+      .wd-cell .name { font-size: .82rem; }
     }
   </style>
 </head>
 <body>
-  <div class="header">เกมวันในสัปดาห์</div>
-  <div class="container py-4">
-    <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
-      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+  <div class="wd-wrap">
+    <div class="wd-header">
+      <div class="wd-title" id="hdr-title">📅 วันในสัปดาห์</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="weekdays-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
-    <div id="weekdays-game-board" class="weekdays-board"></div>
-    <div id="weekdays-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+
+    <!-- Today widget -->
+    <div class="wd-today" id="today">
+      <span class="em" id="today-em">📅</span>
+      <span class="lbl" id="today-lbl">วันนี้คือ</span>
+      <span class="pill" id="today-pill" style="background:#0ea5e9">—</span>
+    </div>
+
+    <div class="wd-tabs">
+      <button class="wd-tab active" data-mode="learn" id="tab-learn">📖 <span>Learn</span></button>
+      <button class="wd-tab" data-mode="quiz" id="tab-quiz">🎯 <span>Quiz</span></button>
+    </div>
+
+    <div class="wd-hud">
+      <div class="wd-stat"><div class="lbl" id="lbl-time">เวลา</div><div class="val time" id="ui-time">0s</div></div>
+      <div class="wd-stat"><div class="lbl" id="lbl-miss">พลาด</div><div class="val miss" id="ui-miss">0</div></div>
+      <div class="wd-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">—</div></div>
+    </div>
+
+    <div class="wd-timeline" id="timeline"></div>
+
+    <div class="wd-info" id="info">
+      <div class="em" id="info-em">📅</div>
+      <div class="text">
+        <div class="nm" id="info-nm"></div>
+        <div class="sb" id="info-sb"></div>
+      </div>
+      <div class="col-chip" id="info-chip">—</div>
+    </div>
+
+    <div class="wd-grid" id="grid"></div>
   </div>
+
+  <div class="wd-modal" id="modal-win">
+    <div class="wd-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="win-title">เก่งมาก!</h2>
+      <div class="wd-stars" id="win-stars">⭐⭐⭐</div>
+      <div class="wd-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="win-lbl-time">เวลา</div>
+          <div class="val" id="win-time">0s</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="win-lbl-miss">พลาด</div>
+          <div class="val" id="win-miss">0</div>
+        </div>
+      </div>
+      <button class="wd-btn" id="btn-again">▶ เล่นใหม่</button>
+    </div>
+  </div>
+
   <script src="js/weekdays-game.js"></script>
-  <script>
-    document.getElementById('restartBtn').onclick = function() { startWeekdaysGame(); };
-    window.onload = function() { startWeekdaysGame(); };
-  </script>
 </body>
 </html>

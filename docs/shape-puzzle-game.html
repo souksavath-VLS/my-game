@@ -2,27 +2,242 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมวางรูปร่าง</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>รูปร่าง · Shapes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7, #fed7aa);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+    }
+    .sp-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .sp-header {
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(249,115,22,0.3); margin-bottom: 10px;
+    }
+    .sp-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .sp-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .sp-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .sp-tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-weight: 700; font-size: .95rem; color: #475569;
+    }
+    .sp-tab.active { background: #f97316; color: #fff; border-color: #f97316; box-shadow: 0 2px 8px rgba(249,115,22,.3); }
+
+    .sp-hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+    .sp-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .sp-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .sp-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .sp-stat .val.time { color: #2563eb; }
+    .sp-stat .val.miss { color: #ef4444; }
+    .sp-stat .val.best { color: #b45309; }
+
+    /* Progress */
+    .sp-prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .sp-prog-bar { flex: 1; background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; }
+    .sp-prog-fill { background: linear-gradient(90deg, #f97316, #ec4899); height: 100%; width: 0%;
+                    transition: width .35s; border-radius: 99px; }
+    .sp-prog-text { font-size: .85rem; font-weight: 700; color: #475569; min-width: 50px; text-align: right; }
+
+    /* Learn grid */
+    .sp-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sp-cell {
+      background: #fff; border-radius: 12px;
+      padding: 12px 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.07);
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; min-height: 90px;
+      transition: transform .15s;
+    }
+    .sp-cell:active { transform: scale(.95); }
+    .sp-cell .em { font-size: 2.2rem; line-height: 1; }
+    .sp-cell .name {
+      font-weight: 800; font-size: .8rem; color: #1e293b;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      text-align: center; line-height: 1.1;
+    }
+    .sp-cell.correct { animation: pop .5s; background: #d1fae5; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    /* Info card (Learn) */
+    .sp-info {
+      background: #fff; border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 10px;
+      display: none; align-items: center; gap: 12px;
+    }
+    .sp-info.show { display: flex; }
+    .sp-info .em { font-size: 2.8rem; }
+    .sp-info .text { flex: 1; min-width: 0; }
+    .sp-info .word { font-weight: 800; font-size: 1.1rem; color: #1e293b;
+                     font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif; }
+    .sp-info .sub { font-size: .82rem; color: #64748b; margin-top: 2px; }
+
+    /* Quiz card */
+    .sp-quiz-card {
+      background: #fff; border-radius: 18px; padding: 20px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08); margin-bottom: 10px;
+      text-align: center; position: relative;
+    }
+    .sp-quiz-shadow {
+      width: 130px; height: 130px; margin: 0 auto 8px;
+      background: #f1f5f9;
+      border: 3px dashed #cbd5e1;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5rem; line-height: 1;
+      filter: grayscale(1) brightness(.6);
+      opacity: .4;
+    }
+    .sp-quiz-name {
+      font-weight: 900; font-size: 1.3rem; color: #c2410c;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      margin-bottom: 6px;
+    }
+    .sp-quiz-hint {
+      font-size: .85rem; color: #64748b; font-weight: 700;
+    }
+    .sp-quiz-options {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sp-quiz-opt {
+      padding: 14px 6px; border-radius: 14px;
+      background: #fff; border: 3px solid #cbd5e1;
+      cursor: pointer; text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+      transition: all .15s;
+      min-height: 76px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem;
+    }
+    .sp-quiz-opt:active { transform: scale(.95); }
+    .sp-quiz-opt.correct { background: #10b981; border-color: #059669; animation: pop .4s; }
+    .sp-quiz-opt.wrong { background: #ef4444; border-color: #b91c1c; animation: shake .3s; }
+    .sp-quiz-opt.dim { opacity: .3; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Modal */
+    .sp-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .sp-modal.show { display: flex; }
+    .sp-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .sp-modal-card h2 { margin: 0 0 8px; color: #c2410c; font-size: 1.5rem; }
+    .sp-stars { font-size: 2.6rem; margin: 10px 0; letter-spacing: 4px; }
+    .sp-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .sp-stats-grid .cell { background: #fff7ed; padding: 10px; border-radius: 10px; }
+    .sp-stats-grid .lbl { font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700; }
+    .sp-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .sp-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(249,115,22,.35);
+    }
+    .sp-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(249,115,22,.35); }
+    .hidden { display: none !important; }
+
+    @media (max-width: 380px) {
+      .sp-cell { min-height: 76px; padding: 8px 4px; }
+      .sp-cell .em { font-size: 1.8rem; }
+      .sp-cell .name { font-size: .72rem; }
+      .sp-quiz-shadow { width: 110px; height: 110px; font-size: 4rem; }
+      .sp-quiz-opt { font-size: 2.2rem; min-height: 66px; padding: 12px 4px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="container py-4" style="max-width:600px;margin:auto;">
-    <h2 class="text-center mb-4">เกมวางรูปร่าง</h2>
-    <div id="shape-puzzle-timer" class="mb-3" style="font-size:1.2rem;color:#1976d2;"></div>
-    <div class="mb-4 d-flex justify-content-center align-items-center" style="gap:32px;flex-wrap:wrap;">
-      <div id="shape-shadow" style="width:100px;height:100px;font-size:4rem;opacity:0.25;display:flex;align-items:center;justify-content:center;border:2px dashed #aaa;border-radius:18px;background:#f7f7f7;" ondragover="event.preventDefault()" ondrop="onDropShape(event)"></div>
-      <div id="shape-puzzle-options" class="d-flex justify-content-center flex-wrap"></div>
+  <div class="sp-wrap">
+    <div class="sp-header">
+      <div class="sp-title" id="hdr-title">🔷 รูปร่าง</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="shape-puzzle-result" class="text-center mb-3" style="font-size:1.3rem;font-weight:bold;"></div>
-    <div class="text-center">
-      <button id="restartShapePuzzleBtn" class="menu-btn" style="background:#1976d2;color:#fff;">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
+
+    <div class="sp-tabs">
+      <button class="sp-tab active" data-mode="learn" id="tab-learn">📖 <span>Learn</span></button>
+      <button class="sp-tab" data-mode="quiz" id="tab-quiz">🎯 <span>Quiz</span></button>
     </div>
-    <audio id="shapeCorrectSound" src="assets/sound/correct.wav"></audio>
-    <audio id="shapeWrongSound" src="assets/sound/wrong.wav"></audio>
-    <audio id="shapeWinSound" src="assets/sound/win.wav"></audio>
+
+    <div class="sp-hud">
+      <div class="sp-stat"><div class="lbl" id="lbl-time">เวลา</div><div class="val time" id="ui-time">0s</div></div>
+      <div class="sp-stat"><div class="lbl" id="lbl-miss">พลาด</div><div class="val miss" id="ui-miss">0</div></div>
+      <div class="sp-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">—</div></div>
+    </div>
+
+    <div class="sp-prog-row" id="prog-row" style="display:none">
+      <div class="sp-prog-bar"><div class="sp-prog-fill" id="prog-fill"></div></div>
+      <div class="sp-prog-text"><span id="prog-cur">0</span>/<span id="prog-total">14</span></div>
+    </div>
+
+    <!-- Learn -->
+    <div class="sp-info" id="info">
+      <div class="em" id="info-em">⚪</div>
+      <div class="text">
+        <div class="word" id="info-word"></div>
+        <div class="sub" id="info-sub"></div>
+      </div>
+    </div>
+    <div class="sp-grid" id="grid"></div>
+
+    <!-- Quiz -->
+    <div class="sp-quiz-card hidden" id="quiz-card">
+      <div class="sp-quiz-shadow" id="quiz-shadow">⚪</div>
+      <div class="sp-quiz-name" id="quiz-name">วงกลม</div>
+      <div class="sp-quiz-hint" id="quiz-hint">แตะรูปร่างที่ตรงกัน</div>
+    </div>
+    <div class="sp-quiz-options hidden" id="quiz-options"></div>
   </div>
+
+  <div class="sp-modal" id="modal-win">
+    <div class="sp-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="win-title">เก่งมาก!</h2>
+      <div class="sp-stars" id="win-stars">⭐⭐⭐</div>
+      <div class="sp-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="win-lbl-time">เวลา</div>
+          <div class="val" id="win-time">0s</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="win-lbl-miss">พลาด</div>
+          <div class="val" id="win-miss">0</div>
+        </div>
+      </div>
+      <button class="sp-btn" id="btn-again">▶ เล่นใหม่</button>
+    </div>
+  </div>
+
   <script src="js/shape-puzzle-game.js"></script>
 </body>
 </html>

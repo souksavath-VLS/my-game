@@ -1,294 +1,570 @@
 <!DOCTYPE html>
-<html lang="th">
-<head>    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
-    <style id="lang-font-style"></style>
+<html lang="lo">
+<head>
   <meta charset="UTF-8">
-  <title>เกมฝึกสมองสำหรับเด็ก 3-5 ปี</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EQ Game · เກມຝຶກສະຫມອງເດັກ</title>
+  <meta name="theme-color" content="#7c3aed">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    .lang-flags {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      z-index: 20;
-      display: flex;
-      gap: 12px;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7 0%, #fce7f3 40%, #ddd6fe 100%);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      color: #1e293b;
     }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
+
+    /* Header */
+    .hdr {
+      background: linear-gradient(135deg, #7c3aed, #be185d);
+      color: #fff; padding: 14px 16px; border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(124,58,237,0.35);
+      margin-bottom: 10px; position: relative; overflow: hidden;
+    }
+    .hdr::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.18), transparent 50%);
+      pointer-events: none;
+    }
+    .hdr-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .hdr-title { font-size: 1.15rem; font-weight: 900; letter-spacing: .3px; line-height: 1.2; }
+    .hdr-sub { font-size: .78rem; opacity: .9; margin-top: 2px; }
+    .lang-flags { display: flex; gap: 6px; flex-shrink: 0; }
     .lang-flag {
-      width: 36px;
-      height: 24px;
-      cursor: pointer;
-      border: 2px solid transparent;
-      border-radius: 6px;
-      transition: border-color 0.2s;
+      width: 32px; height: 22px; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.3); border-radius: 5px;
+      object-fit: cover; transition: all .15s;
     }
-    .lang-flag.active {
-      border-color: #4caf50;
+    .lang-flag.active { border-color: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,.7); transform: scale(1.08); }
+
+    /* Quick stats bar */
+    .quick-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      margin-bottom: 10px;
     }
-    .navbar-banner {
-      height: 48px;
-      border-radius: 12px;
-      object-fit: cover;
-      margin-right: 12px;
+    .qs-cell {
+      background: #fff; border-radius: 12px; padding: 8px 6px;
+      text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .qs-cell .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    .qs-cell .val { font-size: 1.2rem; font-weight: 900; color: #1e293b; line-height: 1.1; margin-top: 2px; }
+    .qs-cell.plays .val { color: #ec4899; }
+    .qs-cell.top   .val { color: #2563eb; }
+    .qs-cell.games .val { color: #10b981; }
+
+    /* Search */
+    .search-row { display: flex; gap: 6px; margin-bottom: 12px; }
+    .search-box {
+      flex: 1; padding: 10px 14px; border: none; border-radius: 12px;
+      background: #fff; font-size: .95rem; font-family: inherit;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); color: #1e293b;
+      outline: none;
+    }
+    .search-box::placeholder { color: #94a3b8; }
+    .search-box:focus { box-shadow: 0 0 0 2px #a78bfa; }
+    .tool-btn {
+      padding: 0 14px; border: none; border-radius: 12px;
+      background: #fff; cursor: pointer; font-size: 1.05rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .tool-btn:active { transform: scale(.95); }
+
+    /* Section */
+    .section { margin-bottom: 16px; }
+    .section-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px 8px; font-weight: 900; font-size: 1rem; color: #475569;
+    }
+    .section-hdr .em { font-size: 1.3rem; }
+    .section-hdr .count {
+      background: #fff; color: #94a3b8; font-size: .7rem; padding: 2px 8px;
+      border-radius: 99px; font-weight: 800; margin-left: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 8px;
+    }
+    @media (min-width: 500px) {
+      .grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
+    }
+
+    .card {
+      position: relative; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      aspect-ratio: 1 / 1.15;
+      background: #fff; border-radius: 14px; padding: 8px 4px;
+      text-decoration: none; color: #1e293b;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08), 0 0 0 2px rgba(255,255,255,.6) inset;
+      transition: transform .12s, box-shadow .12s;
+      overflow: hidden;
+    }
+    .card::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+      background: var(--accent, #94a3b8);
+    }
+    .card:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .card .icon { font-size: 2.2rem; line-height: 1; margin-top: 4px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.1)); }
+    .card .name {
+      font-size: .72rem; font-weight: 700; text-align: center;
+      line-height: 1.15; padding: 0 2px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card .badge {
+      position: absolute; top: 4px; right: 4px;
+      background: #fef3c7; color: #92400e;
+      font-size: .58rem; font-weight: 900;
+      padding: 2px 5px; border-radius: 99px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      display: none;
+    }
+    .card .badge.show { display: block; }
+    .card[data-cat="colors"]  { --accent: #ec4899; }
+    .card[data-cat="numbers"] { --accent: #3b82f6; }
+    .card[data-cat="letters"] { --accent: #8b5cf6; }
+    .card[data-cat="world"]   { --accent: #10b981; }
+    .card[data-cat="skill"]   { --accent: #f59e0b; }
+    .card[data-cat="classic"] { --accent: #ef4444; }
+    .card[data-cat="tools"]   { --accent: #64748b; }
+
+    .empty-msg {
+      grid-column: 1 / -1;
+      text-align: center; padding: 30px 10px; color: #94a3b8;
+      font-style: italic; font-size: .9rem;
+    }
+
+    /* Footer actions */
+    .footer-actions {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .footer-actions a, .footer-actions button {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      background: #fff; color: #475569; text-decoration: none;
+      font-size: .9rem; font-weight: 800; text-align: center;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .footer-actions a:active, .footer-actions button:active { transform: translateY(2px); }
+    .footer-actions .help { color: #b45309; background: #fef3c7; }
+    .footer-actions .stats { color: #4338ca; background: #e0e7ff; }
+
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 50;
+    }
+    .modal.show { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: 18px; padding: 22px 24px;
+      max-width: 92%; min-width: 280px; max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .modal-card h2 {
+      margin: 0 0 12px; color: #be185d; font-size: 1.3rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .modal-card p { margin: 6px 0; line-height: 1.5; color: #334155; font-size: .9rem; }
+    .modal-card ul { padding-left: 1.2rem; margin: 8px 0; color: #334155; font-size: .88rem; }
+    .modal-card li { margin: 4px 0; line-height: 1.5; }
+    .modal-close {
+      width: 100%; margin-top: 14px; padding: 12px; border: none;
+      border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #be185d);
+      color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer;
+      font-family: inherit;
     }
   </style>
 </head>
 <body>
-  <header style="position:relative;">
-    <div class="d-flex align-items-center justify-content-between" style="padding: 0rem 0rem 0rem 0rem;">
-      <div class="header" style="margin-bottom:0; flex:1; text-align:center;">
-        <span style="font-size:1.1rem; color:#fff; opacity:0.85; vertical-align:middle;">เกมฝึกสมองสำหรับเด็ก 3-5 ปี</span>
+  <div class="wrap">
+    <div class="hdr">
+      <div class="hdr-top">
+        <div>
+          <div class="hdr-title" id="hdr-title">🎮 ເກມຝຶກສະຫມອງເດັກ</div>
+          <div class="hdr-sub" id="hdr-sub">ສຳລັບເດັກ 3-7 ປີ · 30+ ເກມ</div>
+        </div>
+        <div class="lang-flags">
+          <img src="https://flagcdn.com/la.svg" alt="Lao"     id="flag-lao" class="lang-flag">
+          <img src="https://flagcdn.com/th.svg" alt="Thai"    id="flag-th"  class="lang-flag">
+          <img src="https://flagcdn.com/gb.svg" alt="English" id="flag-en"  class="lang-flag">
+        </div>
       </div>
     </div>
-  </header>
- 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark" style="justify-content:center;">
-    <div class="container-fluid" style="display:flex;justify-content:center;align-items:center;min-height:30px;">
-      <div class="lang-flags" style="position:static;top:auto;right:auto;left:auto;transform:none;z-index:30;">
-        <img src="https://flagcdn.com/th.svg" alt="Thai" id="flag-th" class="lang-flag active">
-        <img src="https://flagcdn.com/gb.svg" alt="English" id="flag-en" class="lang-flag">
-        <img src="https://flagcdn.com/la.svg" alt="Lao" id="flag-lao" class="lang-flag">
-      </div>
+
+    <div class="quick-stats">
+      <div class="qs-cell plays"><div class="lbl" data-i18n="lbl-plays">Plays</div><div class="val" id="qs-plays">0</div></div>
+      <div class="qs-cell top"><div class="lbl" data-i18n="lbl-top">Top Score</div><div class="val" id="qs-top">0</div></div>
+      <div class="qs-cell games"><div class="lbl" data-i18n="lbl-games">Games</div><div class="val" id="qs-games">0</div></div>
     </div>
-  </nav>
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-10">
-      <div class="flag-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:18px;margin:2rem 0;">
-        <a href="color-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/11460/11460836.png" alt="Color Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมเลือกสี</div>
-        </a>
-        <a href="color-order-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/2071/2071669.png" alt="Color Order Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมเรียงสีตามลำดับ</div>
-        </a>
-        <a href="big-small-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/2337/2337211.png" alt="Big Small Icon" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมใหญ่-เล็ก</div>
-        </a>
-        <a href="sound-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/727/727245.png" alt="Sound Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมฟังเสียง</div>
-        </a>
-        <a href="fruit-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/590/590685.png" alt="Fruit Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมนับจำนวน</div>
-        </a>
-        <a href="draw-abc-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/794/794562.png" alt="Draw ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมลากเส้น A-Z</div>
-        </a>
-        <a href="draw-number-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/709/709439.png" alt="Draw Number" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมลากเส้นตัวเลข 1-10</div>
-        </a>
-        <a href="find-object-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Find Object Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมหาสิ่งของในบ้าน</div>
-        </a>
-        <a href="missing-number-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/4002/4002502.png" alt="Missing Number Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมหาตัวเลขที่ขาด</div>
-        </a>
-        <a href="match-icon-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/1740/1740540.png" alt="Match Icon Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกม Match icon</div>
-        </a>
-        <a href="kids-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/3397/3397536.png" alt="Kids Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมจับคู่ภาพ</div>
-        </a>
-        <a href="shape-puzzle-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/1215/1215843.png" alt="Shape Puzzle Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมวางรูปร่าง</div>
-        </a>
-        <a href="az-match-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/3720/3720163.png" alt="AZ Match Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมจับคู่ตัวอักษร A-Z</div>
-        </a>
-        <a href="water-tree-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/2917/2917242.png" alt="Water Tree Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมรดน้ำต้นไม้</div>
-        </a>
-        <a href="weekdays-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/2917/2917243.png" alt="Weekdays Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมวันในสัปดาห์</div>
-        </a>
-        <a href="months-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/8586/8586970.png" alt="Months Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมเดือนในปี</div>
-        </a>
-        <a href="tower-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/9498/9498764.png" alt="Tower Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมหอคอย</div>
-        </a>
-        <a href="hide-and-seek-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/3620/3620659.png" alt="Hide and Seek Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมซ่อนหา</div>
-        </a>
-        <a href="draw-lao-abc-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/14203/14203994.png" alt="Draw Lao ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมลากเส้นภาษาลาว ກ-ຮ <span style='font-size:0.95em;color:#1976d2;'>(พยัญชนะ)</span></div>
-        </a>
-        <a href="draw-lao-vowel-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/14203/14203994.png" alt="Draw Lao Vowel" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมลากเส้นภาษาลาว สระ <span style='font-size:0.95em;color:#1976d2;'>(สระ)</span></div>
-        </a>
-        <a href="flag.html" class="game-card">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Flag_of_Thailand.svg" alt="Flag Game" style="width:48px;height:32px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมธงประเทศ (195 Flags)</div>
-        </a>
-        <a href="match-flag-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/197/197484.png" alt="Match Flag Game" style="width:48px;height:32px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">เกมจับคู่ธงกับชื่อประเทศ</div>
-        </a>
-         <a href="world-map-puzzle.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="World Map Puzzle" style="width:48px;height:32px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">World Map Puzzle</div>
-        </a>
-        <a href="tetris.html" class="game-card">
-                  <img src="https://cdn-icons-png.flaticon.com/512/2772/2772140.png" alt="Tetris Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-                  <div class="flag-name">Tetris</div>
-                </a>
-        <a href="pacman.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/743/743007.png" alt="Pac-Man Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Pac-Man</div>
-        </a>
-        <a href="snake.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/3196/3196026.png" alt="Snake Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Snake</div>
-        </a>
-        <a href="spaceinvaders.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/26/26474.png" alt="Space Invaders" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Space Invaders</div>
-        </a>
-        <a href="slither.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/8277/8277666.png" alt="Slither" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Slither</div>
-        </a>
-        <a href="fps-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/934/934640.png" alt="FPS Balloon Shooter" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">FPS Balloon Shooter</div>
-        </a>
-        <a href="piano-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/10041/10041492.png" alt="Piano Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Piano Game</div>
-        </a>
-        <a href="tower-defense-game.html" class="game-card">
-          <img src="https://cdn-icons-png.flaticon.com/512/1183/1183144.png" alt="Tower Defense Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">Tower Defense 2D</div>
-        </a>
-        <a href="pdf-to-word.html" class="game-card" style="border-color:#93c5fd;background:#eff6ff;">
-          <img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" alt="PDF to Word" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-          <div class="flag-name">PDF to Word</div>
-        </a>
-      </div>
-      
-      <div class="text-center mt-4">
-        <a id="stats-link" href="stats.html" class="btn btn-secondary">ดูสถิติ / โหมดผู้ปกครอง</a>
-      </div>
+
+    <div class="search-row">
+      <input id="search" class="search-box" type="search" placeholder="🔍 ຄົ້ນຫາເກມ..." data-i18n-ph="ph-search">
+      <button id="btn-clear" class="tool-btn" title="Clear" aria-label="Clear">✕</button>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="footer-actions">
+      <button id="btn-help" class="help" data-i18n="btn-help">❓ ວິທີຫຼິ້ນ</button>
+      <a id="btn-stats" class="stats" href="stats.html" data-i18n="btn-stats">📊 ສະຖິຕິ</a>
     </div>
   </div>
-  
-  <div class="row">
-    <div class="col-12 text-center mt-2 mb-4">
-      <button id="help-btn" class="btn btn-warning">❓ วิธีเล่น/ช่วยเหลือ</button>
+
+  <!-- Help modal -->
+  <div class="modal" id="modal-help">
+    <div class="modal-card">
+      <h2><span>❓</span><span data-i18n="help-title">ວິທີຫຼິ້ນ</span></h2>
+      <p data-i18n="help-p1">ກົດໃສ່ການ໌ດເກມເພື່ອເລີ່ມຫຼິ້ນ. ທຸກໆເກມຮອງຮັບ 3 ພາສາ: ລາວ, ໄທ, ອັງກິດ.</p>
+      <ul>
+        <li data-i18n="help-li1">🎨 ສີ & ຮູບຮ່າງ — ຮຽນຮູ້ສີ ແລະ ຮູບຮ່າງ</li>
+        <li data-i18n="help-li2">🔢 ຕົວເລກ — ນັບ ແລະ ລາກເສັ້ນຕົວເລກ</li>
+        <li data-i18n="help-li3">🔤 ຕົວອັກສອນ — ກ-ຮ, A-Z, ສະຫຼະ</li>
+        <li data-i18n="help-li4">🌍 ຄວາມຮູ້ຮອບໂຕ — ທຸງ, ເດືອນ, ວັນ, ສິ່ງຂອງ</li>
+        <li data-i18n="help-li5">🧠 ຄວາມຈຳ & ທັກສະ — ຈັບຄູ່, ຊ່ອນຫາ, ຟັງສຽງ</li>
+        <li data-i18n="help-li6">🕹️ ເກມຄລາສສິກ — Tetris, Pac-Man, Snake ແລະ ອື່ນໆ</li>
+      </ul>
+      <p data-i18n="help-p2">💡 ກົດໄອຄອນທຸງເພື່ອປ່ຽນພາສາ. ຄະແນນດີສຸດຈະຖືກບັນທຶກໄວ້ໃນເຄື່ອງຂອງເຈົ້າ.</p>
+      <button class="modal-close" id="btn-close-help" data-i18n="btn-close">ປິດ</button>
     </div>
   </div>
-  
-  <div id="help-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:100;">
-    <div style="background:white;padding:20px;border-radius:10px;max-width:500px;">
-      <h3>วิธีเล่น</h3>
-      <p>คลิกที่ไอคอนเกมเพื่อเริ่มเล่น</p>
-      <button onclick="document.getElementById('help-modal').style.display='none';" class="btn btn-secondary">ปิด</button>
-    </div>
-  </div>
+
   <script>
-        function setLaoFont(active) {
-          const style = document.getElementById('lang-font-style');
-          if (active) {
-            style.textContent = `body, .header, .flag-name, .btn, .game-card, .navbar, .stats, .flag-grid { font-family: 'Noto Sans Lao', sans-serif !important; }`;
-          } else {
-            style.textContent = '';
-          }
+    // ===== Game catalog =====
+    // key: i18n key, file: html, icon: emoji, cat: section, statsKey: localStorage key, scoreField: 'bestScore' (default) or 'bestWave' or 'int'
+    const GAMES = [
+      // 🎨 Colors & Shapes
+      { key:'color',        file:'color-game.html',         icon:'🎨', cat:'colors', statsKey:'color_stats_v1' },
+      { key:'colorOrder',   file:'color-order-game.html',   icon:'🌈', cat:'colors', statsKey:'color_order_stats_v1' },
+      { key:'shape',        file:'shape-puzzle-game.html',  icon:'🔷', cat:'colors', statsKey:'shape_stats_v1' },
+      { key:'bigSmall',     file:'big-small-game.html',     icon:'📏', cat:'colors', statsKey:'compare_stats_v1' },
+
+      // 🔢 Numbers
+      { key:'fruit',        file:'fruit-game.html',         icon:'🍎', cat:'numbers', statsKey:'fruit_count_stats_v1' },
+      { key:'missingNum',   file:'missing-number-game.html',icon:'🔢', cat:'numbers', statsKey:'missing_num_stats_v1' },
+      { key:'drawNum',      file:'draw-number-game.html',   icon:'✏️', cat:'numbers', statsKey:'draw_num_stats_v1' },
+
+      // 🔤 Letters
+      { key:'drawAbc',      file:'draw-abc-game.html',      icon:'🅰️', cat:'letters', statsKey:'draw_abc_stats_v1' },
+      { key:'azMatch',      file:'az-match-game.html',      icon:'🔤', cat:'letters', statsKey:'az_stats_v1' },
+      { key:'drawLaoAbc',   file:'draw-lao-abc-game.html',  icon:'ກ',  cat:'letters', statsKey:'lao_abc_stats_v1' },
+      { key:'drawLaoVowel', file:'draw-lao-vowel-game.html',icon:'ະ',  cat:'letters', statsKey:'lao_vowel_stats_v1' },
+
+      // 🌍 World
+      { key:'flag',         file:'flag.html',               icon:'🚩', cat:'world', statsKey:'flag_stats_v1' },
+      { key:'matchFlag',    file:'match-flag-game.html',    icon:'🌍', cat:'world' },
+      { key:'worldMap',     file:'world-map-puzzle.html',   icon:'🗺️', cat:'world' },
+      { key:'months',       file:'months-game.html',        icon:'📅', cat:'world', statsKey:'months_stats_v1' },
+      { key:'weekdays',     file:'weekdays-game.html',      icon:'📆', cat:'world', statsKey:'weekdays_stats_v1' },
+      { key:'waterTree',    file:'water-tree-game.html',    icon:'🌳', cat:'world', statsKey:'plantcare_stats_v1' },
+      { key:'findObject',   file:'find-object-game.html',   icon:'🏠', cat:'world', statsKey:'find_object_stats_v1' },
+      { key:'humanBody',    file:'human-body-puzzle.html',  icon:'🦴', cat:'world' },
+
+      // 🧠 Skill
+      { key:'sound',        file:'sound-game.html',         icon:'🔊', cat:'skill', statsKey:'sound_stats_v1' },
+      { key:'matchIcon',    file:'match-icon-game.html',    icon:'🎯', cat:'skill', statsKey:'find_icon_stats_v1' },
+      { key:'memory',       file:'kids-game.html',          icon:'🧠', cat:'skill', statsKey:'memory_stats_v1' },
+      { key:'hideSeek',     file:'hide-and-seek-game.html', icon:'🕵️', cat:'skill', statsKey:'hs_stats_v1' },
+      { key:'tower',        file:'tower-game.html',         icon:'🏗️', cat:'skill', statsKey:'tower_stack_stats_v1' },
+
+      // 🕹️ Classic
+      { key:'tetris',       file:'tetris.html',             icon:'🟦', cat:'classic', intKey:'tetrisHighScore' },
+      { key:'pacman',       file:'pacman.html',             icon:'👻', cat:'classic', intKey:'pacmanHighScore' },
+      { key:'snake',        file:'snake.html',              icon:'🐍', cat:'classic', intKey:'snakeHighScore' },
+      { key:'slither',      file:'slither.html',            icon:'🪱', cat:'classic', intKey:'slitherHighScore' },
+      { key:'spaceInv',     file:'spaceinvaders.html',      icon:'🛸', cat:'classic', statsKey:'si_stats_v1' },
+      { key:'fps',          file:'fps-game.html',           icon:'🎈', cat:'classic', intKey:'fpsHighScore' },
+      { key:'piano',        file:'piano-game.html',         icon:'🎹', cat:'classic' },
+      { key:'towerDef',     file:'tower-defense-game.html', icon:'🏰', cat:'classic', statsKey:'tdg_stats_v1', scoreField:'bestWave' },
+
+      // 🛠️ Tools
+      { key:'pdfWord',      file:'pdf-to-word.html',        icon:'📄', cat:'tools' }
+    ];
+
+    // ===== i18n =====
+    const I18N = {
+      lao: {
+        hdrTitle: '🎮 ເກມຝຶກສະຫມອງເດັກ',
+        hdrSub:   'ສຳລັບເດັກ 3-7 ປີ · 30+ ເກມ',
+        'lbl-plays': 'ຫຼິ້ນແລ້ວ',
+        'lbl-top':   'ດີສຸດ',
+        'lbl-games': 'ເກມທັງໝົດ',
+        'ph-search': '🔍 ຄົ້ນຫາເກມ...',
+        'btn-help':  '❓ ວິທີຫຼິ້ນ',
+        'btn-stats': '📊 ສະຖິຕິ',
+        'btn-close': 'ປິດ',
+        'help-title':'ວິທີຫຼິ້ນ',
+        'help-p1':'ກົດໃສ່ການ໌ດເກມເພື່ອເລີ່ມຫຼິ້ນ. ທຸກໆເກມຮອງຮັບ 3 ພາສາ: ລາວ, ໄທ, ອັງກິດ.',
+        'help-li1':'🎨 ສີ & ຮູບຮ່າງ — ຮຽນຮູ້ສີ ແລະ ຮູບຮ່າງ',
+        'help-li2':'🔢 ຕົວເລກ — ນັບ ແລະ ລາກເສັ້ນຕົວເລກ',
+        'help-li3':'🔤 ຕົວອັກສອນ — ກ-ຮ, A-Z, ສະຫຼະ',
+        'help-li4':'🌍 ຄວາມຮູ້ຮອບໂຕ — ທຸງ, ເດືອນ, ວັນ, ສິ່ງຂອງ',
+        'help-li5':'🧠 ຄວາມຈຳ & ທັກສະ — ຈັບຄູ່, ຊ່ອນຫາ, ຟັງສຽງ',
+        'help-li6':'🕹️ ເກມຄລາສສິກ — Tetris, Pac-Man, Snake ແລະ ອື່ນໆ',
+        'help-p2':'💡 ກົດໄອຄອນທຸງເພື່ອປ່ຽນພາສາ. ຄະແນນດີສຸດຈະຖືກບັນທຶກໄວ້ໃນເຄື່ອງຂອງເຈົ້າ.',
+        empty: 'ບໍ່ພົບເກມ',
+        sections: {
+          colors:  { name: 'ສີ & ຮູບຮ່າງ',     em: '🎨' },
+          numbers: { name: 'ຕົວເລກ',           em: '🔢' },
+          letters: { name: 'ຕົວອັກສອນ',         em: '🔤' },
+          world:   { name: 'ຄວາມຮູ້ຮອບໂຕ',   em: '🌍' },
+          skill:   { name: 'ຄວາມຈຳ & ທັກສະ',  em: '🧠' },
+          classic: { name: 'ເກມຄລາສສິກ',       em: '🕹️' },
+          tools:   { name: 'ເຄື່ອງມື',          em: '🛠️' }
+        },
+        games: {
+          color:'ເລືອກສີ', colorOrder:'ຮຽງສີ', shape:'ວາງຮູບຮ່າງ', bigSmall:'ໃຫຍ່-ນ້ອຍ',
+          fruit:'ນັບຈຳນວນ', missingNum:'ຫາຕົວເລກທີ່ຂາດ', drawNum:'ລາກເສັ້ນ 1-10',
+          drawAbc:'ລາກເສັ້ນ A-Z', azMatch:'ຈັບຄູ່ A-Z', drawLaoAbc:'ລາກເສັ້ນ ກ-ຮ', drawLaoVowel:'ລາກສະຫຼະ',
+          flag:'ທຸງປະເທດ', matchFlag:'ຈັບຄູ່ທຸງ', worldMap:'ແຜນທີ່ໂລກ',
+          months:'ເດືອນ', weekdays:'ວັນໃນອາທິດ', waterTree:'ລົດນ້ຳຕົ້ນໄມ້',
+          findObject:'ຫາສິ່ງຂອງ', humanBody:'ຮ່າງກາຍ',
+          sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ',
+          tetris:'ເທັດຣິສ', pacman:'Pac-Man', snake:'ງູ', slither:'Slither',
+          spaceInv:'Space Invaders', fps:'ຍິງປູມເປົ້າ', piano:'ເປຍໂນ', towerDef:'ປ້ອງກັນຖານ',
+          pdfWord:'PDF → Word'
         }
-    document.getElementById('help-btn').onclick = function() {
-      document.getElementById('help-modal').style.display = 'flex';
-    };
-  </script>
-  <script src="js/script.js"></script>
-  <script>
-    // ภาษา: ไทย/อังกฤษ (เปลี่ยนชื่อเกมและปุ่มทั้งหมด)
-    const langData = {
+      },
       th: {
-        header: 'เกมฝึกสมองสำหรับเด็ก 3-5 ปี',
-        stats: 'ดูสถิติ / โหมดผู้ปกครอง',
-        help: '❓ วิธีเล่น/ช่วยเหลือ',
-        games: [
-          'เกมเลือกสี', 'เกมเรียงสีตามลำดับ', 'เกมใหญ่-เล็ก', 'เกมฟังเสียง', 'เกมนับจำนวน',
-          'เกมลากเส้น A-Z', 'เกมลากเส้นตัวเลข 1-10', 'เกมหาสิ่งของในบ้าน', 'เกมหาตัวเลขที่ขาด',
-          'เกม Match icon', 'เกมจับคู่ภาพ', 'เกมวางรูปร่าง', 'เกมจับคู่ตัวอักษร A-Z', 'เกมรดน้ำต้นไม้',
-          'เกมวันในสัปดาห์', 'เกมเดือนในปี', 'เกมหอคอย', 'เกมซ่อนหา',
-          'เกมลากเส้นภาษาลาว ກ-ຮ (พยัญชนะ)', 'เกมลากเส้นภาษาลาว สระ (สระ)',
-          'เกมธงประเทศ (195 Flags)', 'เกมจับคู่ธงกับชื่อประเทศ', 'World Map Puzzle', 'เกมเททริส', 'Pac-Man',
-          'เกมงู', 'Space Invaders', 'Slither', 'FPS ยิงลูกโป่ง', 'เกมเปียโน', 'Tower Defense 2D', 'แปลง PDF เป็น Word'
-        ]
+        hdrTitle: '🎮 เกมฝึกสมองเด็ก',
+        hdrSub:   'สำหรับเด็ก 3-7 ปี · 30+ เกม',
+        'lbl-plays': 'เล่นแล้ว',
+        'lbl-top':   'ดีที่สุด',
+        'lbl-games': 'เกมทั้งหมด',
+        'ph-search': '🔍 ค้นหาเกม...',
+        'btn-help':  '❓ วิธีเล่น',
+        'btn-stats': '📊 สถิติ',
+        'btn-close': 'ปิด',
+        'help-title':'วิธีเล่น',
+        'help-p1':'แตะการ์ดเกมเพื่อเริ่มเล่น ทุกเกมรองรับ 3 ภาษา: ลาว, ไทย, อังกฤษ',
+        'help-li1':'🎨 สี & รูปร่าง — เรียนรู้สีและรูปร่าง',
+        'help-li2':'🔢 ตัวเลข — นับและลากเส้นตัวเลข',
+        'help-li3':'🔤 ตัวอักษร — ก-ฮ, A-Z, สระ',
+        'help-li4':'🌍 ความรู้รอบตัว — ธง, เดือน, วัน, สิ่งของ',
+        'help-li5':'🧠 ความจำ & ทักษะ — จับคู่, ซ่อนหา, ฟังเสียง',
+        'help-li6':'🕹️ เกมคลาสสิก — Tetris, Pac-Man, Snake และอื่นๆ',
+        'help-p2':'💡 แตะไอคอนธงเพื่อเปลี่ยนภาษา คะแนนสูงสุดจะถูกบันทึกไว้ในเครื่องของคุณ',
+        empty: 'ไม่พบเกม',
+        sections: {
+          colors:  { name: 'สี & รูปร่าง',      em: '🎨' },
+          numbers: { name: 'ตัวเลข',             em: '🔢' },
+          letters: { name: 'ตัวอักษร',           em: '🔤' },
+          world:   { name: 'ความรู้รอบตัว',     em: '🌍' },
+          skill:   { name: 'ความจำ & ทักษะ',    em: '🧠' },
+          classic: { name: 'เกมคลาสสิก',         em: '🕹️' },
+          tools:   { name: 'เครื่องมือ',          em: '🛠️' }
+        },
+        games: {
+          color:'เลือกสี', colorOrder:'เรียงสี', shape:'วางรูปร่าง', bigSmall:'ใหญ่-เล็ก',
+          fruit:'นับจำนวน', missingNum:'หาตัวเลขที่ขาด', drawNum:'ลากเส้น 1-10',
+          drawAbc:'ลากเส้น A-Z', azMatch:'จับคู่ A-Z', drawLaoAbc:'ลากเส้น ກ-ຮ', drawLaoVowel:'ลากสระลาว',
+          flag:'ธงประเทศ', matchFlag:'จับคู่ธง', worldMap:'แผนที่โลก',
+          months:'เดือน', weekdays:'วันในสัปดาห์', waterTree:'รดน้ำต้นไม้',
+          findObject:'หาสิ่งของ', humanBody:'ร่างกาย',
+          sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย',
+          tetris:'เททริส', pacman:'Pac-Man', snake:'งู', slither:'Slither',
+          spaceInv:'Space Invaders', fps:'ยิงลูกโป่ง', piano:'เปียโน', towerDef:'ป้องกันฐาน',
+          pdfWord:'PDF → Word'
+        }
       },
       en: {
-        header: 'Brain Games for Kids 3-5',
-        stats: 'Stats / Parent Mode',
-        help: '❓ Help / How to Play',
-        games: [
-          'Color Game', 'Color Order Game', 'Big-Small Game', 'Sound Game', 'Fruit Counting',
-          'Draw ABC', 'Draw Numbers', 'Find Objects', 'Missing Number',
-          'Match Icon', 'Memory Match', 'Shape Puzzle', 'AZ Match', 'Water Tree',
-          'Weekdays', 'Months', 'Tower Game', 'Hide and Seek',
-          'Draw Lao ABC (Consonants)', 'Draw Lao Vowel (Vowels)',
-          'Country Flags (195 Flags)', 'Match Flag & Country', 'World Map Puzzle', 'Tetris', 'Pac-Man',
-          'Snake', 'Space Invaders', 'Slither', 'FPS Balloon Shooter', 'Piano Game', 'Tower Defense 2D', 'PDF to Word'
-        ]
-      },
-      lao: {
-        header: 'ເກມຝຶກສະຫມອງ ສຳລັບເດັກ 3-5 ປີ',
-        stats: 'ສະຖິຕິ / ໂຫດຜູ້ປົກຄອງ',
-        help: '❓ ວິທີຫຼິ້ນ / ຊ່ວຍເຫຼືອ',
-        games: [
-          'ເກມເລືອກສີ', 'ເກມຮຽງສີ', 'ເກມໃຫຍ່-ນ້ອຍ', 'ເກມຟັງສຽງ', 'ເກມນັບຈຳນວນ',
-          'ເກມລາກເສັ້ນ A-Z', 'ເກມລາກເສັ້ນຕົວເລກ 1-10', 'ເກມຫາສິ່ງຂອງ', 'ເກມຫາຕົວເລກທີ່ຂາດ',
-          'ເກມ Match icon', 'ເກມຈັບຄູ່ພາບ', 'ເກມວາງຮູບຮ່າງ', 'ເກມຈັບຄູ່ອັກສອນ A-Z', 'ເກມລົດນ້ຳຕົ້ນໄມ້',
-          'ເກມວັນໃນອາທິດ', 'ເກມເດືອນ', 'ເກມຫໍຄອຍ', 'ເກມຊ່ອນຫາ',
-          'ເກມລາກເສັ້ນພະຍັນຊະນະລາວ ກ-ຮ', 'ເກມລາກເສັ້ນສະຫຼະ',
-          'ທຸງປະເທດ (195 Flags)', 'ເກມຈັບຄູ່ທຸງ-ຊື່ປະເທດ', 'World Map Puzzle', 'ເກມເທັດຣິສ', 'Pac-Man',
-          'ເກມງູ', 'Space Invaders', 'Slither', 'FPS ຍິງປູມເປົ້າ', 'ເກມເປຍໂນ', 'ເກມປ້ອງກັນຖານ (Tower Defense)', 'ແປງ PDF ເປັນ Word'
-        ]
+        hdrTitle: '🎮 Brain Games for Kids',
+        hdrSub:   'Ages 3-7 · 30+ games',
+        'lbl-plays': 'Plays',
+        'lbl-top':   'Top Score',
+        'lbl-games': 'Games',
+        'ph-search': '🔍 Search games...',
+        'btn-help':  '❓ How to Play',
+        'btn-stats': '📊 Stats',
+        'btn-close': 'Close',
+        'help-title':'How to Play',
+        'help-p1':'Tap a game card to start. All games support 3 languages: Lao, Thai, English.',
+        'help-li1':'🎨 Colors & Shapes — learn colors and shapes',
+        'help-li2':'🔢 Numbers — count and trace digits',
+        'help-li3':'🔤 Letters — Thai, English, Lao alphabets',
+        'help-li4':'🌍 World Knowledge — flags, months, days, objects',
+        'help-li5':'🧠 Memory & Skill — match, hide-seek, sounds',
+        'help-li6':'🕹️ Classic Games — Tetris, Pac-Man, Snake and more',
+        'help-p2':'💡 Tap a flag icon to change language. Best scores are saved on your device.',
+        empty: 'No games found',
+        sections: {
+          colors:  { name: 'Colors & Shapes',  em: '🎨' },
+          numbers: { name: 'Numbers',          em: '🔢' },
+          letters: { name: 'Letters',          em: '🔤' },
+          world:   { name: 'World Knowledge',  em: '🌍' },
+          skill:   { name: 'Memory & Skill',   em: '🧠' },
+          classic: { name: 'Classic Games',    em: '🕹️' },
+          tools:   { name: 'Tools',            em: '🛠️' }
+        },
+        games: {
+          color:'Pick Color', colorOrder:'Color Order', shape:'Shape Puzzle', bigSmall:'Big-Small',
+          fruit:'Count Fruits', missingNum:'Missing Number', drawNum:'Draw 1-10',
+          drawAbc:'Draw A-Z', azMatch:'Match A-Z', drawLaoAbc:'Draw ກ-ຮ', drawLaoVowel:'Lao Vowels',
+          flag:'Country Flags', matchFlag:'Match Flag', worldMap:'World Map',
+          months:'Months', weekdays:'Weekdays', waterTree:'Water Plants',
+          findObject:'Find Objects', humanBody:'Human Body',
+          sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack',
+          tetris:'Tetris', pacman:'Pac-Man', snake:'Snake', slither:'Slither',
+          spaceInv:'Space Invaders', fps:'Balloon Shooter', piano:'Piano', towerDef:'Tower Defense',
+          pdfWord:'PDF → Word'
+        }
       }
     };
-    // เปลี่ยนภาษาเมื่อคลิกไอคอนธง
-    function setLanguage(lang) {
+
+    // ===== State =====
+    let lang = (() => {
+      const v = localStorage.getItem('lang');
+      return (v === 'lao' || v === 'th' || v === 'en') ? v : 'lao';
+    })();
+
+    // ===== Read best score for a game =====
+    function readBest(g) {
+      try {
+        if (g.intKey) {
+          const v = parseInt(localStorage.getItem(g.intKey) || '0', 10);
+          return v > 0 ? v : null;
+        }
+        if (g.statsKey) {
+          const s = JSON.parse(localStorage.getItem(g.statsKey) || '{}');
+          const field = g.scoreField || 'bestScore';
+          const v = s[field] | 0;
+          return v > 0 ? v : null;
+        }
+      } catch {}
+      return null;
+    }
+
+    // ===== Aggregate plays / top score across all games =====
+    function aggregateStats() {
+      let plays = 0, top = 0;
+      for (const g of GAMES) {
+        try {
+          if (g.statsKey) {
+            const s = JSON.parse(localStorage.getItem(g.statsKey) || '{}');
+            plays += (s.plays | 0);
+            top = Math.max(top, s.bestScore | 0, s.bestWave | 0);
+          } else if (g.intKey) {
+            top = Math.max(top, parseInt(localStorage.getItem(g.intKey) || '0', 10));
+          }
+        } catch {}
+      }
+      return { plays, top };
+    }
+
+    // ===== Render =====
+    const SECTION_ORDER = ['colors','numbers','letters','world','skill','classic','tools'];
+    const elSections = document.getElementById('sections');
+
+    function render() {
+      const t = I18N[lang];
+      const query = (document.getElementById('search').value || '').trim().toLowerCase();
+
+      // Group games by category and filter by query
+      const groups = {};
+      for (const cat of SECTION_ORDER) groups[cat] = [];
+      for (const g of GAMES) {
+        const name = (t.games[g.key] || g.key).toLowerCase();
+        if (query && !name.includes(query) && !g.key.toLowerCase().includes(query)) continue;
+        if (!groups[g.cat]) groups[g.cat] = [];
+        groups[g.cat].push(g);
+      }
+
+      let html = '';
+      let totalShown = 0;
+      for (const cat of SECTION_ORDER) {
+        const games = groups[cat];
+        if (!games || !games.length) continue;
+        totalShown += games.length;
+        const meta = t.sections[cat] || { name: cat, em: '•' };
+        html += `<div class="section">
+          <div class="section-hdr">
+            <span class="em">${meta.em}</span>
+            <span>${meta.name}</span>
+            <span class="count">${games.length}</span>
+          </div>
+          <div class="grid">`;
+        for (const g of games) {
+          const best = readBest(g);
+          const badge = best != null
+            ? `<div class="badge show">★ ${best.toLocaleString()}</div>`
+            : '';
+          html += `<a class="card" data-cat="${g.cat}" href="${g.file}">
+            ${badge}
+            <div class="icon">${g.icon}</div>
+            <div class="name">${t.games[g.key] || g.key}</div>
+          </a>`;
+        }
+        html += `</div></div>`;
+      }
+
+      if (totalShown === 0) {
+        html = `<div class="section"><div class="grid"><div class="empty-msg">${t.empty}</div></div></div>`;
+      }
+      elSections.innerHTML = html;
+    }
+
+    // ===== Apply language =====
+    function applyLang() {
+      const t = I18N[lang];
+      document.documentElement.lang = lang === 'lao' ? 'lo' : lang;
+      document.getElementById('hdr-title').textContent = t.hdrTitle;
+      document.getElementById('hdr-sub').textContent   = t.hdrSub;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.getAttribute('data-i18n');
+        if (t[k] != null) el.textContent = t[k];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const k = el.getAttribute('data-i18n-ph');
+        if (t[k] != null) el.setAttribute('placeholder', t[k]);
+      });
+      document.getElementById('flag-lao').classList.toggle('active', lang === 'lao');
       document.getElementById('flag-th').classList.toggle('active', lang === 'th');
       document.getElementById('flag-en').classList.toggle('active', lang === 'en');
-      document.getElementById('flag-lao').classList.toggle('active', lang === 'lao');
-      document.querySelector('.header').innerText = langData[lang].header;
-      const statsLink = document.getElementById('stats-link');
-      if (statsLink) statsLink.innerText = langData[lang].stats;
-      document.getElementById('help-btn').innerText = langData[lang].help;
-      // เปลี่ยนชื่อเกม
-      const cards = document.querySelectorAll('.flag-grid .game-card .flag-name');
-      cards.forEach((el, idx) => {
-        if (langData[lang].games[idx]) el.innerHTML = langData[lang].games[idx];
-      });
-      setLaoFont(lang === 'lao');
-      localStorage.setItem('lang', lang);
+      // Update quick stats labels
+      const agg = aggregateStats();
+      document.getElementById('qs-plays').textContent = agg.plays.toLocaleString();
+      document.getElementById('qs-top').textContent   = agg.top.toLocaleString();
+      document.getElementById('qs-games').textContent = GAMES.length;
+      render();
     }
-    document.getElementById('flag-th').onclick = function() { setLanguage('th'); };
-    document.getElementById('flag-en').onclick = function() { setLanguage('en'); };
-    document.getElementById('flag-lao').onclick = function() { setLanguage('lao'); };
-    // default language: ใช้ค่าจาก localStorage ถ้ามี
-    document.addEventListener('DOMContentLoaded', function() {
-      const lang = localStorage.getItem('lang') || 'en';
-      setLanguage(lang);
+
+    function setLang(l) {
+      lang = l;
+      try { localStorage.setItem('lang', l); } catch {}
+      applyLang();
+    }
+
+    // ===== Wire up =====
+    document.getElementById('flag-lao').addEventListener('click', () => setLang('lao'));
+    document.getElementById('flag-th').addEventListener('click',  () => setLang('th'));
+    document.getElementById('flag-en').addEventListener('click',  () => setLang('en'));
+    document.getElementById('search').addEventListener('input', render);
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      document.getElementById('search').value = '';
+      render();
     });
+    document.getElementById('btn-help').addEventListener('click', () => {
+      document.getElementById('modal-help').classList.add('show');
+    });
+    document.getElementById('btn-close-help').addEventListener('click', () => {
+      document.getElementById('modal-help').classList.remove('show');
+    });
+    document.getElementById('modal-help').addEventListener('click', (e) => {
+      if (e.target.id === 'modal-help') e.currentTarget.classList.remove('show');
+    });
+    // Cross-tab language sync
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'lang' && (e.newValue === 'lao' || e.newValue === 'th' || e.newValue === 'en')) {
+        lang = e.newValue;
+        applyLang();
+      }
+    });
+
+    applyLang();
   </script>
 </body>
 </html>

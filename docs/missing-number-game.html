@@ -2,79 +2,196 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมหาตัวเลขที่ขาด 1-10</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>เลขที่ขาด · Missing Number</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #dbeafe, #fce7f3);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+    }
+    .mn-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .mn-header {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3); margin-bottom: 10px;
+    }
+    .mn-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .mn-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .mn-hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .mn-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .mn-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .mn-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .mn-stat .val.level { color: #3b82f6; }
+    .mn-stat .val.score { color: #16a34a; }
+    .mn-stat .val.lives { color: #ef4444; letter-spacing: 0; }
+    .mn-stat .val.best { color: #b45309; }
+
+    /* Sequence card */
+    .mn-seq-card {
+      background: #fff; border-radius: 18px; padding: 22px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08); margin-bottom: 10px;
+    }
+    .mn-seq-hint {
+      text-align: center; font-size: .9rem; color: #475569;
+      font-weight: 700; margin-bottom: 10px;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    }
+    .mn-seq {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+    .mn-seq-cell {
+      min-width: 50px; height: 60px;
+      background: #f1f5f9; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; font-weight: 900; color: #1e293b;
+      padding: 0 8px;
+    }
+    .mn-seq-cell.miss {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      color: #c2410c;
+      border: 3px dashed #f59e0b;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .mn-seq-sep { color: #cbd5e1; font-size: 1.5rem; font-weight: 700; }
+
+    .mn-options {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .mn-opt {
+      padding: 18px 8px; border-radius: 14px;
+      background: #fff; border: 3px solid #cbd5e1;
+      font-size: 1.8rem; font-weight: 900; color: #1e293b;
+      cursor: pointer; text-align: center;
+      box-shadow: 0 4px 0 rgba(0,0,0,.12);
+      transition: transform .12s;
+      min-height: 64px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mn-opt:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+    .mn-opt.correct { background: #10b981; color: #fff; border-color: #059669; animation: pop .4s; }
+    .mn-opt.wrong { background: #ef4444; color: #fff; border-color: #b91c1c; animation: shake .3s; }
+    .mn-opt.dim { opacity: .35; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Flash */
+    .mn-flash {
+      position: fixed; left: 50%; top: 35%; transform: translate(-50%, -50%) scale(.5);
+      padding: 16px 28px; border-radius: 14px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff; font-size: 1.6rem; font-weight: 900;
+      opacity: 0; pointer-events: none; z-index: 30;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .mn-flash.show { animation: flashPop 1s ease-out; }
+    @keyframes flashPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Modal */
+    .mn-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .mn-modal.show { display: flex; }
+    .mn-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .mn-modal-card h2 { margin: 0 0 8px; color: #1d4ed8; font-size: 1.5rem; }
+    .mn-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .mn-stats-grid .cell { background: #dbeafe; padding: 10px; border-radius: 10px; }
+    .mn-stats-grid .lbl { font-size: 10px; color: #1d4ed8; text-transform: uppercase; font-weight: 700; }
+    .mn-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .mn-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,.35);
+    }
+    .mn-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(59,130,246,.35); }
+
+    @media (max-width: 380px) {
+      .mn-seq-cell { font-size: 1.7rem; min-width: 42px; height: 52px; padding: 0 5px; }
+      .mn-opt { font-size: 1.5rem; min-height: 56px; padding: 14px 6px; }
+      .mn-stat .val { font-size: 15px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="container py-4" style="max-width:600px;margin:auto;">
-    <h2 class="text-center mb-4" id="missing-number-title">เกมหาตัวเลขที่ขาด 1-10</h2>
-    <div id="missing-number-timer" class="mb-3" style="font-size:1.2rem;color:#1976d2;"></div>
-    <div id="missing-number-question" class="mb-4" style="font-size:2rem;font-weight:bold;text-align:center;"></div>
-    <div id="missing-number-options" class="d-flex justify-content-center flex-wrap mb-4"></div>
-    <div id="missing-number-result" class="text-center mb-3" style="font-size:1.3rem;font-weight:bold;"></div>
-    <div class="text-center">
-      <button id="restartMissingNumberBtn" class="menu-btn" style="background:#1976d2;color:#fff;">เริ่มใหม่</button>
-      <button id="missing-number-btn-home" onclick="window.location.href='index.html'" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;">กลับหน้าแรก</button>
+  <div class="mn-wrap">
+    <div class="mn-header">
+      <div class="mn-title" id="hdr-title">🔢 เลขที่ขาด</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <audio id="missingNumberCorrectSound" src="assets/sound/correct.wav"></audio>
-    <audio id="missingNumberWrongSound" src="assets/sound/wrong.wav"></audio>
-    <audio id="missingNumberWinSound" src="assets/sound/win.wav"></audio>
+
+    <div class="mn-hud">
+      <div class="mn-stat"><div class="lbl" id="lbl-level">เลเวล</div><div class="val level" id="ui-level">1</div></div>
+      <div class="mn-stat"><div class="lbl" id="lbl-score">คะแนน</div><div class="val score" id="ui-score">0</div></div>
+      <div class="mn-stat"><div class="lbl" id="lbl-lives">หัวใจ</div><div class="val lives" id="ui-lives">❤❤❤❤❤</div></div>
+      <div class="mn-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">0</div></div>
+    </div>
+
+    <div class="mn-seq-card">
+      <div class="mn-seq-hint" id="seq-hint">เติมเลขที่ขาด</div>
+      <div class="mn-seq" id="sequence"></div>
+    </div>
+
+    <div class="mn-options" id="options"></div>
   </div>
+
+  <div class="mn-flash" id="flash">เลเวลถัดไป!</div>
+
+  <div class="mn-modal" id="modal-over">
+    <div class="mn-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="over-title">จบเกม</h2>
+      <div class="mn-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="over-lbl-score">คะแนน</div>
+          <div class="val" id="over-score">0</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="over-lbl-level">เลเวล</div>
+          <div class="val" id="over-level">1</div>
+        </div>
+      </div>
+      <button class="mn-btn" id="btn-again">▶ เล่นใหม่</button>
+    </div>
+  </div>
+
   <script src="js/missing-number-game.js"></script>
-  <script>
-    // Multi-language UI update
-    const missingNumberLangData = {
-      th: {
-        title: 'เกมหาตัวเลขที่ขาด 1-10',
-        btnRestart: 'เริ่มใหม่',
-        btnHome: 'กลับหน้าแรก',
-        correct: 'ถูกต้อง!',
-        wrong: 'ผิด ลองใหม่!',
-        finish: 'จบเกม! คุณหาตัวเลขครบ 10 ระดับ',
-        timer: 'เวลา:',
-        used: 'ใช้เวลา:',
-        question: (q) => `เลขที่ขาด: ${q}`,
-        result: (score) => `ทั้งหมด: ${score} / 10`
-      },
-      en: {
-        title: 'Find the Missing Number 1-10',
-        btnRestart: 'Restart',
-        btnHome: 'Back to Home',
-        correct: 'Correct!',
-        wrong: 'Wrong! Try again!',
-        finish: 'Finished! You found all 10',
-        timer: 'Time:',
-        used: 'Time used:',
-        question: (q) => `Missing number: ${q}`,
-        result: (score) => `Total: ${score} / 10`
-      },
-      lao: {
-        title: 'ເກມຫາຕົວເລກທີ່ຂາດ 1-10',
-        btnRestart: 'ເລີ່ມໃໝ່',
-        btnHome: 'ກັບໜ້າຫຼັກ',
-        correct: 'ຖືກຕ້ອງ!',
-        wrong: 'ຜິດ ລອງໃໝ່!',
-        finish: 'ສຳເລັດ! ທ່ານຫາຕົວເລກຄົບ 10',
-        timer: 'ເວລາ:',
-        used: 'ໃຊ້ເວລາ:',
-        question: (q) => `ຕົວເລກທີ່ຂາດ: ${q}`,
-        result: (score) => `ທັງໝົດ: ${score} / 10`
-      }
-    };
-    function getMissingNumberLang() {
-      let lang = localStorage.getItem('lang') || 'en';
-      if (!['th','en','lao'].includes(lang)) lang = 'en';
-      return lang;
-    }
-    function setMissingNumberLangUI() {
-      const lang = getMissingNumberLang();
-      const d = missingNumberLangData[lang];
-      document.getElementById('missing-number-title').textContent = d.title;
-      document.getElementById('restartMissingNumberBtn').textContent = d.btnRestart;
-      document.getElementById('missing-number-btn-home').textContent = d.btnHome;
-    }
-    document.addEventListener('DOMContentLoaded', setMissingNumberLangUI);
-  </script>
 </body>
 </html>

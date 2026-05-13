@@ -2,28 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Flag Game - 195 Flags</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flag Game · 195 Flags</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .flag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 18px; margin: 2rem 0; }
-    .flag-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(25,118,210,0.08); padding: 1rem 0.5rem; transition: box-shadow 0.18s; }
-    .flag-item:hover { box-shadow: 0 4px 16px rgba(25,118,210,0.18); background: #e3f2fd; }
-    .flag-icon { width: 48px; height: 32px; object-fit: contain; margin-bottom: 0.5rem; border-radius: 4px; border: 1px solid #eee; }
-    .flag-name { font-size: 1rem; color: #1976d2; font-weight: bold; text-align: center; }
-    .header { background: #1976d2; color: #fff; border-radius: 12px 12px 0 0; padding: 1.2rem 0; font-size: 1.5rem; font-weight: bold; text-align: center; box-shadow: 0 2px 8px rgba(25,118,210,0.12); letter-spacing: 0.5px; }
-    .container { max-width: 700px; margin: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 1.2rem 1rem; }
+    body { background: #f0f4f8; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; -webkit-tap-highlight-color: transparent; }
+    .fg-wrap { max-width: 720px; margin: 0 auto; padding: 8px; }
+    .fg-header {
+      background: linear-gradient(135deg, #1976d2, #0d47a1);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(25,118,210,0.25); margin-bottom: 10px;
+    }
+    .fg-header .title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .fg-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.18); padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    /* Tab row */
+    .fg-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .fg-tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-weight: 700; font-size: .95rem; color: #475569;
+    }
+    .fg-tab.active { background: #1976d2; color: #fff; border-color: #1976d2; box-shadow: 0 2px 8px rgba(25,118,210,.3); }
+
+    /* Continent row (chips, horizontally scrollable on narrow screens) */
+    .fg-continent { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 10px; -webkit-overflow-scrolling: touch; }
+    .fg-continent::-webkit-scrollbar { display: none; }
+    .fg-chip {
+      flex-shrink: 0; padding: 6px 12px; border-radius: 20px;
+      background: #fff; border: 1.5px solid #e2e8f0; color: #475569;
+      cursor: pointer; font-size: .85rem; font-weight: 600; white-space: nowrap;
+    }
+    .fg-chip.active { background: #fbbf24; border-color: #f59e0b; color: #1f2937; }
+
+    /* Stats row */
+    .fg-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .fg-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .fg-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+    .fg-stat .val { font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1.1; }
+    .fg-stat .val.streak { color: #f59e0b; }
+    .fg-stat .val.best { color: #8b5cf6; }
+    .fg-stat .val.seen { color: #10b981; }
+
+    /* Flag card */
+    .fg-card {
+      background: #fff; border-radius: 16px; padding: 20px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08); text-align: center; margin-bottom: 10px;
+      position: relative; min-height: 200px;
+    }
+    .fg-img-wrap {
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .fg-img {
+      width: 100%; max-width: 260px; aspect-ratio: 3/2; object-fit: contain;
+      border-radius: 10px; border: 2px solid #e2e8f0;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+    .fg-name {
+      font-size: 1.6rem; font-weight: 800; color: #1976d2;
+      letter-spacing: .5px; line-height: 1.15;
+    }
+    .fg-name-en {
+      font-size: .9rem; color: #64748b; margin-top: 2px;
+    }
+    .fg-name.hidden { visibility: hidden; }
+
+    /* Quiz options */
+    .fg-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .fg-opt {
+      padding: 14px 8px; border-radius: 12px;
+      border: 2px solid #cbd5e1; background: #fff;
+      color: #1e293b; font-weight: 700; font-size: .95rem;
+      cursor: pointer; text-align: center; min-height: 56px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .fg-opt:active { transform: scale(.97); }
+    .fg-opt.correct { background: #10b981; color: #fff; border-color: #10b981; animation: pulse .4s; }
+    .fg-opt.wrong { background: #ef4444; color: #fff; border-color: #ef4444; animation: shake .3s; }
+    .fg-opt.dim { opacity: .4; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+    /* Learn actions */
+    .fg-actions { display: flex; gap: 8px; }
+    .fg-btn {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      font-weight: 700; font-size: 1rem; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+    }
+    .fg-btn.speak { background: #fff700; color: #1f2937; }
+    .fg-btn.next  { background: linear-gradient(135deg, #1976d2, #0d47a1); color: #fff; }
+    .fg-btn:active { transform: translateY(2px); }
+
+    .hidden { display: none !important; }
+
+    /* Feedback overlay (correct/wrong popup) */
+    .fg-feedback {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 3rem; pointer-events: none; opacity: 0;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,.3));
+    }
+    .fg-feedback.show { animation: pop .8s ease-out; }
+    @keyframes pop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (max-width: 380px) {
+      .fg-name { font-size: 1.3rem; }
+      .fg-opt { font-size: .85rem; padding: 12px 6px; }
+      .fg-stat .val { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">เกมธงประเทศ (195 Flags)</div>
-  <div class="container">
-    <div id="flag-single" style="display:flex;flex-direction:column;align-items:center;margin-top:2rem;"></div>
-    <div style="text-align:center;margin-top:2rem;">
-      <button id="nextFlagBtn" class="menu-btn" style="font-size:1.4rem;padding:0.7rem 2.2rem;margin-bottom:1rem;">Next</button><br>
-      <a href="index.html" class="menu-btn">กลับหน้าแรก</a>
+  <div class="fg-wrap">
+    <div class="fg-header">
+      <div class="title" id="hdr-title">🌍 Flag Game</div>
+      <a href="index.html" id="hdr-back">← Home</a>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="fg-tabs">
+      <button class="fg-tab active" data-mode="learn" id="tab-learn">📖 <span>Learn</span></button>
+      <button class="fg-tab" data-mode="quiz" id="tab-quiz">🎯 <span>Quiz</span></button>
+    </div>
+
+    <!-- Continent chips -->
+    <div class="fg-continent" id="continent-row"></div>
+
+    <!-- Stats -->
+    <div class="fg-stats">
+      <div class="fg-stat"><div class="lbl" id="lbl-score">Score</div><div class="val" id="ui-score">0</div></div>
+      <div class="fg-stat"><div class="lbl" id="lbl-streak">Streak</div><div class="val streak" id="ui-streak">0</div></div>
+      <div class="fg-stat"><div class="lbl" id="lbl-best">Best</div><div class="val best" id="ui-best">0</div></div>
+      <div class="fg-stat"><div class="lbl" id="lbl-seen">Seen</div><div class="val seen"><span id="ui-seen">0</span>/<span id="ui-total">193</span></div></div>
+    </div>
+
+    <!-- Flag card -->
+    <div class="fg-card">
+      <div class="fg-img-wrap">
+        <img class="fg-img" id="flag-img" alt="">
+      </div>
+      <div class="fg-name" id="flag-name"></div>
+      <div class="fg-name-en" id="flag-name-en"></div>
+      <div class="fg-feedback" id="feedback"></div>
+    </div>
+
+    <!-- Quiz options (only in quiz mode) -->
+    <div class="fg-options hidden" id="options"></div>
+
+    <!-- Learn actions (only in learn mode) -->
+    <div class="fg-actions" id="learn-actions">
+      <button class="fg-btn speak" id="btn-speak">🔊 <span id="btn-speak-label">Pronounce</span></button>
+      <button class="fg-btn next" id="btn-next"><span id="btn-next-label">Next</span> →</button>
     </div>
   </div>
+
   <script src="js/flag-game.js"></script>
 </body>
 </html>

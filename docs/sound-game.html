@@ -2,29 +2,203 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมฟังเสียงสำหรับเด็ก</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ฟังเสียงสัตว์ · Animal Sounds</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fde68a, #fbcfe8);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+    }
+    .sg-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .sg-header {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(245,158,11,0.3); margin-bottom: 10px;
+    }
+    .sg-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .sg-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .sg-hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .sg-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .sg-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .sg-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .sg-stat .val.level { color: #f59e0b; }
+    .sg-stat .val.score { color: #2563eb; }
+    .sg-stat .val.lives { color: #ef4444; letter-spacing: 0; }
+    .sg-stat .val.best { color: #b45309; }
+
+    /* Sound button card */
+    .sg-sound-card {
+      background: #fff; border-radius: 18px; padding: 28px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08); margin-bottom: 10px;
+      text-align: center;
+    }
+    .sg-play-btn {
+      width: 130px; height: 130px;
+      border-radius: 50%; border: none;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; font-size: 3.5rem;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(245,158,11,.5),
+                  inset 0 -4px 0 rgba(0,0,0,.15);
+      transition: transform .12s;
+      position: relative;
+    }
+    .sg-play-btn:active { transform: scale(.95); }
+    .sg-play-btn.playing {
+      animation: pulse 0.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); box-shadow: 0 8px 24px rgba(245,158,11,.5), inset 0 -4px 0 rgba(0,0,0,.15); }
+      50% { transform: scale(1.08); box-shadow: 0 8px 32px rgba(245,158,11,.7), inset 0 -4px 0 rgba(0,0,0,.15); }
+    }
+    .sg-sound-hint {
+      margin-top: 14px;
+      font-size: .95rem; font-weight: 700; color: #92400e;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    }
+
+    /* Options */
+    .sg-options {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sg-opt {
+      aspect-ratio: 1.4 / 1;
+      background: #fff; border-radius: 14px;
+      border: 3px solid #cbd5e1;
+      cursor: pointer; text-align: center;
+      box-shadow: 0 4px 0 rgba(0,0,0,.1);
+      transition: transform .12s;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+    }
+    .sg-opt:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.1); }
+    .sg-opt .em { font-size: 2.6rem; line-height: 1; }
+    .sg-opt .name {
+      font-size: .82rem; font-weight: 700; color: #1e293b;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    }
+    .sg-opt.correct { background: #10b981; border-color: #059669; animation: pop .4s; }
+    .sg-opt.correct .name { color: #fff; }
+    .sg-opt.wrong { background: #ef4444; border-color: #b91c1c; animation: shake .3s; }
+    .sg-opt.wrong .name { color: #fff; }
+    .sg-opt.dim { opacity: .35; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Flash */
+    .sg-flash {
+      position: fixed; left: 50%; top: 35%; transform: translate(-50%, -50%) scale(.5);
+      padding: 16px 28px; border-radius: 14px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; font-size: 1.6rem; font-weight: 900;
+      opacity: 0; pointer-events: none; z-index: 30;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .sg-flash.show { animation: flashPop 1s ease-out; }
+    @keyframes flashPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Modal */
+    .sg-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .sg-modal.show { display: flex; }
+    .sg-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .sg-modal-card h2 { margin: 0 0 8px; color: #c2410c; font-size: 1.5rem; }
+    .sg-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .sg-stats-grid .cell { background: #fff7ed; padding: 10px; border-radius: 10px; }
+    .sg-stats-grid .lbl { font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700; }
+    .sg-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .sg-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,.35);
+    }
+    .sg-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(245,158,11,.35); }
+
+    @media (max-width: 380px) {
+      .sg-play-btn { width: 110px; height: 110px; font-size: 3rem; }
+      .sg-opt .em { font-size: 2.2rem; }
+      .sg-opt .name { font-size: .76rem; }
+    }
+  </style>
 </head>
 <body>
-  <div class="header">เกมฟังเสียง</div>
-  <div class="container py-4">
-    <div id="sound-question" class="text-center mb-4" style="font-size:2rem;"></div>
-    <div class="text-center mb-3">
-      <button id="playSoundBtn" class="menu-btn" style="background:#e3f2fd;color:#1976d2;font-size:1.2rem;">🔊 ฟังเสียง</button>
+  <div class="sg-wrap">
+    <div class="sg-header">
+      <div class="sg-title" id="hdr-title">🔊 ฟังเสียงสัตว์</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="sound-options" class="d-flex flex-wrap justify-content-center mb-4"></div>
-    <div id="sound-result" class="text-center mt-3" style="font-size:1.5rem;color:#ff9800;"></div>
-    <div class="text-center mt-4">
-      <button id="restartSoundBtn" class="menu-btn">เริ่มใหม่</button>
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#ffebee;color:#e53935;">ออกเกม</button>
+
+    <div class="sg-hud">
+      <div class="sg-stat"><div class="lbl" id="lbl-level">เลเวล</div><div class="val level" id="ui-level">1</div></div>
+      <div class="sg-stat"><div class="lbl" id="lbl-score">คะแนน</div><div class="val score" id="ui-score">0</div></div>
+      <div class="sg-stat"><div class="lbl" id="lbl-lives">หัวใจ</div><div class="val lives" id="ui-lives">❤❤❤❤❤</div></div>
+      <div class="sg-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">0</div></div>
+    </div>
+
+    <div class="sg-sound-card">
+      <button class="sg-play-btn" id="btn-play">🔊</button>
+      <div class="sg-sound-hint" id="hint">กดเพื่อฟังเสียงสัตว์</div>
+    </div>
+
+    <div class="sg-options" id="options"></div>
+  </div>
+
+  <div class="sg-flash" id="flash">เลเวล 2!</div>
+
+  <div class="sg-modal" id="modal-over">
+    <div class="sg-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="over-title">จบเกม</h2>
+      <div class="sg-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="over-lbl-score">คะแนน</div>
+          <div class="val" id="over-score">0</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="over-lbl-level">เลเวล</div>
+          <div class="val" id="over-level">1</div>
+        </div>
+      </div>
+      <button class="sg-btn" id="btn-again">▶ เล่นใหม่</button>
     </div>
   </div>
-  <audio id="soundCorrect" src="assets/sound/correct.wav"></audio>
-  <audio id="soundWrong" src="assets/sound/wrong.wav"></audio>
-  <audio id="soundWin" src="assets/sound/win.wav"></audio>
-  <audio id="soundCongrats" src="assets/sound/congrats.wav"></audio>
-  <audio id="gameSound" src=""></audio>
+
   <script src="js/sound-game.js"></script>
 </body>
 </html>

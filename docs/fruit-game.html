@@ -2,50 +2,199 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมนับจำนวนผลไม้</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>นับผลไม้ · Count Fruits</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    .fruit-grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; margin: 2rem 0; }
-    .fruit-item { display: flex; flex-direction: column; align-items: center; }
-    .fruit-icon { width: 80px; height: 80px; }
-    .question { font-size: 1.4rem; font-weight: bold; margin-bottom: 1.2rem; }
-    .answer-btn { font-size: 1.2rem; padding: 0.7rem 1.2rem; border-radius: 8px; border: 2px solid #1976d2; background: #fff; color: #1976d2; margin: 0.5rem; font-weight: bold; }
-    .answer-btn.correct { background: #4caf50; color: #fff; border-color: #4caf50; }
-    .answer-btn.wrong { background: #f44336; color: #fff; border-color: #f44336; }
-    .result { font-size: 1.2rem; margin-top: 1rem; min-height: 2rem; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef9c3, #fed7aa);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+    }
+    .fr-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .fr-header {
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(249,115,22,0.3); margin-bottom: 10px;
+    }
+    .fr-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .fr-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .fr-hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .fr-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .fr-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .fr-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .fr-stat .val.level { color: #f97316; }
+    .fr-stat .val.score { color: #2563eb; }
+    .fr-stat .val.lives { color: #ef4444; letter-spacing: 0; }
+    .fr-stat .val.best { color: #b45309; }
+
+    /* Question */
+    .fr-question {
+      background: #fff; border-radius: 16px; padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 10px;
+      text-align: center;
+    }
+    .fr-question-text {
+      font-size: 1.1rem; font-weight: 800; color: #1e293b;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      margin-bottom: 6px;
+    }
+    .fr-question-sub {
+      font-size: .8rem; color: #64748b;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    }
+
+    /* Fruit display */
+    .fr-display {
+      background: #fff; border-radius: 16px;
+      padding: 16px 12px; min-height: 180px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; align-items: center;
+    }
+    .fr-emoji {
+      font-size: 2.2rem; line-height: 1;
+      animation: drop .4s cubic-bezier(.34, 1.56, .64, 1) backwards;
+    }
+    @keyframes drop {
+      0% { transform: translateY(-10px) scale(.5); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* Options */
+    .fr-options {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 10px;
+    }
+    .fr-opt {
+      padding: 18px 8px; border-radius: 14px;
+      background: #fff; border: 3px solid #cbd5e1;
+      font-size: 2rem; font-weight: 900; color: #1e293b;
+      cursor: pointer; text-align: center;
+      box-shadow: 0 4px 0 rgba(0,0,0,.12);
+      transition: transform .12s;
+      min-height: 64px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fr-opt:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+    .fr-opt.correct { background: #10b981; color: #fff; border-color: #059669; animation: pop .4s; }
+    .fr-opt.wrong { background: #ef4444; color: #fff; border-color: #b91c1c; animation: shake .3s; }
+    .fr-opt.dim { opacity: .35; }
+    @keyframes pop {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Flash */
+    .fr-flash {
+      position: fixed; left: 50%; top: 35%; transform: translate(-50%, -50%) scale(.5);
+      padding: 16px 28px; border-radius: 14px;
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; font-size: 1.6rem; font-weight: 900;
+      opacity: 0; pointer-events: none; z-index: 30;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .fr-flash.show { animation: flashPop 1s ease-out; }
+    @keyframes flashPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Modal */
+    .fr-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .fr-modal.show { display: flex; }
+    .fr-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .fr-modal-card h2 { margin: 0 0 8px; color: #c2410c; font-size: 1.5rem; }
+    .fr-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .fr-stats-grid .cell { background: #fff7ed; padding: 10px; border-radius: 10px; }
+    .fr-stats-grid .lbl { font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700; }
+    .fr-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .fr-btn {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(249,115,22,.35);
+    }
+    .fr-btn:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(249,115,22,.35); }
+
+    @media (max-width: 380px) {
+      .fr-emoji { font-size: 1.8rem; }
+      .fr-opt { font-size: 1.6rem; min-height: 56px; padding: 14px 6px; }
+      .fr-stat .val { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
-  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">เกมนับจำนวนผลไม้</div>
-  <div class="container" style="max-width:500px;margin:auto;padding:2rem 0;">
-    <div style="margin-bottom:1.2rem;">
-      <label for="fruit-level" style="font-size:1.1rem;font-weight:bold;color:#1976d2;">ระดับความยาก:</label>
-      <select id="fruit-level" style="font-size:1.1rem;padding:0.3rem 0.7rem;border-radius:8px;border:2px solid #1976d2;font-weight:bold;margin-left:0.7rem;">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-      </select>
+  <div class="fr-wrap">
+    <div class="fr-header">
+      <div class="fr-title" id="hdr-title">🍎 นับผลไม้</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div class="question" id="fruit-question"></div>
-    <div class="fruit-grid" id="fruit-grid"></div>
-    <div id="answer-buttons"></div>
-    <div class="result" id="fruit-result"></div>
-    <div class="menu" style="margin-top:2rem;">
-      <a href="index.html" class="menu-btn" style="text-decoration:none;">กลับหน้าแรก</a>
-      <button onclick="restartFruitGame()" class="menu-btn" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;margin-left:1rem;">เริ่มใหม่</button>
+
+    <div class="fr-hud">
+      <div class="fr-stat"><div class="lbl" id="lbl-level">เลเวล</div><div class="val level" id="ui-level">1</div></div>
+      <div class="fr-stat"><div class="lbl" id="lbl-score">คะแนน</div><div class="val score" id="ui-score">0</div></div>
+      <div class="fr-stat"><div class="lbl" id="lbl-lives">หัวใจ</div><div class="val lives" id="ui-lives">❤❤❤❤❤</div></div>
+      <div class="fr-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">0</div></div>
+    </div>
+
+    <div class="fr-question">
+      <div class="fr-question-text" id="q-text">มีกี่ลูก?</div>
+      <div class="fr-question-sub" id="q-sub"></div>
+    </div>
+
+    <div class="fr-display" id="display"></div>
+
+    <div class="fr-options" id="options"></div>
+  </div>
+
+  <div class="fr-flash" id="flash">เลเวล 2!</div>
+
+  <div class="fr-modal" id="modal-over">
+    <div class="fr-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="over-title">จบเกม</h2>
+      <div class="fr-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="over-lbl-score">คะแนน</div>
+          <div class="val" id="over-score">0</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="over-lbl-level">เลเวล</div>
+          <div class="val" id="over-level">1</div>
+        </div>
+      </div>
+      <button class="fr-btn" id="btn-again">▶ เล่นใหม่</button>
     </div>
   </div>
-  <audio id="soundCorrect" src="assets/sound/color-game/correct.wav" preload="auto"></audio>
-  <audio id="soundWrong" src="assets/sound/color-game/wrong.wav" preload="auto"></audio>
-  <audio id="soundWin" src="assets/sound/color-game/win.wav" preload="auto"></audio>
+
   <script src="js/fruit-game.js"></script>
 </body>
 </html>

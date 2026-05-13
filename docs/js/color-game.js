@@ -1,211 +1,282 @@
-// เกมเลือกสีสำหรับเด็ก 3-5 ปี
+// Color Quiz — show color name + auto-speak, tap matching color from N options.
+// Endless levels with rising option count, lives, multi-language (CORRECT Lao TTS).
 
-function getColorLang() {
-  let lang = localStorage.getItem('lang') || 'en';
-  if (!['th','en','lao'].includes(lang)) lang = 'en';
-  return lang;
-}
-const COLOR_NAMES = {
-  th: ['แดง','เหลือง','เขียว','น้ำเงิน','ส้ม','ม่วง','ชมพู','น้ำตาล'],
-  en: ['Red','Yellow','Green','Blue','Orange','Purple','Pink','Brown'],
-  lao: ['สีแดง','สีเหลือง','สีเขียว','สีน้ำเงิน','สีส้ม','สีม่วง','สีชมพู','สีน้ำตาล']
-};
-const COLORS = COLOR_NAMES[getColorLang()].map((name,i)=>{
-  const colorArr = ['#e53935','#fbc02d','#43a047','#1e88e5','#fb8c00','#8e24aa','#ec407a','#6d4c41'];
-  return { name, color: colorArr[i] };
-});
+(() => {
+  'use strict';
 
-let colorStage = 0; // 0: 3 สี, 1: 5 สี, 2: 8 สี
-let correctInStage = 0;
+  const COLORS = [
+    { hex:'#ef4444', en:'Red',    th:'แดง',     lo:'ສີແດງ' },
+    { hex:'#f59e0b', en:'Orange', th:'ส้ม',     lo:'ສີສົ້ມ' },
+    { hex:'#eab308', en:'Yellow', th:'เหลือง', lo:'ສີເຫຼືອງ' },
+    { hex:'#22c55e', en:'Green',  th:'เขียว',   lo:'ສີຂຽວ' },
+    { hex:'#3b82f6', en:'Blue',   th:'น้ำเงิน', lo:'ສີນ້ຳເງິນ' },
+    { hex:'#8b5cf6', en:'Purple', th:'ม่วง',    lo:'ສີມ່ວງ' },
+    { hex:'#ec4899', en:'Pink',   th:'ชมพู',    lo:'ສີຊົມພູ' },
+    { hex:'#92400e', en:'Brown',  th:'น้ำตาล', lo:'ສີນ້ຳຕານ' },
+    { hex:'#0ea5e9', en:'Sky',    th:'ฟ้า',     lo:'ສີຟ້າ' },
+    { hex:'#1e293b', en:'Black',  th:'ดำ',      lo:'ສີດຳ' },
+    { hex:'#f8fafc', en:'White',  th:'ขาว',     lo:'ສີຂາວ' },
+    { hex:'#94a3b8', en:'Gray',   th:'เทา',     lo:'ສີເທົາ' }
+  ];
 
-
-
-let currentColor = null;
-let score = 0;
-let round = 0;
-let startTime = null;
-let endTime = null;
-
-function playColorSound(id) {
-  const audio = document.getElementById(id);
-  if (audio) {
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = 1.0;
-    audio.play();
-  }
-}
-
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-
-// เรียกใช้งาน: playColorNameSound('Red');
-function playColorNameSound(colorName) {
-  let lang = localStorage.getItem('lang') || 'en';
-  if (!['th','en','lao'].includes(lang)) lang = 'en';
-  let voiceLang = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'th-TH' : 'en-US';
-  // ถ้าอยู่ใน Android WebView ที่มี Native TTS
-  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
-    window.AndroidTTS.speak(colorName, voiceLang);
-    return;
-  }
-  // Fallback: ใช้ SpeechSynthesis API (browser)
-  if (!('speechSynthesis' in window)) {
-    console.error('SpeechSynthesis API not supported');
-    return;
-  }
-  const utter = new SpeechSynthesisUtterance(colorName);
-  utter.lang = voiceLang;
-  function speakWithVoices() {
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) {
-      window.speechSynthesis.speak(utter);
-      return;
+  const I18N = {
+    th: {
+      title:'🎨 เลือกสี', back:'← หน้าหลัก',
+      level:'เลเวล', score:'คะแนน', lives:'หัวใจ', best:'ดีที่สุด',
+      targetLbl:'เลือกสี',
+      gameover:'จบเกม', overLblScore:'คะแนน', overLblLevel:'เลเวล',
+      again:'▶ เล่นใหม่', levelUp:'เลเวล '
+    },
+    en: {
+      title:'🎨 Pick Color', back:'← Home',
+      level:'Level', score:'Score', lives:'Lives', best:'Best',
+      targetLbl:'Pick the color',
+      gameover:'Game Over', overLblScore:'Score', overLblLevel:'Level',
+      again:'▶ Play Again', levelUp:'Level '
+    },
+    lao: {
+      title:'🎨 ເລືອກສີ', back:'← ໜ້າຫຼັກ',
+      level:'ລະດັບ', score:'ຄະແນນ', lives:'ຫົວໃຈ', best:'ດີສຸດ',
+      targetLbl:'ເລືອກສີ',
+      gameover:'ຈົບເກມ', overLblScore:'ຄະແນນ', overLblLevel:'ລະດັບ',
+      again:'▶ ຫຼິ້ນອີກ', levelUp:'ລະດັບ '
     }
-    const matchVoice = voices.find(v => v.lang === voiceLang);
-    if (matchVoice) utter.voice = matchVoice;
-    window.speechSynthesis.speak(utter);
+  };
+
+  const STATS_KEY = 'color_stats_v1';
+  function loadStats() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+      return { bestScore: s.bestScore | 0, bestLevel: s.bestLevel | 0, plays: s.plays | 0 };
+    } catch { return { bestScore: 0, bestLevel: 0, plays: 0 }; }
   }
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.onvoiceschanged = function() {
-      speakWithVoices();
-    };
-    window.speechSynthesis.getVoices();
-    setTimeout(speakWithVoices, 500);
-  } else {
-    speakWithVoices();
+  function saveStats(patch) {
+    const cur = loadStats();
+    const upd = Object.assign({}, cur, patch);
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(upd)); } catch {}
+    return upd;
   }
-}
 
-
-function getStageColorCount() {
-  if (colorStage === 0) return 3;
-  if (colorStage === 1) return 5;
-  return 8;
-}
-
-function nextColorRound() {
-  if (round === 0) {
-    startTime = Date.now();
-    colorStage = 0;
-    correctInStage = 0;
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
-  round++;
-  // จบเกมหลังผ่าน 3 stage
-  if (colorStage > 2) {
-    endTime = Date.now();
-    const timeUsed = ((endTime - startTime) / 1000).toFixed(1);
-    document.getElementById('color-stage-info').textContent = '';
-    document.getElementById('color-question').textContent = 'เก่งมาก! คุณเลือกสีได้ครบทุกระดับ';
-    document.getElementById('color-options').innerHTML = '';
-    document.getElementById('color-result').innerHTML = `ใช้เวลา: <b>${timeUsed}</b> วินาที`;
-    playColorSound('colorCongratsSound');
-    setTimeout(() => playColorSound('colorWinSound'), 1200);
-    saveColorGameStat(timeUsed);
-    return;
+  function beep(f, d, type, vol) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(f, now);
+    g.gain.setValueAtTime(vol || 0.06, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + d);
+    osc.start(now); osc.stop(now + d + 0.02);
   }
-  const colorCount = getStageColorCount();
-  const colorPool = COLORS.slice(0, colorCount);
-  // แสดงชื่อสีทั้งหมดในรอบนี้
-  const colorNames = colorPool.map(c => c.name).join(' ');
-  document.getElementById('color-stage-info').textContent = `รอบนี้มี ${colorCount} สี: ${colorNames}`;
-  const color = colorPool[Math.floor(Math.random() * colorPool.length)];
-  currentColor = color;
-  document.getElementById('color-question').textContent = `เลือกสี: ${color.name}`;
-  renderColorOptions(color, colorPool);
-  document.getElementById('color-result').textContent = '';
-  // เล่นเสียงพูดชื่อสีของคำตอบที่ถูกต้อง
-  setTimeout(() => playColorNameSound(color.name), 350);
-}
+  function play(kind) {
+    if (!audioCtx) return;
+    if (kind === 'correct') beep(660 + Math.random()*200, 0.1, 'triangle', 0.06);
+    if (kind === 'wrong')   { beep(220, 0.18, 'sawtooth', 0.07); setTimeout(() => beep(160, 0.16, 'sawtooth', 0.06), 150); }
+    if (kind === 'levelup') {
+      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.13, 'sine', 0.07), i*100));
+    }
+    if (kind === 'gameover'){ beep(330, 0.2, 'sawtooth', 0.1); setTimeout(() => beep(220, 0.3, 'sawtooth', 0.1), 200); setTimeout(() => beep(165, 0.5, 'sawtooth', 0.1), 480); }
+  }
 
+  // ===== State =====
+  let lang = (() => {
+    const v = localStorage.getItem('lang');
+    return (v === 'th' || v === 'en' || v === 'lao') ? v : 'th';
+  })();
+  let level = 1;
+  let score = 0;
+  let lives = 5;
+  let target = null;
+  let answering = false;
 
-function renderColorOptions(answerColor, colorPool) {
-  // สุ่ม 3 ปุ่ม (stage 0), 5 ปุ่ม (stage 1), 8 ปุ่ม (stage 2)
-  let options = shuffle([answerColor, ...shuffle(colorPool.filter(c => c !== answerColor)).slice(0, Math.max(2, colorPool.length-1))]);
-  // จำกัดจำนวนปุ่มตาม stage
-  options = options.slice(0, getStageColorCount());
-  if (!options.includes(answerColor)) options[0] = answerColor; // กันพลาด
-  options = shuffle(options);
-  const container = document.getElementById('color-options');
-  container.innerHTML = '';
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'color-btn';
-    btn.style.background = opt.color;
-    btn.setAttribute('aria-label', opt.name);
-    btn.onclick = () => handleColorSelect(opt);
-    container.appendChild(btn);
+  const $ = id => document.getElementById(id);
+  const elButtons = $('buttons');
+  const elLevel = $('ui-level');
+  const elScore = $('ui-score');
+  const elLives = $('ui-lives');
+  const elBest = $('ui-best');
+  const elFlash = $('flash');
+  const elModalOver = $('modal-over');
+
+  function nameFor(c, l) {
+    if (l === 'th') return c.th;
+    if (l === 'lao') return c.lo;
+    return c.en;
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length-1; i>0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // FIXED: proper Lao TTS lang code (was 'th-TH' in old code)
+  function speak(c) {
+    const v = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    const text = nameFor(c, lang);
+    if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+      try { window.AndroidTTS.speak(text, v); return; } catch {}
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = v; u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+  }
+
+  function levelConfig(lv) {
+    let nOptions;
+    if (lv <= 1) nOptions = 3;
+    else if (lv <= 3) nOptions = 4;
+    else if (lv <= 5) nOptions = 6;
+    else if (lv <= 8) nOptions = 9;
+    else nOptions = 12;
+    return { nOptions };
+  }
+
+  function startRound() {
+    answering = false;
+    const cfg = levelConfig(level);
+    target = COLORS[Math.floor(Math.random() * COLORS.length)];
+    $('target-name').textContent = nameFor(target, lang);
+
+    const wrong = shuffle(COLORS.filter(c => c.hex !== target.hex)).slice(0, cfg.nOptions - 1);
+    const opts = shuffle([target, ...wrong]);
+
+    // Adjust grid based on count
+    let cols = 3;
+    if (cfg.nOptions <= 4) cols = 2;
+    else if (cfg.nOptions <= 9) cols = 3;
+    else cols = 4;
+    elButtons.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    elButtons.innerHTML = '';
+    for (const c of opts) {
+      const btn = document.createElement('button');
+      btn.className = 'cg-btn';
+      btn.style.background = c.hex;
+      btn.dataset.hex = c.hex;
+      btn.addEventListener('click', () => onTap(btn, c));
+      elButtons.appendChild(btn);
+    }
+    elLevel.textContent = level;
+    // Auto-speak target on round start (delay to let UI settle)
+    setTimeout(() => { ensureAudio(); speak(target); }, 250);
+  }
+
+  function onTap(btn, c) {
+    if (answering) return;
+    answering = true;
+    ensureAudio();
+    const correct = c.hex === target.hex;
+    [...elButtons.querySelectorAll('.cg-btn')].forEach(b => {
+      if (b.dataset.hex === target.hex) b.classList.add('correct');
+      else if (b === btn) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+    if (correct) {
+      score += 10 + level * 2;
+      elScore.textContent = score;
+      play('correct');
+      speak(target);
+      const nextLevel = Math.floor(score / 80) + 1;
+      const leveledUp = nextLevel > level;
+      setTimeout(() => {
+        if (leveledUp) {
+          level = nextLevel;
+          showFlash(I18N[lang].levelUp + level + ' 🎉');
+          play('levelup');
+        }
+        startRound();
+      }, 700);
+    } else {
+      lives--;
+      elLives.textContent = '❤'.repeat(Math.max(0, lives)) || '·';
+      play('wrong');
+      setTimeout(() => {
+        if (lives <= 0) gameOver();
+        else startRound();
+      }, 1100);
+    }
+  }
+
+  function showFlash(msg) {
+    elFlash.textContent = msg;
+    elFlash.classList.remove('show');
+    void elFlash.offsetWidth;
+    elFlash.classList.add('show');
+  }
+
+  function gameOver() {
+    play('gameover');
+    const prev = loadStats();
+    const isNewBest = score > prev.bestScore;
+    const updated = saveStats({
+      bestScore: Math.max(prev.bestScore, score),
+      bestLevel: Math.max(prev.bestLevel, level),
+      plays: prev.plays + 1
+    });
+    $('over-score').textContent = score;
+    $('over-level').textContent = level;
+    $('newbest').style.display = (isNewBest && score > 0) ? 'inline-block' : 'none';
+    elBest.textContent = updated.bestScore;
+    setTimeout(() => elModalOver.classList.add('show'), 500);
+  }
+
+  $('btn-speak').addEventListener('click', () => {
+    ensureAudio();
+    if (target) speak(target);
   });
-}
-
-
-function handleColorSelect(selected) {
-  if (!currentColor) return;
-  if (selected.name === currentColor.name) {
-    score++;
-    correctInStage++;
-    document.getElementById('color-result').textContent = 'ถูกต้อง!';
-    playColorSound('colorCorrectSound');
-    setTimeout(() => {
-      // ถ้าตอบถูกครบ 3 ครั้งใน stage นี้ ให้ไป stage ถัดไป
-      if (correctInStage >= 3) {
-        colorStage++;
-        correctInStage = 0;
-      }
-      nextColorRound();
-    }, 900);
-  } else {
-    document.getElementById('color-result').textContent = 'ลองใหม่อีกครั้ง!';
-    playColorSound('colorWrongSound');
-  }
-}
-
-
-
-document.getElementById('restartColorBtn').onclick = () => {
-  score = 0;
-  round = 0;
-  colorStage = 0;
-  correctInStage = 0;
-  startTime = null;
-  endTime = null;
-  nextColorRound();
-};
-
-
-
-let ttsPlayed = false;
-window.tryPlayTTS = function() {
-  if (ttsPlayed) return;
-  if (currentColor && currentColor.name) {
-    playColorNameSound(currentColor.name);
-    ttsPlayed = true;
-    window.removeEventListener('touchstart', window.tryPlayTTS);
-    window.removeEventListener('mousedown', window.tryPlayTTS);
-  }
-};
-window.onload = () => {
-  score = 0;
-  round = 0;
-  colorStage = 0;
-  correctInStage = 0;
-  startTime = null;
-  endTime = null;
-  ttsPlayed = false;
-  nextColorRound();
-  // เรียกซ้ำเมื่อ user แตะหน้าจอ (สำหรับ mobile webview)
-  window.addEventListener('touchstart', window.tryPlayTTS);
-  window.addEventListener('mousedown', window.tryPlayTTS);
-};
-// เก็บสถิติลง localStorage
-function saveColorGameStat(timeUsed) {
-  const stats = JSON.parse(localStorage.getItem('colorGameStats') || '[]');
-  const now = new Date();
-  stats.push({
-    date: now.toISOString(),
-    time: Number(timeUsed),
-    rounds: maxRounds
+  $('btn-again').addEventListener('click', () => {
+    ensureAudio();
+    elModalOver.classList.remove('show');
+    level = 1; score = 0; lives = 5;
+    elLevel.textContent = '1';
+    elScore.textContent = '0';
+    elLives.textContent = '❤❤❤❤❤';
+    startRound();
   });
-  localStorage.setItem('colorGameStats', JSON.stringify(stats));
-}
+
+  function applyLang() {
+    const t = I18N[lang];
+    $('hdr-title').textContent = t.title;
+    $('hdr-back').textContent = t.back;
+    $('lbl-level').textContent = t.level;
+    $('lbl-score').textContent = t.score;
+    $('lbl-lives').textContent = t.lives;
+    $('lbl-best').textContent = t.best;
+    $('target-lbl').textContent = t.targetLbl;
+    $('over-title').textContent = t.gameover;
+    $('over-lbl-score').textContent = t.overLblScore;
+    $('over-lbl-level').textContent = t.overLblLevel;
+    $('btn-again').textContent = t.again;
+    document.title = t.title;
+    if (target) $('target-name').textContent = nameFor(target, lang);
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'lang') {
+      const v = e.newValue;
+      if (v === 'th' || v === 'en' || v === 'lao') { lang = v; applyLang(); }
+    }
+  });
+
+  function refreshHud() {
+    const s = loadStats();
+    elBest.textContent = s.bestScore;
+  }
+  applyLang();
+  refreshHud();
+  startRound();
+})();

@@ -2,30 +2,174 @@
 <html lang="lo">
 <head>
   <meta charset="UTF-8">
-  <title>เกมลากเส้นภาษาลาว ກ-ຮ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ພະຍັນຊະນະລາວ · Lao Consonants</title>
   <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    .draw-lao-area { display: flex; flex-direction: column; align-items: center; gap: 24px; margin: 32px 0; }
-    .draw-lao-char { font-size: 2.5rem; font-weight: bold; color: #1976d2; margin-bottom: 12px; }
-    .draw-lao-canvas { border: 2px solid #1976d2; border-radius: 12px; background: #fff; }
-    .draw-lao-btn { margin-top: 16px; }
+    body { background: #f0f4f8; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif;
+           -webkit-tap-highlight-color: transparent; }
+    .lc-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .lc-header {
+      background: linear-gradient(135deg, #db2777, #be185d);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(219,39,119,0.25); margin-bottom: 10px;
+    }
+    .lc-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .lc-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.18);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .lc-prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .lc-prog-bar { flex: 1; background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; }
+    .lc-prog-fill {
+      background: linear-gradient(90deg, #db2777, #f59e0b);
+      height: 100%; width: 0%; transition: width .35s; border-radius: 99px;
+    }
+    .lc-prog-text { font-weight: 700; color: #475569; font-size: .9rem; min-width: 70px; text-align: right; }
+
+    /* Info card with emoji */
+    .lc-info {
+      background: #fff; border-radius: 14px; padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .lc-letter {
+      font-family: 'Noto Sans Lao', sans-serif;
+      font-size: 2.6rem; font-weight: 700; color: #db2777;
+      min-width: 70px; text-align: center;
+      background: #fdf2f8; border-radius: 12px; padding: 6px 12px;
+      line-height: 1.1;
+    }
+    .lc-meta { flex: 1; min-width: 0; }
+    .lc-name {
+      font-size: 1rem; font-weight: 700; color: #1e293b;
+      font-family: 'Noto Sans Lao', sans-serif;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .lc-name .emoji { font-size: 1.4rem; }
+    .lc-name-sub { font-size: .82rem; color: #64748b; margin-top: 2px; }
+    .lc-rom {
+      display: inline-block; margin-top: 4px;
+      background: #fef3c7; color: #92400e;
+      padding: 2px 10px; border-radius: 99px;
+      font-weight: 700; font-size: .85rem; letter-spacing: .5px;
+    }
+
+    .lc-canvas-wrap {
+      position: relative; margin: 0 auto 10px;
+      width: 100%; aspect-ratio: 1/1; max-width: 360px;
+      background: #fff; border: 2px solid #cbd5e1; border-radius: 16px;
+      overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.06);
+    }
+    .lc-canvas-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+    #shadow-canvas { opacity: 0.22; pointer-events: none; }
+    #user-canvas { background: transparent; cursor: crosshair; }
+
+    .lc-feedback {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; pointer-events: none;
+      opacity: 0; font-size: 3.5rem; text-align: center;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
+    }
+    .lc-feedback.show { animation: pop 1.1s ease-out; }
+    .lc-feedback .pct { font-size: 1.2rem; color: #fff;
+                        background: rgba(0,0,0,.55); padding: 4px 14px;
+                        border-radius: 99px; margin-top: 6px; font-family: 'Segoe UI'; font-weight: 700; }
+    @keyframes pop {
+      0% { opacity: 0; transform: scale(.4); }
+      30% { opacity: 1; transform: scale(1.15); }
+      80% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+
+    .lc-actions {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;
+    }
+    .lc-btn {
+      padding: 12px 6px; border-radius: 12px; border: 2px solid #cbd5e1;
+      background: #fff; color: #1e293b; font-weight: 700; font-size: .85rem;
+      cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,.05);
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      min-height: 56px;
+    }
+    .lc-btn:active { transform: translateY(2px); box-shadow: none; }
+    .lc-btn .icon { font-size: 1.1rem; line-height: 1; }
+    .lc-btn .lbl { font-size: .72rem; line-height: 1; }
+    .lc-btn.primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff; border-color: #059669;
+      box-shadow: 0 2px 8px rgba(16,185,129,.35);
+    }
+
+    .lc-stats {
+      display: flex; justify-content: space-around;
+      background: #fff; border-radius: 12px; padding: 8px 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.05); font-size: .85rem;
+    }
+    .lc-stat { text-align: center; }
+    .lc-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+    .lc-stat .val { font-weight: 800; font-size: 1.05rem; color: #1e293b; }
+    .lc-stat .val.best { color: #f59e0b; }
+    .lc-stat .val.done { color: #10b981; }
+
+    @media (max-width: 360px) {
+      .lc-letter { font-size: 2.2rem; min-width: 60px; }
+      .lc-btn { font-size: .8rem; padding: 10px 4px; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">เกมลากเส้นภาษาลาว ກ-ຮ</div>
-  <div class="container py-4">
-    <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
-      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+  <div class="lc-wrap">
+    <div class="lc-header">
+      <div class="lc-title" id="hdr-title">📝 ພະຍັນຊະນະລາວ</div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
     </div>
-    <div id="draw-lao-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
-    <div id="draw-lao-game-area" class="draw-lao-area"></div>
-    <div id="draw-lao-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+
+    <div class="lc-prog-row">
+      <div class="lc-prog-bar"><div class="lc-prog-fill" id="prog-fill"></div></div>
+      <div class="lc-prog-text"><span id="prog-cur">1</span>/<span id="prog-total">27</span></div>
+    </div>
+
+    <div class="lc-info">
+      <div class="lc-letter" id="letter"></div>
+      <div class="lc-meta">
+        <div class="lc-name"><span class="emoji" id="vobj">🐔</span><span id="vname"></span></div>
+        <div class="lc-name-sub" id="vname-sub"></div>
+        <span class="lc-rom" id="vrom"></span>
+      </div>
+    </div>
+
+    <div class="lc-canvas-wrap" id="canvas-wrap">
+      <canvas id="shadow-canvas"></canvas>
+      <canvas id="user-canvas"></canvas>
+      <div class="lc-feedback" id="feedback"></div>
+    </div>
+
+    <div class="lc-actions">
+      <button class="lc-btn" id="btn-prev"><span class="icon">←</span><span class="lbl" id="lbl-prev">ก่อนหน้า</span></button>
+      <button class="lc-btn" id="btn-speak"><span class="icon">🔊</span><span class="lbl" id="lbl-speak">ออกเสียง</span></button>
+      <button class="lc-btn" id="btn-clear"><span class="icon">🧹</span><span class="lbl" id="lbl-clear">ลบเส้น</span></button>
+      <button class="lc-btn primary" id="btn-check"><span class="icon">✓</span><span class="lbl" id="lbl-check">ตรวจ</span></button>
+    </div>
+
+    <div class="lc-stats">
+      <div class="lc-stat">
+        <div class="lbl" id="lbl-best">ดีที่สุด</div>
+        <div class="val best"><span id="ui-best">0</span>%</div>
+      </div>
+      <div class="lc-stat">
+        <div class="lbl" id="lbl-done">ผ่านแล้ว</div>
+        <div class="val done"><span id="ui-done">0</span>/<span id="ui-done-total">27</span></div>
+      </div>
+      <div class="lc-stat">
+        <div class="lbl" id="lbl-tries">รอบนี้</div>
+        <div class="val"><span id="ui-tries">0</span> ครั้ง</div>
+      </div>
+    </div>
   </div>
+
   <script src="js/draw-lao-abc-game.js"></script>
-  <script>
-    document.getElementById('restartBtn').onclick = function() { startDrawLaoABCGame(); };
-    window.onload = function() { startDrawLaoABCGame(); };
-  </script>
 </body>
 </html>

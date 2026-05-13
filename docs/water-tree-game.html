@@ -2,57 +2,249 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>เกมรดน้ำต้นไม้</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>รดน้ำต้นไม้ · Plant Care</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    .tree-game-tree {
-      width: 120px;
-      height: 160px;
-      margin: 32px auto;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      background: linear-gradient(180deg, #bae6fd 0%, #d1fae5 60%, #86efac 100%);
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      overflow: hidden;
     }
-    .tree-game-water-btn {
-      background: #42a5f5;
-      color: #fff;
-      border: 2px solid #1976d2;
-      border-radius: 10px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      padding: 0.8rem 1.5rem;
-      margin: 0.5rem;
-      box-shadow: 0 2px 8px rgba(66,165,245,0.08);
-      cursor: pointer;
-      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    #wrap { width: 100vw; height: 100vh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+
+    .pc-header {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #fff; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+      flex-shrink: 0;
     }
-    .tree-game-water-btn:hover {
-      background: #1976d2;
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(66,165,245,0.12);
+    .pc-title { font-size: 1.1rem; font-weight: 800; letter-spacing: .5px; }
+    .pc-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .82rem; }
+
+    /* HUD */
+    .pc-hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px;
+              background: rgba(255,255,255,.7); backdrop-filter: blur(6px); flex-shrink: 0; }
+    .pc-stat { background: #fff; border-radius: 10px; padding: 6px 4px; text-align: center;
+               box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .pc-stat .lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .pc-stat .val { font-size: 16px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .pc-stat .val.grown { color: #16a34a; }
+    .pc-stat .val.streak { color: #f59e0b; }
+    .pc-stat .val.best { color: #8b5cf6; }
+
+    /* Plant stage label */
+    .pc-plant-label {
+      text-align: center; padding: 6px;
+      font-weight: 800; font-size: .95rem; color: #166534;
+      font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* Stage progress dots */
+    .pc-stages {
+      display: flex; gap: 6px; justify-content: center;
+      padding: 4px 0 8px; flex-shrink: 0;
+    }
+    .pc-stage-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: rgba(255,255,255,0.6); border: 2px solid rgba(22,163,74,0.4);
+      transition: all .3s;
+    }
+    .pc-stage-dot.done { background: #16a34a; border-color: #166534; }
+    .pc-stage-dot.current { background: #fde047; border-color: #ca8a04; transform: scale(1.2); }
+
+    /* Plant arena */
+    .pc-arena {
+      flex-grow: 1; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .pc-ground {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 70px;
+      background: linear-gradient(180deg, #84cc16, #65a30d);
+      border-radius: 50% 50% 0 0 / 22px 22px 0 0;
+    }
+    .pc-pot {
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+      width: 110px; height: 60px;
+      background: linear-gradient(180deg, #b45309, #92400e);
+      border-radius: 0 0 14px 14px;
+      border-top: 6px solid #d97706;
+      box-shadow: 0 6px 12px rgba(0,0,0,.15);
+    }
+    .pc-pot::before {
+      content: ''; position: absolute; top: -10px; left: -8px;
+      width: 126px; height: 14px;
+      background: linear-gradient(180deg, #d97706, #b45309);
+      border-radius: 4px;
+    }
+    .pc-plant {
+      position: absolute; bottom: 86px; left: 50%; transform: translate(-50%, 0);
+      font-size: 5rem;
+      transition: transform .4s cubic-bezier(.34, 1.56, .64, 1);
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,.15));
+      line-height: 1;
+    }
+    .pc-plant.growing { animation: grow .6s; }
+    @keyframes grow {
+      0%   { transform: translate(-50%, 8px) scale(.7); }
+      40%  { transform: translate(-50%, -10px) scale(1.15); }
+      100% { transform: translate(-50%, 0) scale(1); }
+    }
+    .pc-plant.harvest { animation: harvest 1s ease-out forwards; }
+    @keyframes harvest {
+      0% { transform: translate(-50%, 0) scale(1); }
+      50% { transform: translate(-50%, -120px) scale(1.3); opacity: 1; }
+      100% { transform: translate(-50%, -300px) scale(0.4); opacity: 0; }
+    }
+
+    /* Speech bubble (need indicator) */
+    .pc-bubble {
+      position: absolute; left: 50%; bottom: 220px;
+      transform: translateX(-50%);
+      background: #fff; padding: 10px 16px;
+      border-radius: 18px; font-size: 1.8rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+      border: 3px solid #16a34a;
+      display: flex; align-items: center; gap: 8px;
+      animation: float 2.2s ease-in-out infinite;
+    }
+    .pc-bubble::after {
+      content: ''; position: absolute; bottom: -10px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0; border-left: 10px solid transparent;
+      border-right: 10px solid transparent; border-top: 12px solid #16a34a;
+    }
+    .pc-bubble::before {
+      content: ''; position: absolute; bottom: -7px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0; border-left: 8px solid transparent;
+      border-right: 8px solid transparent; border-top: 10px solid #fff;
+      z-index: 1;
+    }
+    @keyframes float {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50%     { transform: translateX(-50%) translateY(-6px); }
+    }
+    .pc-bubble .icon { font-size: 2rem; }
+    .pc-bubble.hidden { display: none; }
+
+    /* Floating effect emojis (water drops, sun rays, fertilizer sprinkles) */
+    .pc-fx {
+      position: absolute; font-size: 1.6rem; pointer-events: none;
+      animation: fall 1s ease-out forwards;
+    }
+    @keyframes fall {
+      0%   { opacity: 1; transform: translate(0, 0) scale(.6); }
+      50%  { opacity: 1; transform: translate(0, 30px) scale(1); }
+      100% { opacity: 0; transform: translate(0, 80px) scale(1.2); }
+    }
+
+    /* Confetti for grown plant */
+    .pc-confetti {
+      position: absolute; pointer-events: none;
+      font-size: 1.4rem;
+      animation: confetti 1.6s ease-out forwards;
+    }
+    @keyframes confetti {
+      0%   { opacity: 1; transform: translate(0, 0) rotate(0); }
+      100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, -180px)) rotate(360deg); }
+    }
+
+    /* Action buttons */
+    .pc-actions {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      padding: 10px; background: rgba(255,255,255,.8); backdrop-filter: blur(6px);
+      flex-shrink: 0;
+    }
+    .pc-btn {
+      padding: 16px 6px; border-radius: 14px; border: 3px solid;
+      cursor: pointer; font-weight: 800; font-size: 1rem;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+      transition: transform .12s;
+    }
+    .pc-btn .em { font-size: 2.2rem; line-height: 1; }
+    .pc-btn .lbl { font-size: .75rem; font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif; }
+    .pc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+    .pc-btn.water  { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
+    .pc-btn.sun    { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .pc-btn.soil   { background: #fed7aa; border-color: #c2410c; color: #7c2d12; }
+
+    /* Toast feedback */
+    .pc-toast {
+      position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.5);
+      padding: 18px 28px; border-radius: 14px;
+      background: rgba(15,23,42,.85); color: #fff;
+      font-size: 2.2rem; font-weight: 900;
+      pointer-events: none; opacity: 0; z-index: 30;
+    }
+    .pc-toast.show { animation: toastPop 1s ease-out; }
+    @keyframes toastPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (max-height: 600px) {
+      .pc-plant { font-size: 4rem; }
+      .pc-bubble { bottom: 180px; }
     }
   </style>
 </head>
 <body>
-  <div class="header">เกมรดน้ำต้นไม้</div>
-  <div class="container py-4">
-    <div class="text-center mt-3">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="margin-bottom:12px;">ออกเกม</button>
-      <button id="restartBtn" class="menu-btn" style="margin-left:8px;">เริ่มใหม่</button>
+  <div id="wrap">
+    <div class="pc-header">
+      <div class="pc-title" id="hdr-title">🌱 รดน้ำต้นไม้</div>
+      <a href="index.html" id="hdr-back">← หน้าหลัก</a>
     </div>
-    <div id="tree-game-timer" class="text-center mt-2" style="font-size:1.2rem;color:#4caf50;"></div>
-    <div id="tree-game-tree" class="tree-game-tree"></div>
-    <div class="text-center mt-3">
-      <button class="tree-game-water-btn" onclick="tapWater()">💧 รดน้ำ</button>
+
+    <div class="pc-hud">
+      <div class="pc-stat"><div class="lbl" id="lbl-grown">โตแล้ว</div><div class="val grown" id="ui-grown">0</div></div>
+      <div class="pc-stat"><div class="lbl" id="lbl-streak">ติดต่อ</div><div class="val streak" id="ui-streak">0</div></div>
+      <div class="pc-stat"><div class="lbl" id="lbl-best">ดีที่สุด</div><div class="val best" id="ui-best">0</div></div>
     </div>
-    <div id="tree-game-result" class="text-center mt-4" style="font-size: 1.2rem;"></div>
+
+    <div class="pc-plant-label" id="plant-label">🌱 เมล็ดพืช</div>
+
+    <div class="pc-stages" id="stages"></div>
+
+    <div class="pc-arena" id="arena">
+      <div class="pc-ground"></div>
+      <div class="pc-pot"></div>
+      <div class="pc-plant" id="plant">🌱</div>
+      <div class="pc-bubble hidden" id="bubble">
+        <span class="icon" id="bubble-icon">💧</span>
+      </div>
+    </div>
+
+    <div class="pc-actions">
+      <button class="pc-btn water" id="btn-water" data-kind="water">
+        <span class="em">💧</span>
+        <span class="lbl" id="lbl-water">รดน้ำ</span>
+      </button>
+      <button class="pc-btn sun" id="btn-sun" data-kind="sun">
+        <span class="em">☀️</span>
+        <span class="lbl" id="lbl-sun">ให้แดด</span>
+      </button>
+      <button class="pc-btn soil" id="btn-soil" data-kind="soil">
+        <span class="em">🌱</span>
+        <span class="lbl" id="lbl-soil">ใส่ปุ๋ย</span>
+      </button>
+    </div>
   </div>
+
+  <div class="pc-toast" id="toast">✅</div>
+
   <script src="js/water-tree-game.js"></script>
-  <script>
-    document.getElementById('restartBtn').onclick = function() { startWaterTreeGame(); };
-    window.onload = function() { startWaterTreeGame(); };
-  </script>
 </body>
 </html>
