@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ສະຕິກເກີຮາງວັນ · Sticker Reward Chart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7, #fce7f3, #ddd6fe);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .sc-wrap { max-width: 560px; margin: 0 auto; padding: 8px 8px 32px; }
+
+    .sc-header {
+      background: linear-gradient(135deg, #f97316, #ec4899, #a855f7);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 14px rgba(236,72,153,0.35); margin-bottom: 10px;
+    }
+    .sc-title { font-size: 1.15rem; font-weight: 900; letter-spacing: .3px; line-height: 1.15; }
+    .sc-sub   { font-size: .75rem; opacity: .92; }
+    .sc-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    /* Children chips */
+    .sc-children {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      background: #fff; border-radius: 14px; padding: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 10px;
+    }
+    .sc-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 99px;
+      background: #f1f5f9; cursor: pointer;
+      border: 2px solid transparent; font-family: inherit;
+      font-weight: 700; font-size: .9rem; color: #475569;
+    }
+    .sc-chip .ava { font-size: 1.2rem; line-height: 1; }
+    .sc-chip.active {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-color: #f59e0b; color: #92400e;
+    }
+    .sc-chip:active { transform: scale(.95); }
+    .sc-add-chip {
+      background: #ede9fe; color: #6d28d9; font-weight: 900;
+      border: 2px dashed #c4b5fd;
+      padding: 6px 12px; border-radius: 99px;
+      cursor: pointer; font-family: inherit; font-size: .9rem;
+    }
+    .sc-add-chip:active { transform: scale(.95); }
+    .sc-chip-del {
+      margin-left: 4px; color: #ef4444; cursor: pointer;
+      font-size: .9rem; opacity: .6;
+    }
+    .sc-chip-del:hover { opacity: 1; }
+
+    /* Stats row */
+    .sc-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      margin-bottom: 10px;
+    }
+    .sc-stat {
+      background: #fff; border-radius: 12px; padding: 10px 6px;
+      text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .sc-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    .sc-stat .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; line-height: 1.1; margin-top: 2px; }
+    .sc-stat.week .val { color: #ec4899; }
+    .sc-stat.total .val { color: #f97316; }
+    .sc-stat.streak .val { color: #a855f7; }
+
+    /* Sticker style picker */
+    .sc-sticker-row {
+      display: flex; align-items: center; gap: 6px;
+      background: #fff; border-radius: 12px; padding: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 10px;
+    }
+    .sc-sticker-row .lbl {
+      font-size: 10px; color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 1px; font-weight: 800; min-width: 60px;
+    }
+    .sc-sticker-row .opts { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+    .sc-sticker-opt {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #f8fafc; border: 2px solid transparent;
+      font-size: 1.3rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+    }
+    .sc-sticker-opt.active { border-color: #f59e0b; background: #fef3c7; transform: scale(1.05); }
+    .sc-sticker-opt:active { transform: scale(.9); }
+
+    /* Week nav */
+    .sc-week {
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, #ede9fe, #fce7f3);
+      border-radius: 12px; padding: 8px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 10px;
+    }
+    .sc-week-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; background: #fff; color: #6d28d9;
+      font-size: 1rem; font-weight: 900; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      font-family: inherit;
+    }
+    .sc-week-btn:active { transform: scale(.9); }
+    .sc-week-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .sc-week-lbl {
+      font-weight: 900; color: #6d28d9; font-size: .95rem;
+      text-align: center; flex: 1;
+    }
+
+    /* Tasks */
+    .sc-tasks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .sc-task {
+      background: #fff; border-radius: 14px; padding: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .sc-task-hd {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    }
+    .sc-task-hd .em { font-size: 1.4rem; }
+    .sc-task-hd .lbl { flex: 1; font-weight: 800; font-size: .95rem; color: #1e293b; }
+    .sc-task-hd .cnt {
+      background: #fef3c7; color: #92400e;
+      font-size: .7rem; font-weight: 900; padding: 3px 9px;
+      border-radius: 99px;
+    }
+    .sc-task-hd .del {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: none; background: transparent; color: #cbd5e1;
+      font-size: 1.1rem; cursor: pointer; font-family: inherit;
+    }
+    .sc-task-hd .del:hover, .sc-task-hd .del:active { color: #ef4444; transform: scale(1.1); }
+    .sc-days {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .sc-day {
+      aspect-ratio: 1 / 1.05;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px;
+      background: #f8fafc; border: 2px solid #e2e8f0;
+      border-radius: 10px; cursor: pointer;
+      font-family: inherit; padding: 0;
+      transition: all .15s;
+    }
+    .sc-day:active { transform: scale(.92); }
+    .sc-day .dow { font-size: .58rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+    .sc-day .dt  { font-size: .68rem; font-weight: 700; color: #64748b; }
+    .sc-day .stk { font-size: 1.3rem; line-height: 1; visibility: hidden; }
+    .sc-day.has  { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #f59e0b; }
+    .sc-day.has .stk { visibility: visible; animation: pop .35s; }
+    .sc-day.today {
+      box-shadow: 0 0 0 2px #a855f7;
+    }
+    @keyframes pop {
+      0% { transform: scale(.3) rotate(-30deg); opacity: 0; }
+      60% { transform: scale(1.3) rotate(15deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    .sc-add-btn {
+      width: 100%; padding: 12px; border-radius: 12px;
+      border: 2px dashed #c4b5fd;
+      background: rgba(255,255,255,0.6);
+      color: #6d28d9; font-weight: 900; font-size: .9rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .sc-add-btn:active { transform: translateY(2px); }
+
+    /* Rewards */
+    .sc-rewards-hd {
+      font-weight: 900; color: #475569; font-size: 1rem;
+      padding: 6px 8px; display: flex; align-items: center; gap: 6px;
+      margin-top: 6px;
+    }
+    .sc-reward {
+      background: #fff; border-radius: 14px; padding: 10px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 6px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sc-reward .em { font-size: 1.5rem; }
+    .sc-reward .body { flex: 1; min-width: 0; }
+    .sc-reward .lbl { font-weight: 800; font-size: .92rem; color: #1e293b; }
+    .sc-reward .bar {
+      height: 8px; background: #f1f5f9; border-radius: 99px;
+      margin-top: 4px; overflow: hidden;
+    }
+    .sc-reward .bar > div {
+      height: 100%; background: linear-gradient(90deg, #f59e0b, #ec4899);
+      border-radius: 99px; transition: width .4s ease-out;
+    }
+    .sc-reward .pct { font-size: .75rem; color: #64748b; font-weight: 700; margin-top: 2px; }
+    .sc-reward.achieved {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+    }
+    .sc-reward.achieved .lbl::after { content: ' 🎉'; }
+    .sc-reward .del {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: none; background: transparent; color: #cbd5e1;
+      cursor: pointer; font-size: 1.1rem; font-family: inherit;
+    }
+    .sc-reward .del:active { color: #ef4444; transform: scale(1.1); }
+
+    /* Modal */
+    .sc-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 50;
+    }
+    .sc-modal.show { display: flex; }
+    .sc-modal-card {
+      background: #fff; border-radius: 18px; padding: 22px 24px;
+      max-width: 92%; min-width: 280px; width: 100%; max-width: 380px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .sc-modal-card h2 {
+      margin: 0 0 14px; color: #be185d; font-size: 1.2rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sc-modal-row { margin-bottom: 10px; }
+    .sc-modal-row .lbl {
+      font-size: 10px; color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 1px; font-weight: 800; margin-bottom: 4px;
+    }
+    .sc-modal-row .emoji-quick {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;
+    }
+    .sc-modal-row .emoji-quick button {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 2px solid transparent; background: #f8fafc;
+      font-size: 1.3rem; cursor: pointer; font-family: inherit;
+    }
+    .sc-modal-row .emoji-quick button.active { border-color: #a855f7; background: #ede9fe; }
+    .sc-input {
+      width: 100%; padding: 10px 12px; font-size: 1rem;
+      border: 2px solid #e2e8f0; border-radius: 10px;
+      font-family: inherit; color: #1e293b;
+      outline: none;
+    }
+    .sc-input:focus { border-color: #a855f7; }
+    .sc-input.emoji { font-size: 1.5rem; text-align: center; width: 80px; }
+    .sc-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .sc-modal-btn {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 800; font-family: inherit;
+      cursor: pointer;
+    }
+    .sc-modal-btn.cancel { background: #f1f5f9; color: #475569; }
+    .sc-modal-btn.save   { background: linear-gradient(135deg, #f97316, #ec4899); color: #fff; }
+
+    /* Sticker rain on reward achieved */
+    .sc-fx {
+      position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.5);
+      padding: 14px 26px; border-radius: 14px;
+      background: linear-gradient(135deg, #f97316, #ec4899, #a855f7);
+      color: #fff; font-size: 1.3rem; font-weight: 900;
+      opacity: 0; pointer-events: none; z-index: 60;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .sc-fx.show { animation: fxPop 1.4s ease-out; }
+    @keyframes fxPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      85%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (max-width: 380px) {
+      .sc-day .dow { font-size: .54rem; }
+      .sc-day .stk { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sc-wrap">
+    <div class="sc-header">
+      <div>
+        <div class="sc-title" id="hdr-title">⭐ ສະຕິກເກີຮາງວັນ</div>
+        <div class="sc-sub" id="hdr-sub">ສຳລັບພໍ່ແມ່</div>
+      </div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+    </div>
+
+    <div class="sc-children" id="children"></div>
+
+    <div class="sc-stats">
+      <div class="sc-stat week"><div class="lbl" id="lbl-week">ອາທິດນີ້</div><div class="val" id="stat-week">0</div></div>
+      <div class="sc-stat total"><div class="lbl" id="lbl-total">ທັງໝົດ</div><div class="val" id="stat-total">0</div></div>
+      <div class="sc-stat streak"><div class="lbl" id="lbl-streak">ຕໍ່ເນື່ອງ</div><div class="val" id="stat-streak">0</div></div>
+    </div>
+
+    <div class="sc-sticker-row">
+      <span class="lbl" id="lbl-sticker">ສະຕິກເກີ</span>
+      <div class="opts" id="sticker-opts"></div>
+    </div>
+
+    <div class="sc-week">
+      <button class="sc-week-btn" id="week-prev" aria-label="Previous week">◀</button>
+      <div class="sc-week-lbl" id="week-lbl">—</div>
+      <button class="sc-week-btn" id="week-next" aria-label="Next week">▶</button>
+    </div>
+
+    <div class="sc-tasks" id="tasks"></div>
+
+    <button class="sc-add-btn" id="btn-add-task" data-i18n="addTask">+ ເພີ່ມໜ້າວຽກ</button>
+
+    <div class="sc-rewards-hd" id="rewards-hd">🎁 <span id="lbl-rewards">ຮາງວັນ</span></div>
+    <div id="rewards"></div>
+    <button class="sc-add-btn" id="btn-add-reward" data-i18n="addReward" style="margin-top:6px;">+ ເພີ່ມຮາງວັນ</button>
+  </div>
+
+  <!-- Generic edit modal -->
+  <div class="sc-modal" id="modal">
+    <div class="sc-modal-card">
+      <h2 id="modal-title">—</h2>
+      <div class="sc-modal-row" id="row-emoji-quick">
+        <div class="lbl" id="lbl-emoji">ໄອຄອນ</div>
+        <div class="emoji-quick" id="emoji-quick"></div>
+        <input class="sc-input emoji" id="in-emoji" maxlength="4">
+      </div>
+      <div class="sc-modal-row">
+        <div class="lbl" id="lbl-name">ຊື່</div>
+        <input class="sc-input" id="in-label" placeholder="">
+      </div>
+      <div class="sc-modal-row" id="row-goal" style="display:none;">
+        <div class="lbl" id="lbl-goal">ເປົ້າໝາຍ (ສະຕິກເກີ)</div>
+        <input class="sc-input" id="in-goal" type="number" min="1" max="9999" value="20">
+      </div>
+      <div class="sc-modal-actions">
+        <button class="sc-modal-btn cancel" id="modal-cancel">ຍົກເລີກ</button>
+        <button class="sc-modal-btn save"   id="modal-save">ບັນທຶກ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sc-fx" id="fx"></div>
+
+  <script src="js/sticker-chart.js"></script>
+</body>
+</html>

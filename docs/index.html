@@ -245,6 +245,7 @@
 
       // 🔢 Numbers
       { key:'laoNum',       file:'lao-number-game.html',    icon:'໑', cat:'numbers', statsKey:'lao_num_stats_v1' },
+      { key:'math',         file:'math-game.html',          icon:'➕', cat:'numbers', statsKey:'math_count_stats_v1' },
       { key:'fruit',        file:'fruit-game.html',         icon:'🍎', cat:'numbers', statsKey:'fruit_count_stats_v1' },
       { key:'missingNum',   file:'missing-number-game.html',icon:'🔢', cat:'numbers', statsKey:'missing_num_stats_v1' },
       { key:'drawNum',      file:'draw-number-game.html',   icon:'✏️', cat:'numbers', statsKey:'draw_num_stats_v1' },
@@ -271,6 +272,8 @@
       { key:'memory',       file:'kids-game.html',          icon:'🧠', cat:'skill', statsKey:'memory_stats_v1' },
       { key:'hideSeek',     file:'hide-and-seek-game.html', icon:'🕵️', cat:'skill', statsKey:'hs_stats_v1' },
       { key:'tower',        file:'tower-game.html',         icon:'🏗️', cat:'skill', statsKey:'tower_stack_stats_v1' },
+      { key:'maze',         file:'maze-game.html',          icon:'🌀', cat:'skill', statsKey:'maze_stats_v1' },
+      { key:'whack',        file:'whack-a-mole-game.html',  icon:'🔨', cat:'skill', statsKey:'whack_stats_v1' },
 
       // 🕹️ Classic
       { key:'tetris',       file:'tetris.html',             icon:'🟦', cat:'classic', intKey:'tetrisHighScore' },
@@ -283,6 +286,9 @@
       { key:'towerDef',     file:'tower-defense-game.html', icon:'🏰', cat:'classic', statsKey:'tdg_stats_v1', scoreField:'bestWave' },
 
       // 🛠️ Tools
+      { key:'freeDraw',     file:'free-draw.html',          icon:'🎨', cat:'tools' },
+      { key:'stickerChart', file:'sticker-chart.html',      icon:'⭐', cat:'tools' },
+      { key:'gpsTracker',   file:'location-tracker.html',   icon:'📍', cat:'tools' },
       { key:'pdfWord',      file:'pdf-to-word.html',        icon:'📄', cat:'tools' }
     ];
 
@@ -319,15 +325,15 @@
         },
         games: {
           color:'ເລືອກສີ', colorOrder:'ຮຽງສີ', shape:'ວາງຮູບຮ່າງ', bigSmall:'ໃຫຍ່-ນ້ອຍ',
-          laoNum:'ຕົວເລກລາວ ໐-໙', fruit:'ນັບຈຳນວນ', missingNum:'ຫາຕົວເລກທີ່ຂາດ', drawNum:'ລາກເສັ້ນ 1-10',
+          laoNum:'ຕົວເລກລາວ ໐-໙', math:'ບວກ-ລົບ', fruit:'ນັບຈຳນວນ', missingNum:'ຫາຕົວເລກທີ່ຂາດ', drawNum:'ລາກເສັ້ນ 1-10',
           drawAbc:'ລາກເສັ້ນ A-Z', azMatch:'ຈັບຄູ່ A-Z', drawLaoAbc:'ລາກເສັ້ນ ກ-ຮ', drawLaoVowel:'ລາກສະຫຼະ',
           flag:'ທຸງປະເທດ', matchFlag:'ຈັບຄູ່ທຸງ', worldMap:'ແຜນທີ່ໂລກ',
           months:'ເດືອນ', weekdays:'ວັນໃນອາທິດ', waterTree:'ລົດນ້ຳຕົ້ນໄມ້',
           findObject:'ຫາສິ່ງຂອງ', humanBody:'ຮ່າງກາຍ',
-          sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ',
+          sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ', maze:'ເຂົາວົງກົດ', whack:'ຕີໜູ',
           tetris:'ເທັດຣິສ', pacman:'Pac-Man', snake:'ງູ', slither:'Slither',
           spaceInv:'Space Invaders', fps:'ຍິງປູມເປົ້າ', piano:'ເປຍໂນ', towerDef:'ປ້ອງກັນຖານ',
-          pdfWord:'PDF → Word'
+          freeDraw:'ແຕ້ມຮູບອິດສະຫຼະ', stickerChart:'ສະຕິກເກີຮາງວັນ', gpsTracker:'ຕິດຕາມ GPS', pdfWord:'PDF → Word'
         }
       },
       th: {
@@ -361,15 +367,15 @@
         },
         games: {
           color:'เลือกสี', colorOrder:'เรียงสี', shape:'วางรูปร่าง', bigSmall:'ใหญ่-เล็ก',
-          laoNum:'ตัวเลขลาว ໐-໙', fruit:'นับจำนวน', missingNum:'หาตัวเลขที่ขาด', drawNum:'ลากเส้น 1-10',
+          laoNum:'ตัวเลขลาว ໐-໙', math:'บวก-ลบ', fruit:'นับจำนวน', missingNum:'หาตัวเลขที่ขาด', drawNum:'ลากเส้น 1-10',
           drawAbc:'ลากเส้น A-Z', azMatch:'จับคู่ A-Z', drawLaoAbc:'ลากเส้น ກ-ຮ', drawLaoVowel:'ลากสระลาว',
           flag:'ธงประเทศ', matchFlag:'จับคู่ธง', worldMap:'แผนที่โลก',
           months:'เดือน', weekdays:'วันในสัปดาห์', waterTree:'รดน้ำต้นไม้',
           findObject:'หาสิ่งของ', humanBody:'ร่างกาย',
-          sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย',
+          sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย', maze:'เขาวงกต', whack:'ตีตัวตุ่น',
           tetris:'เททริส', pacman:'Pac-Man', snake:'งู', slither:'Slither',
           spaceInv:'Space Invaders', fps:'ยิงลูกโป่ง', piano:'เปียโน', towerDef:'ป้องกันฐาน',
-          pdfWord:'PDF → Word'
+          freeDraw:'วาดอิสระ', stickerChart:'สติกเกอร์รางวัล', gpsTracker:'ติดตาม GPS', pdfWord:'PDF → Word'
         }
       },
       en: {
@@ -403,15 +409,15 @@
         },
         games: {
           color:'Pick Color', colorOrder:'Color Order', shape:'Shape Puzzle', bigSmall:'Big-Small',
-          laoNum:'Lao Numerals ໐-໙', fruit:'Count Fruits', missingNum:'Missing Number', drawNum:'Draw 1-10',
+          laoNum:'Lao Numerals ໐-໙', math:'Add & Subtract', fruit:'Count Fruits', missingNum:'Missing Number', drawNum:'Draw 1-10',
           drawAbc:'Draw A-Z', azMatch:'Match A-Z', drawLaoAbc:'Draw ກ-ຮ', drawLaoVowel:'Lao Vowels',
           flag:'Country Flags', matchFlag:'Match Flag', worldMap:'World Map',
           months:'Months', weekdays:'Weekdays', waterTree:'Water Plants',
           findObject:'Find Objects', humanBody:'Human Body',
-          sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack',
+          sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack', maze:'Maze', whack:'Whack-a-Mole',
           tetris:'Tetris', pacman:'Pac-Man', snake:'Snake', slither:'Slither',
           spaceInv:'Space Invaders', fps:'Balloon Shooter', piano:'Piano', towerDef:'Tower Defense',
-          pdfWord:'PDF → Word'
+          freeDraw:'Free Draw', stickerChart:'Sticker Chart', gpsTracker:'GPS Tracker', pdfWord:'PDF → Word'
         }
       }
     };

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ຕີໜູ · Whack-a-Mole</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #ecfccb, #d9f99d);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .wm-wrap { max-width: 480px; margin: 0 auto; padding: 8px; }
+
+    .wm-header {
+      background: linear-gradient(135deg, #84cc16, #4d7c0f);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(132,204,22,0.35); margin-bottom: 10px;
+    }
+    .wm-title { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; }
+    .wm-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+
+    .wm-hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .wm-stat { background: #fff; border-radius: 10px; padding: 8px 4px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .wm-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .wm-stat .val { font-size: 18px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .wm-stat .val.level { color: #4d7c0f; }
+    .wm-stat .val.score { color: #2563eb; }
+    .wm-stat .val.lives { color: #ef4444; letter-spacing: 0; }
+    .wm-stat .val.best  { color: #b45309; }
+
+    /* Grid of holes */
+    .wm-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      background: linear-gradient(180deg, #65a30d, #4d7c0f);
+      padding: 14px; border-radius: 18px;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,.2);
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .wm-hole {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: radial-gradient(ellipse at 50% 60%, #3f2917 0%, #1a0f08 70%);
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.2);
+      cursor: pointer;
+    }
+    .wm-hole::after {
+      content: ''; position: absolute; left: 5%; right: 5%; top: 60%; height: 30%;
+      background: rgba(0,0,0,.4); border-radius: 50%; filter: blur(4px);
+      pointer-events: none;
+    }
+    .wm-mole {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 80%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(2rem, 12vw, 3.5rem);
+      transform: translateY(110%);
+      transition: transform .12s ease-out;
+      pointer-events: none;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,.3));
+    }
+    .wm-mole.show { transform: translateY(8%); pointer-events: auto; }
+    .wm-mole.hit { animation: hitPop .3s forwards; pointer-events: none; }
+    @keyframes hitPop {
+      0% { transform: translateY(8%) scale(1); }
+      40% { transform: translateY(8%) scale(1.4) rotate(15deg); }
+      100% { transform: translateY(110%) scale(0.8); }
+    }
+
+    /* Combo flash */
+    .wm-flash {
+      position: fixed; left: 50%; top: 35%; transform: translate(-50%, -50%) scale(.5);
+      padding: 12px 22px; border-radius: 14px;
+      background: linear-gradient(135deg, #84cc16, #4d7c0f);
+      color: #fff; font-size: 1.4rem; font-weight: 900;
+      opacity: 0; pointer-events: none; z-index: 30;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .wm-flash.show { animation: flashPop 1s ease-out; }
+    @keyframes flashPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+      30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Floating score popups — appended to .wm-grid so they aren't clipped by hole's overflow:hidden */
+    .wm-pop {
+      position: absolute;
+      transform: translateX(-50%);
+      font-size: 1.1rem; font-weight: 900; color: #fbbf24;
+      text-shadow: 0 1px 3px rgba(0,0,0,.5);
+      pointer-events: none; opacity: 0;
+      animation: popUp 0.8s ease-out forwards;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .wm-pop.neg { color: #f87171; }
+    @keyframes popUp {
+      0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(.8); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(1.2); }
+    }
+
+    /* Start overlay */
+    .wm-start {
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; background: #fff; border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-bottom: 10px;
+    }
+    .wm-btn-start {
+      padding: 12px 28px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, #84cc16, #4d7c0f);
+      color: #fff; font-size: 1.05rem; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 12px rgba(132,204,22,.4);
+    }
+    .wm-btn-start:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(132,204,22,.4); }
+
+    /* Modal */
+    .wm-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 20;
+    }
+    .wm-modal.show { display: flex; }
+    .wm-modal-card {
+      background: #fff; border-radius: 18px; padding: 24px 28px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .wm-modal-card h2 { margin: 0 0 8px; color: #4d7c0f; font-size: 1.5rem; }
+    .wm-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .wm-stats-grid .cell { background: #ecfccb; padding: 10px; border-radius: 10px; }
+    .wm-stats-grid .lbl { font-size: 10px; color: #4d7c0f; text-transform: uppercase; font-weight: 700; }
+    .wm-stats-grid .val { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+    .new-best {
+      display: inline-block; background: #fde68a; color: #92400e;
+      font-weight: 900; font-size: .8rem; padding: 3px 12px;
+      border-radius: 99px; margin-bottom: 8px; box-shadow: 0 0 12px rgba(251,191,36,.5);
+    }
+    .wm-btn-modal {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #84cc16, #4d7c0f);
+      color: #fff; font-size: 1rem; font-weight: 800; letter-spacing: .5px;
+      cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 12px rgba(132,204,22,.35);
+    }
+    .wm-btn-modal:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(132,204,22,.35); }
+
+    /* Hint */
+    .wm-hint {
+      display: flex; justify-content: space-around; padding: 8px;
+      background: #fff; border-radius: 12px; margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05); font-size: .85rem; font-weight: 700;
+    }
+    .wm-hint span { display: flex; align-items: center; gap: 4px; }
+
+    @media (max-width: 380px) {
+      .wm-stat .val { font-size: 15px; }
+      .wm-mole { font-size: clamp(1.6rem, 10vw, 2.8rem); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wm-wrap">
+    <div class="wm-header">
+      <div class="wm-title" id="hdr-title">🔨 ຕີໜູ</div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+    </div>
+
+    <div class="wm-hud">
+      <div class="wm-stat"><div class="lbl" id="lbl-level">ລະດັບ</div><div class="val level" id="ui-level">1</div></div>
+      <div class="wm-stat"><div class="lbl" id="lbl-score">ຄະແນນ</div><div class="val score" id="ui-score">0</div></div>
+      <div class="wm-stat"><div class="lbl" id="lbl-lives">ຫົວໃຈ</div><div class="val lives" id="ui-lives">❤❤❤❤❤</div></div>
+      <div class="wm-stat"><div class="lbl" id="lbl-best">ດີສຸດ</div><div class="val best" id="ui-best">0</div></div>
+    </div>
+
+    <div class="wm-hint">
+      <span>🐹 <span id="hint-mole">+10</span></span>
+      <span>👑 <span id="hint-gold">+25</span></span>
+      <span>💣 <span id="hint-bomb">-1 ❤</span></span>
+    </div>
+
+    <div class="wm-start" id="start-row">
+      <button class="wm-btn-start" id="btn-start">▶ <span id="btn-start-lbl">ເລີ່ມຫຼິ້ນ</span></button>
+    </div>
+
+    <div class="wm-grid" id="grid"></div>
+  </div>
+
+  <div class="wm-flash" id="flash"></div>
+
+  <div class="wm-modal" id="modal-over">
+    <div class="wm-modal-card">
+      <div class="new-best" id="newbest" style="display:none">⭐ NEW BEST!</div>
+      <h2 id="over-title">ຈົບເກມ</h2>
+      <div class="wm-stats-grid">
+        <div class="cell">
+          <div class="lbl" id="over-lbl-score">ຄະແນນ</div>
+          <div class="val" id="over-score">0</div>
+        </div>
+        <div class="cell">
+          <div class="lbl" id="over-lbl-level">ລະດັບ</div>
+          <div class="val" id="over-level">1</div>
+        </div>
+      </div>
+      <button class="wm-btn-modal" id="btn-again">▶ ຫຼິ້ນອີກ</button>
+    </div>
+  </div>
+
+  <script src="js/whack-a-mole-game.js"></script>
+</body>
+</html>

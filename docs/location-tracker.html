@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ຕິດຕາມ GPS · Location Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: linear-gradient(180deg, #e0f2fe, #dbeafe);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .lt-app {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      height: 100dvh; max-width: 560px; margin: 0 auto;
+      padding: 6px;
+      gap: 6px;
+    }
+
+    .lt-header {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      color: #fff; padding: 12px 14px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.35);
+    }
+    .lt-title { font-size: 1.05rem; font-weight: 900; }
+    .lt-header a { color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+                   padding: 5px 10px; border-radius: 16px; font-size: .82rem; }
+
+    .lt-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    }
+    .lt-stat {
+      background: #fff; border-radius: 10px; padding: 6px 4px;
+      text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .lt-stat .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    .lt-stat .val { font-size: 1.1rem; font-weight: 900; color: #1e293b; line-height: 1.1; }
+    .lt-stat .unit { font-size: .65rem; color: #94a3b8; font-weight: 700; }
+    .lt-stat.dist  .val { color: #0ea5e9; }
+    .lt-stat.dur   .val { color: #8b5cf6; }
+    .lt-stat.spd   .val { color: #f59e0b; }
+    .lt-stat.avg   .val { color: #10b981; }
+
+    /* Map */
+    .lt-map-wrap {
+      position: relative; min-height: 0;
+      background: #fff; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    #map {
+      width: 100%; height: 100%;
+    }
+    .lt-map-overlay {
+      position: absolute; right: 10px; top: 10px;
+      z-index: 500;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .lt-map-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,.92);
+      color: #2563eb; font-size: 1.05rem; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+      font-family: inherit;
+    }
+    .lt-map-btn:active { transform: scale(.9); }
+    .lt-map-btn.active { background: #2563eb; color: #fff; }
+
+    .lt-gps-indicator {
+      position: absolute; left: 10px; top: 10px;
+      z-index: 500;
+      background: rgba(255,255,255,.95);
+      padding: 5px 10px; border-radius: 99px;
+      font-size: .72rem; font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .lt-gps-indicator .pip {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #94a3b8;
+    }
+    .lt-gps-indicator.good .pip { background: #10b981; }
+    .lt-gps-indicator.poor .pip { background: #f59e0b; }
+    .lt-gps-indicator.bad  .pip { background: #ef4444; }
+    .lt-gps-indicator.live .pip { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    /* Current position marker */
+    .lt-current-marker { position: relative; pointer-events: none; }
+    .lt-current-marker .dot {
+      position: absolute; top: 5px; left: 5px;
+      width: 14px; height: 14px;
+      background: #2563eb; border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+    }
+    .lt-current-marker .pulse {
+      position: absolute; top: -5px; left: -5px;
+      width: 30px; height: 30px;
+      border: 3px solid #2563eb; border-radius: 50%;
+      opacity: 0;
+      animation: ltPulse 2s ease-out infinite;
+    }
+    @keyframes ltPulse {
+      0%   { transform: scale(0.5); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    .lt-flag-marker {
+      font-size: 1.6rem; line-height: 1;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+    }
+
+    /* Recording badge over the map (top center) */
+    .lt-rec-badge {
+      position: absolute; left: 50%; top: 10px;
+      transform: translateX(-50%);
+      z-index: 500;
+      background: rgba(239,68,68,.95); color: #fff;
+      padding: 5px 12px; border-radius: 99px;
+      font-size: .75rem; font-weight: 800;
+      display: none; align-items: center; gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    .lt-rec-badge.show { display: flex; }
+    .lt-rec-badge .blink {
+      width: 8px; height: 8px; background: #fff; border-radius: 50%;
+      animation: blink 1s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    .lt-rec-badge.paused {
+      background: rgba(245,158,11,.95);
+    }
+    .lt-rec-badge.paused .blink { animation: none; }
+
+    /* Action bar */
+    .lt-actions {
+      display: flex; gap: 6px;
+    }
+    .lt-btn {
+      flex: 1; padding: 14px 12px; border-radius: 12px; border: none;
+      font-size: 1rem; font-weight: 900; font-family: inherit;
+      cursor: pointer; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.15);
+    }
+    .lt-btn:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,.15); }
+    .lt-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .lt-btn.start  { background: linear-gradient(135deg, #10b981, #059669); }
+    .lt-btn.pause  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .lt-btn.resume { background: linear-gradient(135deg, #10b981, #059669); }
+    .lt-btn.stop   { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .lt-btn.save   { background: linear-gradient(135deg, #2563eb, #1e40af); }
+    .lt-btn.discard{ background: #94a3b8; color: #1e293b; }
+    .lt-btn.trips  { background: #fff; color: #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,.1); flex: 0 0 56px; }
+
+    /* Modal */
+    .lt-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 14px;
+      background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index: 1000;
+    }
+    .lt-modal.show { display: flex; }
+    .lt-modal-card {
+      background: #fff; border-radius: 18px; padding: 22px;
+      max-width: 92%; width: 100%; max-width: 420px;
+      max-height: 84vh; overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .lt-modal-card h2 { margin: 0 0 12px; color: #1e40af; font-size: 1.2rem; }
+    .lt-modal-row { margin-bottom: 10px; }
+    .lt-modal-row .lbl {
+      font-size: 10px; color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 1px; font-weight: 800; margin-bottom: 4px;
+    }
+    .lt-input {
+      width: 100%; padding: 10px 12px; font-size: 1rem;
+      border: 2px solid #e2e8f0; border-radius: 10px;
+      font-family: inherit; color: #1e293b; outline: none;
+    }
+    .lt-input:focus { border-color: #2563eb; }
+    .lt-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .lt-modal-btn {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 800; font-family: inherit;
+      cursor: pointer;
+    }
+    .lt-modal-btn.cancel  { background: #f1f5f9; color: #475569; }
+    .lt-modal-btn.confirm { background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; }
+
+    /* Saved trips list */
+    .lt-trip {
+      background: #f8fafc; border-radius: 12px; padding: 12px;
+      margin-bottom: 8px; display: flex; gap: 10px; align-items: center;
+    }
+    .lt-trip-body { flex: 1; min-width: 0; }
+    .lt-trip-name { font-weight: 900; font-size: .95rem; color: #1e293b; }
+    .lt-trip-meta { font-size: .78rem; color: #64748b; margin-top: 2px; }
+    .lt-trip-actions { display: flex; gap: 4px; }
+    .lt-trip-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: none; background: #fff; cursor: pointer;
+      font-size: 1rem; font-family: inherit;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+    .lt-trip-btn:active { transform: scale(.9); }
+    .lt-trip-btn.view { color: #2563eb; }
+    .lt-trip-btn.del  { color: #ef4444; }
+    .lt-empty {
+      text-align: center; padding: 32px 12px; color: #94a3b8;
+      font-style: italic; font-size: .9rem;
+    }
+
+    /* Trip summary card after stop */
+    .lt-summary {
+      background: linear-gradient(135deg, #ede9fe, #dbeafe);
+      border-radius: 12px; padding: 12px; margin-bottom: 10px;
+    }
+    .lt-summary-title {
+      font-weight: 900; color: #1e40af; font-size: 1rem; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .lt-summary-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .lt-summary-stat {
+      background: rgba(255,255,255,.7); border-radius: 8px; padding: 6px;
+      font-size: .82rem;
+    }
+    .lt-summary-stat b { color: #1e293b; font-weight: 900; }
+
+    /* Error banner */
+    .lt-error {
+      background: #fee2e2; color: #991b1b;
+      padding: 10px 12px; border-radius: 10px;
+      font-size: .85rem; font-weight: 700;
+      margin-bottom: 6px; display: none;
+    }
+    .lt-error.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="lt-app">
+    <div class="lt-header">
+      <div class="lt-title" id="hdr-title">📍 ຕິດຕາມ GPS</div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+    </div>
+
+    <div class="lt-error" id="error-banner"></div>
+
+    <div class="lt-stats">
+      <div class="lt-stat dist"><div class="lbl" id="lbl-dist">ໄລຍະ</div><div class="val" id="stat-dist">0.00</div><div class="unit">km</div></div>
+      <div class="lt-stat dur"><div class="lbl" id="lbl-dur">ເວລາ</div><div class="val" id="stat-dur">00:00</div><div class="unit">&nbsp;</div></div>
+      <div class="lt-stat spd"><div class="lbl" id="lbl-spd">ໄວ</div><div class="val" id="stat-spd">0.0</div><div class="unit">km/h</div></div>
+      <div class="lt-stat avg"><div class="lbl" id="lbl-avg">ສະເລ່ຍ</div><div class="val" id="stat-avg">0.0</div><div class="unit">km/h</div></div>
+    </div>
+
+    <div class="lt-map-wrap">
+      <div id="map"></div>
+      <div class="lt-gps-indicator" id="gps-ind"><span class="pip"></span><span id="gps-text">GPS</span></div>
+      <div class="lt-rec-badge" id="rec-badge"><span class="blink"></span><span id="rec-text">REC</span></div>
+      <div class="lt-map-overlay">
+        <button class="lt-map-btn active" id="btn-follow" title="Follow me">🎯</button>
+        <button class="lt-map-btn" id="btn-fit" title="Fit trail">🗺️</button>
+      </div>
+    </div>
+
+    <div class="lt-actions" id="actions"></div>
+  </div>
+
+  <!-- Save trip modal -->
+  <div class="lt-modal" id="modal-save">
+    <div class="lt-modal-card">
+      <h2 id="save-title">💾 ບັນທຶກການເດີນທາງ</h2>
+      <div class="lt-summary" id="save-summary"></div>
+      <div class="lt-modal-row">
+        <div class="lbl" id="save-name-lbl">ຊື່</div>
+        <input class="lt-input" id="save-name" placeholder="">
+      </div>
+      <div class="lt-modal-actions">
+        <button class="lt-modal-btn cancel"  id="save-cancel">ຍົກເລີກ</button>
+        <button class="lt-modal-btn confirm" id="save-confirm">ບັນທຶກ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved trips modal -->
+  <div class="lt-modal" id="modal-trips">
+    <div class="lt-modal-card">
+      <h2 id="trips-title">📋 ການເດີນທາງທີ່ບັນທຶກ</h2>
+      <div id="trips-list"></div>
+      <div class="lt-modal-actions" style="grid-template-columns: 1fr;">
+        <button class="lt-modal-btn cancel" id="trips-close">ປິດ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/location-tracker.js"></script>
+</body>
+</html>
