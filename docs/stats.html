@@ -1,186 +1,261 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="lo">
 <head>
   <meta charset="UTF-8">
-  <title>โหมดผู้ปกครอง - สถิติและพัฒนาการ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ສະຖິຕິ · Parent Mode</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    #stats-summary > div {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      padding: 1.2rem 1rem;
-      text-align: left;
-      font-size: 1.1rem;
-      color: #333;
-      margin-bottom: 0;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #e0e7ff, #ddd6fe, #fce7f3);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      color: #1e293b;
     }
-    #stats-summary b {
-      color: #1976d2;
+    .st-wrap { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
+
+    /* Header */
+    .st-hdr {
+      background: linear-gradient(135deg, #4338ca, #6d28d9, #be185d);
+      color: #fff; padding: 14px 16px; border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(67,56,202,0.35);
+      margin-bottom: 10px;
     }
-    #stats-summary details {
-      margin-top: 0.7rem;
+    .st-hdr-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .st-hdr-title { font-size: 1.15rem; font-weight: 900; }
+    .st-hdr-sub { font-size: .78rem; opacity: .92; margin-top: 2px; }
+    .lang-flags { display: flex; gap: 6px; }
+    .lang-flag {
+      width: 32px; height: 22px; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.3); border-radius: 5px;
+      object-fit: cover; transition: all .15s;
     }
-    #stats-summary ul {
-      margin: 0.5rem 0 0 0;
-      padding-left: 1.2rem;
-      color: #555;
-      font-size: 1rem;
+    .lang-flag.active { border-color: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,.7); transform: scale(1.08); }
+    .st-hdr a {
+      color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+      padding: 6px 12px; border-radius: 20px; font-size: .85rem;
     }
-    #stats-summary li {
-      margin-bottom: 0.3rem;
+
+    /* Aggregate dashboard */
+    .st-agg {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+      margin-bottom: 12px;
     }
-    .header {
-      font-size: 1.5rem;
-      font-weight: bold;
-      letter-spacing: 0.5px;
+    .st-agg-cell {
+      background: #fff; border-radius: 12px; padding: 10px 6px;
+      text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06);
     }
-    @media (max-width: 600px) {
-      .container { padding: 0.5rem; }
-      #stats-summary > div { padding: 0.7rem 0.5rem; }
+    .st-agg-cell .lbl { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    .st-agg-cell .val { font-size: 1.3rem; font-weight: 900; color: #1e293b; line-height: 1.1; margin-top: 2px; }
+    .st-agg-cell .sub { font-size: .7rem; color: #64748b; margin-top: 2px; font-weight: 700; }
+    .st-agg-cell.plays  .val { color: #ec4899; }
+    .st-agg-cell.top    .val { color: #2563eb; }
+    .st-agg-cell.games  .val { color: #10b981; }
+    .st-agg-cell.fav    .val { font-size: 1.6rem; }
+
+    @media (max-width: 380px) {
+      .st-agg { grid-template-columns: repeat(2, 1fr); }
+      .st-agg-cell .val { font-size: 1.15rem; }
     }
+
+    /* Chart card */
+    .st-chart-card {
+      background: #fff; border-radius: 14px; padding: 14px 10px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 12px;
+    }
+    .st-chart-title {
+      font-weight: 900; color: #4338ca; font-size: .95rem;
+      margin-bottom: 8px; padding: 0 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .st-chart-wrap { position: relative; width: 100%; height: 240px; }
+    .st-chart-empty {
+      text-align: center; padding: 40px 20px; color: #94a3b8;
+      font-style: italic; font-size: .9rem;
+    }
+
+    /* Sections */
+    .st-section { margin-bottom: 16px; }
+    .st-section-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px 8px; font-weight: 900; font-size: 1rem; color: #475569;
+    }
+    .st-section-hdr .em { font-size: 1.3rem; }
+    .st-section-hdr .count {
+      background: #fff; color: #94a3b8; font-size: .7rem; padding: 2px 8px;
+      border-radius: 99px; font-weight: 800; margin-left: auto;
+    }
+
+    /* Game cards */
+    .st-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    @media (min-width: 560px) { .st-grid { grid-template-columns: 1fr 1fr; } }
+    .st-game {
+      background: #fff; border-radius: 14px; padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex; align-items: center; gap: 10px;
+      position: relative; overflow: hidden;
+    }
+    .st-game::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: var(--accent, #94a3b8);
+    }
+    .st-game[data-cat="colors"]  { --accent: #ec4899; }
+    .st-game[data-cat="numbers"] { --accent: #3b82f6; }
+    .st-game[data-cat="letters"] { --accent: #8b5cf6; }
+    .st-game[data-cat="world"]   { --accent: #10b981; }
+    .st-game[data-cat="skill"]   { --accent: #f59e0b; }
+    .st-game[data-cat="classic"] { --accent: #ef4444; }
+    .st-game[data-cat="tools"]   { --accent: #64748b; }
+
+    .st-game .ic { font-size: 1.8rem; line-height: 1; flex-shrink: 0; }
+    .st-game .body { flex: 1; min-width: 0; }
+    .st-game .name {
+      font-weight: 800; font-size: .95rem; color: #1e293b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .st-game .stats {
+      display: flex; gap: 8px; margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .st-game .stat {
+      font-size: .72rem; font-weight: 800;
+      padding: 2px 8px; border-radius: 99px;
+    }
+    .st-game .stat.best   { background: #fef3c7; color: #92400e; }
+    .st-game .stat.level  { background: #ede9fe; color: #6d28d9; }
+    .st-game .stat.plays  { background: #e0f2fe; color: #0369a1; }
+    .st-game .stat.empty  { background: #f1f5f9; color: #94a3b8; font-style: italic; }
+    .st-game .reset {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: none; background: #f1f5f9; color: #cbd5e1;
+      cursor: pointer; font-size: .9rem; font-family: inherit;
+      flex-shrink: 0;
+    }
+    .st-game .reset:active { transform: scale(.9); }
+    .st-game .reset:hover { color: #ef4444; background: #fee2e2; }
+    .st-game.no-data .reset { visibility: hidden; }
+
+    /* Footer actions */
+    .st-actions {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px;
+    }
+    .st-actions button {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .88rem; font-weight: 800; font-family: inherit;
+      cursor: pointer; color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+    }
+    .st-actions button:active { transform: translateY(2px); }
+    .st-actions .export { background: linear-gradient(135deg, #10b981, #059669); }
+    .st-actions .import { background: linear-gradient(135deg, #3b82f6, #2563eb); position: relative; overflow: hidden; }
+    .st-actions .import input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .st-actions .reset-all { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+    /* Toast */
+    .st-toast {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15,23,42,.92); color: #fff;
+      padding: 10px 18px; border-radius: 99px;
+      font-size: .85rem; font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0,0,0,.3);
+      opacity: 0; pointer-events: none;
+      transition: all .25s;
+      z-index: 60;
+    }
+    .st-toast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+
+    /* Modal confirm */
+    .st-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(15,23,42,.7); backdrop-filter: blur(4px); z-index: 100;
+    }
+    .st-modal.show { display: flex; }
+    .st-modal-card {
+      background: #fff; border-radius: 18px; padding: 22px 24px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .st-modal-card h2 {
+      margin: 0 0 8px; color: #be185d; font-size: 1.2rem;
+    }
+    .st-modal-card p { margin: 6px 0 16px; color: #475569; font-size: .9rem; line-height: 1.5; }
+    .st-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .st-modal-btn {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 800; font-family: inherit;
+      cursor: pointer;
+    }
+    .st-modal-btn.cancel  { background: #f1f5f9; color: #475569; }
+    .st-modal-btn.confirm { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
   </style>
 </head>
 <body>
-  <div class="header" style="background:#1976d2;color:#fff;border-radius:12px 12px 0 0;padding:1.2rem 0;box-shadow:0 2px 8px rgba(25,118,210,0.12);">โหมดผู้ปกครอง - สถิติและพัฒนาการ</div>
-  <div class="container py-4" style="max-width:600px;margin:auto;">
-    <div id="game-menu" class="flag-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:18px;margin:2rem 0;">
-                  <button class="menu-btn" onclick="showStats('tetris')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3522/3522096.png" alt="Tetris" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-                    <div class="flag-name">Tetris</div>
-                  </button>
-            <button class="menu-btn" onclick="showStats('worldmap')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-              <img src="https://cdn-icons-png.flaticon.com/512/2917/2917242.png" alt="World Map Puzzle" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-              <div class="flag-name">World Map Puzzle</div>
-            </button>
-      <button class="menu-btn" onclick="showStats('color')" style="background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(56,142,60,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Color Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมเลือกสี</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('colororder')" style="background:#fff;color:#7c4dff;border:2px solid #7c4dff;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(124,77,255,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135765.png" alt="Color Order Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมเรียงสีตามลำดับ</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('bigsmall')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" alt="Big Small Icon" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมใหญ่-เล็ก</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('sound')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/727/727245.png" alt="Sound Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมฟังเสียง</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('fruit')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/590/590685.png" alt="Fruit Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมนับจำนวน</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('drawabc')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมลากเส้น A-Z</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('drawnumber')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167750.png" alt="Draw Number" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมลากเส้นตัวเลข 1-10</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('findobject')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Find Object Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมหาสิ่งของในบ้าน</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('missingnumber')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167749.png" alt="Missing Number Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมหาตัวเลขที่ขาด</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('matchicon')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Match Icon Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกม Match icon</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('kids')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="Kids Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมจับคู่ภาพ</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('shapepuzzle')" style="background:#fff;color:#616494;border:2px solid #616494;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(97,100,148,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/616/616494.png" alt="Shape Puzzle Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมวางรูปร่าง</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('azmatch')" style="background:#fff;color:#167707;border:2px solid #167707;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(22,119,7,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="AZ Match Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมจับคู่ตัวอักษร A-Z</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('watertree')" style="background:#fff;color:#42a5f5;border:2px solid #42a5f5;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(66,165,245,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917242.png" alt="Water Tree Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมรดน้ำต้นไม้</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('weekdays')" style="background:#fff;color:#ffb300;border:2px solid #ffb300;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(255,179,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917243.png" alt="Weekdays Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมวันในสัปดาห์</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('months')" style="background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(56,142,60,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/2917/2917244.png" alt="Months Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมเดือนในปี</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('tower')" style="background:#fff;color:#616494;border:2px solid #616494;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(97,100,148,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Tower Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมหอคอย</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('hideseek')" style="background:#fff;color:#f57c00;border:2px solid #f57c00;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(245,124,0,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Hide and Seek Game" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมซ่อนหา</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('drawlaoabc')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw Lao ABC" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมลากเส้นภาษาลาว ກ-ຮ</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('drawlaovowel')" style="background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px rgba(25,118,210,0.08);padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/167/167707.png" alt="Draw Lao Vowel" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">เกมลากเส้นภาษาลาว สระ</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('snake')" style="background:#fff;color:#388e3c;border:2px solid #388e3c;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px #388e3c44;padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/1046/1046875.png" alt="Snake" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">Snake</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('pacman')" style="background:#fff;color:#ffd600;border:2px solid #ffd600;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px #ffd60044;padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/743/743007.png" alt="Pac-Man" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">Pac-Man</div>
-      </button>
-      <button class="menu-btn" onclick="showStats('fps')" style="background:#fff;color:#00ff99;border:2px solid #00ff99;border-radius:10px;font-weight:bold;box-shadow:0 2px 8px #00ff9944;padding:1rem 0.5rem;display:flex;flex-direction:column;align-items:center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="FPS Balloon Shooter" style="width:48px;height:48px;object-fit:contain;border-radius:4px;border:1px solid #eee;margin-bottom:0.5rem;">
-        <div class="flag-name">FPS Balloon Shooter</div>
-      </button>
+  <div class="st-wrap">
+    <div class="st-hdr">
+      <div class="st-hdr-top">
+        <div>
+          <div class="st-hdr-title" id="hdr-title">📊 ສະຖິຕິ ແລະ ພັດທະນາການ</div>
+          <div class="st-hdr-sub" id="hdr-sub">ໂຫມດຜູ້ປົກຄອງ</div>
+        </div>
+        <div class="lang-flags">
+          <img src="https://flagcdn.com/la.svg" alt="Lao"     id="flag-lao" class="lang-flag">
+          <img src="https://flagcdn.com/th.svg" alt="Thai"    id="flag-th"  class="lang-flag">
+          <img src="https://flagcdn.com/gb.svg" alt="English" id="flag-en"  class="lang-flag">
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+      </div>
     </div>
-    <div id="stats-summary" style="display:none;flex-direction:column;gap:2rem;"></div>
-    <div id="chart-container" style="display:none;background:#fff;border-radius:12px;padding:1.2rem 1rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:2rem;">
-      <canvas id="statsChart" style="max-width:400px;margin:0 auto;"></canvas>
+
+    <div class="st-agg">
+      <div class="st-agg-cell plays"><div class="lbl" id="lbl-plays">ຫຼິ້ນແລ້ວ</div><div class="val" id="agg-plays">0</div></div>
+      <div class="st-agg-cell top"><div class="lbl" id="lbl-top">ດີສຸດ</div><div class="val" id="agg-top">0</div></div>
+      <div class="st-agg-cell games"><div class="lbl" id="lbl-games">ເກມທີ່ຫຼິ້ນ</div><div class="val" id="agg-games">0</div><div class="sub" id="agg-games-sub">/ 0</div></div>
+      <div class="st-agg-cell fav"><div class="lbl" id="lbl-fav">ມັກສຸດ</div><div class="val" id="agg-fav">—</div><div class="sub" id="agg-fav-sub"></div></div>
     </div>
-    <div class="text-center mt-4">
-      <button onclick="window.location.href='index.html'" class="menu-btn" style="background:#1976d2;color:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(25,118,210,0.12);font-weight:bold;">กลับหน้าแรก</button>
-      <button id="backToMenuBtn" onclick="backToMenu()" class="menu-btn" style="display:none;margin-left:1rem;background:#fff;color:#1976d2;border:2px solid #1976d2;border-radius:8px;font-weight:bold;">ย้อนกลับ</button>
+
+    <div class="st-chart-card" id="chart-card">
+      <div class="st-chart-title">📈 <span id="chart-title">ຄະແນນດີສຸດແຕ່ລະເກມ</span></div>
+      <div class="st-chart-wrap" id="chart-wrap">
+        <canvas id="bestChart"></canvas>
+      </div>
+      <div class="st-chart-empty" id="chart-empty" style="display:none;"></div>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="st-actions">
+      <button class="export" id="btn-export" data-i18n="export">💾 ສົ່ງອອກ</button>
+      <label class="import" id="btn-import" data-i18n="import">📥 ນຳເຂົ້າ
+        <input type="file" id="import-input" accept="application/json,.json">
+      </label>
+      <button class="reset-all" id="btn-reset-all" data-i18n="resetAll">🗑 ລ້າງທັງໝົດ</button>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    function showStats(game) {
-      const summary = document.getElementById('stats-summary');
-      summary.style.display = 'block';
-      summary.innerHTML = '';
-      if (game === 'fps') {
-        const stats = JSON.parse(localStorage.getItem('fpsGameStats') || '[]');
-        if (stats.length === 0) {
-          summary.innerHTML = '<div>ยังไม่มีสถิติ FPS Balloon Shooter</div>';
-        } else {
-          let html = '<div><b>FPS Balloon Shooter</b><ul>';
-          stats.slice().reverse().forEach(s => {
-            html += `<li>Score: ${s.score}, Time: ${s.time}s, Date: ${new Date(s.date).toLocaleString()}</li>`;
-          });
-          html += '</ul></div>';
-          summary.innerHTML = html;
-        }
-      } else {
-        // ...existing code for other games...
-      }
-    }
-    function backToMenu() {
-      document.getElementById('stats-summary').style.display = 'none';
-    }
-  </script>
+
+  <div class="st-toast" id="toast"></div>
+
+  <div class="st-modal" id="modal-confirm">
+    <div class="st-modal-card">
+      <h2 id="confirm-title">⚠️</h2>
+      <p id="confirm-text"></p>
+      <div class="st-modal-actions">
+        <button class="st-modal-btn cancel"  id="confirm-cancel">ຍົກເລີກ</button>
+        <button class="st-modal-btn confirm" id="confirm-ok">ຢືນຢັນ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/stats.js"></script>
 </body>
 </html>

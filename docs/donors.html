@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ລາຍຊື່ຜູ້ສະໜັບສະໜຸນ · Supporters</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fef3c7, #fce7f3, #ddd6fe);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      color: #1e293b;
+    }
+    .dn-wrap { max-width: 560px; margin: 0 auto; padding: 8px 10px 40px; }
+
+    .dn-hdr {
+      background: linear-gradient(135deg, #ec4899, #be185d, #a855f7);
+      color: #fff; padding: 16px 18px; border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(236,72,153,0.35);
+      margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .dn-hdr-title { font-size: 1.15rem; font-weight: 900; }
+    .dn-hdr-sub { font-size: .78rem; opacity: .92; margin-top: 2px; }
+    .dn-hdr a {
+      color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+      padding: 6px 12px; border-radius: 20px; font-size: .85rem;
+    }
+
+    .dn-thanks {
+      background: #fff; border-radius: 14px; padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 12px;
+      text-align: center;
+    }
+    .dn-thanks .em { font-size: 2.4rem; line-height: 1; display: block; margin-bottom: 6px; }
+    .dn-thanks .msg {
+      font-size: .95rem; color: #475569; line-height: 1.5;
+    }
+
+    .dn-section-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px 8px; font-weight: 900; font-size: 1rem; color: #475569;
+    }
+    .dn-section-hdr .em { font-size: 1.3rem; }
+    .dn-section-hdr .count {
+      background: #fff; color: #94a3b8; font-size: .7rem; padding: 2px 8px;
+      border-radius: 99px; font-weight: 800; margin-left: auto;
+    }
+
+    .dn-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .dn-card {
+      background: #fff; border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex; align-items: center; gap: 12px;
+      position: relative; overflow: hidden;
+    }
+    .dn-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: var(--accent, #f59e0b);
+    }
+    .dn-card[data-tier="gold"]     { --accent: #f59e0b; background: linear-gradient(135deg, #fef3c7, #ffffff); }
+    .dn-card[data-tier="silver"]   { --accent: #94a3b8; }
+    .dn-card[data-tier="bronze"]   { --accent: #b45309; }
+    .dn-card[data-tier="supporter"]{ --accent: #ec4899; }
+
+    .dn-card .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; flex-shrink: 0;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+    }
+    .dn-card[data-tier="gold"] .avatar     { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #fff; }
+    .dn-card[data-tier="silver"] .avatar   { background: linear-gradient(135deg, #cbd5e1, #94a3b8); color: #fff; }
+    .dn-card[data-tier="bronze"] .avatar   { background: linear-gradient(135deg, #fdba74, #b45309); color: #fff; }
+    .dn-card[data-tier="supporter"] .avatar{ background: linear-gradient(135deg, #fbcfe8, #ec4899); color: #fff; }
+
+    .dn-card .body { flex: 1; min-width: 0; }
+    .dn-card .name {
+      font-weight: 800; font-size: .95rem; color: #1e293b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dn-card .meta {
+      font-size: .75rem; color: #64748b; margin-top: 2px;
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .dn-card .amount {
+      font-weight: 900; font-size: .9rem; color: #b45309;
+      flex-shrink: 0;
+    }
+
+    .dn-empty {
+      background: #fff; border-radius: 14px; padding: 40px 20px;
+      text-align: center; color: #94a3b8; font-style: italic;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .dn-empty .em { font-size: 3rem; line-height: 1; display: block; margin-bottom: 10px; }
+
+    .dn-cta {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-radius: 14px; padding: 14px 16px;
+      text-align: center; margin-top: 8px;
+      border: 1px solid #f59e0b;
+    }
+    .dn-cta .title { font-weight: 900; color: #92400e; margin-bottom: 6px; }
+    .dn-cta .text { font-size: .85rem; color: #78350f; line-height: 1.5; }
+    .dn-cta a {
+      display: inline-block; margin-top: 10px;
+      padding: 8px 16px; border-radius: 10px;
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      color: #fff; text-decoration: none;
+      font-size: .85rem; font-weight: 800;
+    }
+    .dn-cta a:active { transform: translateY(2px); }
+
+    .lang-flags { display: flex; gap: 6px; flex-shrink: 0; margin-left: 8px; }
+    .lang-flag {
+      width: 28px; height: 20px; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.3); border-radius: 4px;
+      object-fit: cover; transition: all .15s;
+    }
+    .lang-flag.active { border-color: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,.7); transform: scale(1.08); }
+  </style>
+</head>
+<body>
+  <div class="dn-wrap">
+    <div class="dn-hdr">
+      <div>
+        <div class="dn-hdr-title" id="hdr-title">🌟 ລາຍຊື່ຜູ້ສະໜັບສະໜຸນ</div>
+        <div class="dn-hdr-sub" id="hdr-sub">ຂອບໃຈທຸກໆທ່ານ</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="lang-flags">
+          <img src="https://flagcdn.com/la.svg" alt="Lao"     id="flag-lao" class="lang-flag">
+          <img src="https://flagcdn.com/th.svg" alt="Thai"    id="flag-th"  class="lang-flag">
+          <img src="https://flagcdn.com/gb.svg" alt="English" id="flag-en"  class="lang-flag">
+        </div>
+        <a href="index.html" id="hdr-back">←</a>
+      </div>
+    </div>
+
+    <div class="dn-thanks">
+      <span class="em">❤️</span>
+      <div class="msg" id="thanks-msg">
+        ຂອບໃຈທຸກໆທ່ານທີ່ສະໜັບສະໜຸນແອັບນີ້ ໃຫ້ສືບຕໍ່ພັດທະນາ ແລະ ບໍລິການເດັກລາວໄດ້ຕໍ່ໄປ.
+      </div>
+    </div>
+
+    <div class="dn-section-hdr">
+      <span class="em">🏆</span>
+      <span id="lbl-supporters">ຜູ້ສະໜັບສະໜຸນ</span>
+      <span class="count" id="count">0</span>
+    </div>
+
+    <div class="dn-list" id="donors-list">
+      <!-- Donor cards go here — add manually as donations come in.
+           Tiers: gold | silver | bronze | supporter
+           Example:
+           <div class="dn-card" data-tier="gold">
+             <div class="avatar">👑</div>
+             <div class="body">
+               <div class="name">Mr. Example Donor</div>
+               <div class="meta"><span>📅 2026-05-15</span><span>💝 Gold</span></div>
+             </div>
+             <div class="amount">100,000 ₭</div>
+           </div>
+      -->
+    </div>
+
+    <div class="dn-empty" id="empty">
+      <span class="em">🌱</span>
+      <div id="empty-msg">ຍັງບໍ່ມີຜູ້ສະໜັບສະໜຸນ ເຈົ້າເປັນຄົນທຳອິດໄດ້!</div>
+    </div>
+
+    <div class="dn-cta">
+      <div class="title" id="cta-title">💝 ຢາກສະໜັບສະໜຸນ?</div>
+      <div class="text" id="cta-text">ກັບໄປໜ້າຫຼັກ ກົດປຸ່ມ "ກ່ຽວກັບ" ເພື່ອເບິ່ງຊ່ອງທາງສະໜັບສະໜຸນ.</div>
+      <a href="index.html" id="cta-link">ℹ️ ໄປໜ້າຫຼັກ</a>
+    </div>
+  </div>
+
+  <script>
+    // ===== Donors list — add new entries here as donations come in =====
+    // Each entry: { name, avatar (emoji or initial), tier (gold/silver/bronze/supporter), amount (string), date (YYYY-MM-DD), note }
+    const DONORS = [
+      // Example (will be filled in as donations arrive):
+      // { name: 'John Doe', avatar: '👑', tier: 'gold', amount: '100,000 ₭', date: '2026-05-15', note: '' },
+    ];
+
+    const I18N = {
+      lao: {
+        title:'🌟 ລາຍຊື່ຜູ້ສະໜັບສະໜຸນ',
+        sub:'ຂອບໃຈທຸກໆທ່ານ',
+        thanks:'ຂອບໃຈທຸກໆທ່ານທີ່ສະໜັບສະໜຸນແອັບນີ້ ໃຫ້ສືບຕໍ່ພັດທະນາ ແລະ ບໍລິການເດັກລາວໄດ້ຕໍ່ໄປ.',
+        supporters:'ຜູ້ສະໜັບສະໜຸນ',
+        empty:'ຍັງບໍ່ມີຜູ້ສະໜັບສະໜຸນ ເຈົ້າເປັນຄົນທຳອິດໄດ້!',
+        ctaTitle:'💝 ຢາກສະໜັບສະໜຸນ?',
+        ctaText:'ກັບໄປໜ້າຫຼັກ ກົດປຸ່ມ "ກ່ຽວກັບ" ເພື່ອເບິ່ງຊ່ອງທາງສະໜັບສະໜຸນ.',
+        ctaLink:'ℹ️ ໄປໜ້າຫຼັກ',
+        tiers: { gold:'ທອງ', silver:'ເງິນ', bronze:'ທອງແດງ', supporter:'ສະໜັບສະໜຸນ' }
+      },
+      th: {
+        title:'🌟 รายชื่อผู้สนับสนุน',
+        sub:'ขอบคุณทุกๆท่าน',
+        thanks:'ขอบคุณทุกๆท่านที่สนับสนุนแอปนี้ ให้สามารถพัฒนาและบริการเด็กลาวต่อไปได้',
+        supporters:'ผู้สนับสนุน',
+        empty:'ยังไม่มีผู้สนับสนุน คุณเป็นคนแรกได้!',
+        ctaTitle:'💝 อยากสนับสนุน?',
+        ctaText:'กลับไปหน้าหลัก กดปุ่ม "เกี่ยวกับ" เพื่อดูช่องทางสนับสนุน',
+        ctaLink:'ℹ️ ไปหน้าหลัก',
+        tiers: { gold:'ทอง', silver:'เงิน', bronze:'ทองแดง', supporter:'สนับสนุน' }
+      },
+      en: {
+        title:'🌟 List of Supporters',
+        sub:'Thank you everyone',
+        thanks:'Thank you to everyone who supports this app — your contributions keep it growing and serving Lao children.',
+        supporters:'Supporters',
+        empty:'No supporters yet. You can be the first!',
+        ctaTitle:'💝 Want to support?',
+        ctaText:'Go back to the home page and tap "About" to see donation channels.',
+        ctaLink:'ℹ️ Go to Home',
+        tiers: { gold:'Gold', silver:'Silver', bronze:'Bronze', supporter:'Supporter' }
+      }
+    };
+
+    let lang = (() => {
+      const v = localStorage.getItem('lang');
+      return (v === 'th' || v === 'en' || v === 'lao') ? v : 'lao';
+    })();
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function renderDonors() {
+      const t = I18N[lang];
+      const list = document.getElementById('donors-list');
+      const empty = document.getElementById('empty');
+      const count = document.getElementById('count');
+      count.textContent = DONORS.length;
+      list.innerHTML = '';
+      if (!DONORS.length) {
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+      // Sort by tier order then date desc
+      const tierOrder = { gold:0, silver:1, bronze:2, supporter:3 };
+      const sorted = DONORS.slice().sort((a, b) => {
+        const ta = tierOrder[a.tier] ?? 9;
+        const tb = tierOrder[b.tier] ?? 9;
+        if (ta !== tb) return ta - tb;
+        return (b.date || '').localeCompare(a.date || '');
+      });
+      for (const d of sorted) {
+        const card = document.createElement('div');
+        card.className = 'dn-card';
+        card.setAttribute('data-tier', d.tier || 'supporter');
+        const tierName = t.tiers[d.tier] || t.tiers.supporter;
+        const meta = [];
+        if (d.date)   meta.push(`📅 ${escapeHtml(d.date)}`);
+        if (tierName) meta.push(`💝 ${escapeHtml(tierName)}`);
+        if (d.note)   meta.push(`💬 ${escapeHtml(d.note)}`);
+        card.innerHTML = `
+          <div class="avatar">${escapeHtml(d.avatar || '⭐')}</div>
+          <div class="body">
+            <div class="name">${escapeHtml(d.name)}</div>
+            <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+          </div>
+          ${d.amount ? `<div class="amount">${escapeHtml(d.amount)}</div>` : ''}
+        `;
+        list.appendChild(card);
+      }
+    }
+
+    function applyLang() {
+      const t = I18N[lang];
+      document.documentElement.lang = lang === 'lao' ? 'lo' : lang;
+      document.title = t.title.replace(/^🌟\s*/, '');
+      document.getElementById('hdr-title').textContent = t.title;
+      document.getElementById('hdr-sub').textContent   = t.sub;
+      document.getElementById('thanks-msg').textContent = t.thanks;
+      document.getElementById('lbl-supporters').textContent = t.supporters;
+      document.getElementById('empty-msg').textContent = t.empty;
+      document.getElementById('cta-title').textContent = t.ctaTitle;
+      document.getElementById('cta-text').textContent = t.ctaText;
+      document.getElementById('cta-link').textContent = t.ctaLink;
+      document.getElementById('flag-lao').classList.toggle('active', lang === 'lao');
+      document.getElementById('flag-th').classList.toggle('active',  lang === 'th');
+      document.getElementById('flag-en').classList.toggle('active',  lang === 'en');
+      renderDonors();
+    }
+    function setLang(l) {
+      lang = l;
+      try { localStorage.setItem('lang', l); } catch {}
+      applyLang();
+    }
+    document.getElementById('flag-lao').addEventListener('click', () => setLang('lao'));
+    document.getElementById('flag-th').addEventListener('click',  () => setLang('th'));
+    document.getElementById('flag-en').addEventListener('click',  () => setLang('en'));
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'lang' && (e.newValue === 'lao' || e.newValue === 'th' || e.newValue === 'en')) {
+        lang = e.newValue;
+        applyLang();
+      }
+    });
+
+    applyLang();
+  </script>
+</body>
+</html>
