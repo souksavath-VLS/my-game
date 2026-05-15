@@ -506,118 +506,247 @@
     .donate-row {
       background: linear-gradient(135deg, #fef3c7, #fde68a);
       border: 1px solid #f59e0b;
-      border-radius: 12px; padding: 10px 12px;
-      display: flex; align-items: center; gap: 10px;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       margin-bottom: 6px;
     }
+
     .donate-row .icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; flex-shrink: 0; color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      color: #fff;
     }
-    .donate-row .icon.crypto { background: linear-gradient(135deg, #f59e0b, #b45309); }
-    .donate-row .icon.bank   { background: linear-gradient(135deg, #2563eb, #1e40af); }
-    .donate-row .body { flex: 1; min-width: 0; }
+
+    .donate-row .icon.crypto {
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+    }
+
+    .donate-row .icon.bank {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+    }
+
+    .donate-row .body {
+      flex: 1;
+      min-width: 0;
+    }
+
     .donate-row .lbl {
-      font-size: .68rem; color: #92400e; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px;
+      font-size: .68rem;
+      color: #92400e;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
+
     .donate-row .val {
-      font-size: .78rem; font-family: 'Courier New', monospace;
-      color: #1e293b; font-weight: 700;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: .78rem;
+      font-family: 'Courier New', monospace;
+      color: #1e293b;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       margin-top: 2px;
     }
+
     .donate-row .copy-btn {
-      width: 36px; height: 36px; border-radius: 8px;
-      border: none; background: #fff; color: #b45309;
-      font-size: 1rem; cursor: pointer; flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      background: #fff;
+      color: #b45309;
+      font-size: 1rem;
+      cursor: pointer;
+      flex-shrink: 0;
       font-family: inherit;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
     }
-    .donate-row .copy-btn:active { transform: scale(.9); }
-    .donate-row .copy-btn.copied { background: #10b981; color: #fff; }
+
+    .donate-row .copy-btn:active {
+      transform: scale(.9);
+    }
+
+    .donate-row .copy-btn.copied {
+      background: #10b981;
+      color: #fff;
+    }
 
     /* Web access banner */
     .web-banner {
       background: linear-gradient(135deg, #06b6d4, #0e7490);
-      color: #fff; border-radius: 12px; padding: 12px 14px;
+      color: #fff;
+      border-radius: 12px;
+      padding: 12px 14px;
       margin-bottom: 12px;
-      display: flex; align-items: center; gap: 10px;
-      box-shadow: 0 3px 10px rgba(6,182,212,.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 3px 10px rgba(6, 182, 212, .3);
     }
+
     .web-banner .icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      background: rgba(255,255,255,.22);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; flex-shrink: 0;
-    }
-    .web-banner .body { flex: 1; min-width: 0; }
-    .web-banner .lbl {
-      font-size: .68rem; opacity: .85; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px;
-    }
-    .web-banner .url {
-      font-family: 'Courier New', monospace;
-      font-size: .8rem; font-weight: 700;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      margin-top: 2px;
-    }
-    .web-banner a.open-btn {
-      background: rgba(255,255,255,.95); color: #0e7490;
-      width: 36px; height: 36px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      text-decoration: none; font-size: 1rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
       flex-shrink: 0;
     }
-    .web-banner a.open-btn:active { transform: scale(.9); }
+
+    .web-banner .body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .web-banner .lbl {
+      font-size: .68rem;
+      opacity: .85;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .web-banner .url {
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .web-banner a.open-btn {
+      background: rgba(255, 255, 255, .95);
+      color: #0e7490;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .web-banner a.open-btn:active {
+      transform: scale(.9);
+    }
+
     .web-banner .copy-btn {
-      width: 36px; height: 36px; border-radius: 8px;
-      border: none; background: rgba(255,255,255,.95); color: #0e7490;
-      font-size: 1rem; cursor: pointer; flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255, 255, 255, .95);
+      color: #0e7490;
+      font-size: 1rem;
+      cursor: pointer;
+      flex-shrink: 0;
       font-family: inherit;
     }
-    .web-banner .copy-btn:active { transform: scale(.9); }
-    .web-banner .copy-btn.copied { background: #10b981; color: #fff; }
+
+    .web-banner .copy-btn:active {
+      transform: scale(.9);
+    }
+
+    .web-banner .copy-btn.copied {
+      background: #10b981;
+      color: #fff;
+    }
 
     /* Request banner */
     .request-banner {
       background: linear-gradient(135deg, #8b5cf6, #ec4899);
-      color: #fff; border-radius: 12px; padding: 14px 16px;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
       margin: 8px 0 12px;
-      box-shadow: 0 3px 10px rgba(139,92,246,.3);
-      position: relative; overflow: hidden;
+      box-shadow: 0 3px 10px rgba(139, 92, 246, .3);
+      position: relative;
+      overflow: hidden;
     }
+
     .request-banner::before {
-      content: '💡'; position: absolute; right: -10px; top: -10px;
-      font-size: 4rem; opacity: .15; pointer-events: none;
+      content: '💡';
+      position: absolute;
+      right: -10px;
+      top: -10px;
+      font-size: 4rem;
+      opacity: .15;
+      pointer-events: none;
     }
+
     .request-banner .title {
-      font-weight: 900; font-size: 1rem; margin-bottom: 4px;
-      display: flex; align-items: center; gap: 6px;
+      font-weight: 900;
+      font-size: 1rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+
     .request-banner .text {
-      font-size: .82rem; line-height: 1.45; opacity: .95;
+      font-size: .82rem;
+      line-height: 1.45;
+      opacity: .95;
     }
+
     .donors-link {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      margin-top: 8px; padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 10px;
       background: linear-gradient(135deg, #ec4899, #be185d);
-      color: #fff; text-decoration: none; border-radius: 10px;
-      font-weight: 800; font-size: .88rem;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: .88rem;
     }
-    .donors-link:active { transform: translateY(2px); }
+
+    .donors-link:active {
+      transform: translateY(2px);
+    }
+
     .copy-toast {
-      position: fixed; left: 50%; bottom: 24px;
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
       transform: translateX(-50%) translateY(20px);
-      background: rgba(15,23,42,.92); color: #fff;
-      padding: 10px 18px; border-radius: 99px;
-      font-size: .85rem; font-weight: 700;
-      box-shadow: 0 6px 18px rgba(0,0,0,.3);
-      opacity: 0; pointer-events: none;
-      transition: all .25s; z-index: 100;
+      background: rgba(15, 23, 42, .92);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 99px;
+      font-size: .85rem;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+      opacity: 0;
+      pointer-events: none;
+      transition: all .25s;
+      z-index: 100;
     }
-    .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .copy-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
     /* Modal */
     .modal {
@@ -905,7 +1034,7 @@
 
       <div class="about-hero">
         <span class="em">🎮</span>
-        <div class="name" id="about-app-name">my-game</div>
+        <div class="name" id="about-app-name">EQ GAME</div>
         <div class="tag" data-i18n="about-tag">ເກມຝຶກສະຫມອງເດັກ 3-7 ປີ · 30+ ເກມ</div>
       </div>
 
@@ -915,7 +1044,8 @@
           <div class="lbl" data-i18n="about-web-lbl">ເຂົ້າຜ່ານເວັບໄຊ</div>
           <div class="url">souksavath-vls.github.io/my-game</div>
         </div>
-        <a class="open-btn" href="https://souksavath-vls.github.io/my-game/" target="_blank" rel="noopener" title="Open">↗</a>
+        <a class="open-btn" href="https://souksavath-vls.github.io/my-game/" target="_blank" rel="noopener"
+          title="Open">↗</a>
         <button class="copy-btn" data-copy="https://souksavath-vls.github.io/my-game/" title="Copy">📋</button>
       </div>
 
@@ -957,7 +1087,8 @@
 
       <div class="request-banner">
         <div class="title">💡 <span data-i18n="about-request-title">ສະເໜີໄອເດຍ</span></div>
-        <div class="text" data-i18n="about-request-text">ຢາກໃຫ້ສ້າງເກມ, ແອັບ ຫຼື ເຄື່ອງມືແບບໃໝ່? ສົ່ງມາຫາຜ່ານຊ່ອງທາງເທິງໄດ້ເລີຍ! ຍິນດີຮັບຟັງທຸກໆຄຳແນະນຳ.</div>
+        <div class="text" data-i18n="about-request-text">ຢາກໃຫ້ສ້າງເກມ, ແອັບ ຫຼື ເຄື່ອງມືແບບໃໝ່?
+          ສົ່ງມາຫາຜ່ານຊ່ອງທາງເທິງໄດ້ເລີຍ! ຍິນດີຮັບຟັງທຸກໆຄຳແນະນຳ.</div>
       </div>
 
       <div class="about-section-title">💝 <span data-i18n="about-donate-title">ສະໜັບສະໜຸນ / Donate</span></div>
@@ -985,7 +1116,7 @@
         Map data © OpenStreetMap contributors.
       </div>
 
-      <div class="help-footer">my-game · v1.0 · © 2026 Souksavath VILASACK</div>
+      <div class="help-footer">EQ GAME · v1.0 · © 2026 Souksavath VILASACK</div>
       <button class="modal-close" id="btn-close-about" data-i18n="btn-close">ປິດ</button>
     </div>
   </div>
@@ -1066,15 +1197,15 @@
         'about-title': 'ກ່ຽວກັບແອັບ',
         'about-tag': 'ເກມຝຶກສະຫມອງເດັກ 3-7 ປີ · 30+ ເກມ',
         'about-dev-title': 'ຜູ້ພັດທະນາ',
-        'about-dev-tag': 'Laoodoo · ນະຄອນຫຼວງວຽງຈັນ, ລາວ 🇱🇦',
+        'about-dev-tag': 'EQ GAME · ນະຄອນຫຼວງວຽງຈັນ, ລາວ 🇱🇦',
         'about-contact-title': 'ຕິດຕໍ່',
         'about-credits': 'ສ້າງຂຶ້ນດ້ວຍ ❤️ ສຳລັບເດັກລາວ.<br>ໃຊ້ HTML, CSS, JavaScript, <b>Leaflet</b>, <b>Chart.js</b> &amp; <b>Tesseract.js</b>.<br>ຂໍ້ມູນແຜນທີ່ © OpenStreetMap contributors.',
-        'about-donate-title':'ສະໜັບສະໜຸນ / Donate',
-        'about-donors-link':'🌟 ລາຍຊື່ຜູ້ສະໜັບສະໜຸນ →',
-        'about-web-lbl':'ເຂົ້າຜ່ານເວັບໄຊ',
-        'about-request-title':'ສະເໜີໄອເດຍ',
-        'about-request-text':'ຢາກໃຫ້ສ້າງເກມ, ແອັບ ຫຼື ເຄື່ອງມືແບບໃໝ່? ສົ່ງມາຫາຜ່ານຊ່ອງທາງເທິງໄດ້ເລີຍ! ຍິນດີຮັບຟັງທຸກໆຄຳແນະນຳ.',
-        'copied':'✓ ກ໊ອບປີ້ແລ້ວ!',
+        'about-donate-title': 'ສະໜັບສະໜຸນ / Donate',
+        'about-donors-link': '🌟 ລາຍຊື່ຜູ້ສະໜັບສະໜຸນ →',
+        'about-web-lbl': 'ເຂົ້າຜ່ານເວັບໄຊ',
+        'about-request-title': 'ສະເໜີໄອເດຍ',
+        'about-request-text': 'ຢາກໃຫ້ສ້າງເກມ, ແອັບ ຫຼື ເຄື່ອງມືແບບໃໝ່? ສົ່ງມາຫາຜ່ານຊ່ອງທາງເທິງໄດ້ເລີຍ! ຍິນດີຮັບຟັງທຸກໆຄຳແນະນຳ.',
+        'copied': '✓ ກ໊ອບປີ້ແລ້ວ!',
         'btn-close': 'ປິດ',
         'help-title': 'ວິທີຫຼິ້ນ',
         'help-intro': 'ກົດໃສ່ການ໌ດເກມເພື່ອເລີ່ມຫຼິ້ນ. ທຸກໆເກມຮອງຮັບ 3 ພາສາ: ລາວ, ໄທ, ອັງກິດ.',
@@ -1143,15 +1274,15 @@
         'about-title': 'เกี่ยวกับแอป',
         'about-tag': 'เกมฝึกสมองเด็ก 3-7 ปี · 30+ เกม',
         'about-dev-title': 'ผู้พัฒนา',
-        'about-dev-tag': 'Laoodoo · เวียงจันทน์, ลาว 🇱🇦',
+        'about-dev-tag': 'EQ GAME · เวียงจันทน์, ลาว 🇱🇦',
         'about-contact-title': 'ติดต่อ',
         'about-credits': 'สร้างด้วย ❤️ สำหรับเด็กลาว<br>ใช้ HTML, CSS, JavaScript, <b>Leaflet</b>, <b>Chart.js</b> &amp; <b>Tesseract.js</b><br>ข้อมูลแผนที่ © OpenStreetMap contributors',
-        'about-donate-title':'สนับสนุน / Donate',
-        'about-donors-link':'🌟 รายชื่อผู้สนับสนุน →',
-        'about-web-lbl':'เข้าผ่านเว็บไซต์',
-        'about-request-title':'เสนอไอเดีย',
-        'about-request-text':'อยากให้สร้างเกม, แอป หรือเครื่องมือแบบใหม่? ส่งมาหาผมผ่านช่องทางด้านบนได้เลย! ยินดีรับฟังทุกๆคำแนะนำ',
-        'copied':'✓ คัดลอกแล้ว!',
+        'about-donate-title': 'สนับสนุน / Donate',
+        'about-donors-link': '🌟 รายชื่อผู้สนับสนุน →',
+        'about-web-lbl': 'เข้าผ่านเว็บไซต์',
+        'about-request-title': 'เสนอไอเดีย',
+        'about-request-text': 'อยากให้สร้างเกม, แอป หรือเครื่องมือแบบใหม่? ส่งมาหาผมผ่านช่องทางด้านบนได้เลย! ยินดีรับฟังทุกๆคำแนะนำ',
+        'copied': '✓ คัดลอกแล้ว!',
         'btn-close': 'ปิด',
         'help-title': 'วิธีเล่น',
         'help-intro': 'แตะการ์ดเกมเพื่อเริ่มเล่น ทุกเกมรองรับ 3 ภาษา: ลาว, ไทย, อังกฤษ',
@@ -1220,15 +1351,15 @@
         'about-title': 'About this app',
         'about-tag': 'Brain games for kids 3-7 · 30+ games',
         'about-dev-title': 'Developer',
-        'about-dev-tag': 'Laoodoo · Vientiane, Laos 🇱🇦',
+        'about-dev-tag': 'EQ GAME · Vientiane, Laos 🇱🇦',
         'about-contact-title': 'Contact',
         'about-credits': 'Made with ❤️ for Lao children.<br>Built using HTML, CSS, JavaScript, <b>Leaflet</b>, <b>Chart.js</b> &amp; <b>Tesseract.js</b>.<br>Map data © OpenStreetMap contributors.',
-        'about-donate-title':'Support / Donate',
-        'about-donors-link':'🌟 List of supporters →',
-        'about-web-lbl':'Open in web browser',
-        'about-request-title':'Suggest an idea',
-        'about-request-text':'Want a new game, app, or tool? Send your ideas through any of the contact channels above! Happy to hear all suggestions.',
-        'copied':'✓ Copied!',
+        'about-donate-title': 'Support / Donate',
+        'about-donors-link': '🌟 List of supporters →',
+        'about-web-lbl': 'Open in web browser',
+        'about-request-title': 'Suggest an idea',
+        'about-request-text': 'Want a new game, app, or tool? Send your ideas through any of the contact channels above! Happy to hear all suggestions.',
+        'copied': '✓ Copied!',
         'btn-close': 'Close',
         'help-title': 'How to Play',
         'help-intro': 'Tap a game card to start. All games support 3 languages: Lao, Thai, English.',
@@ -1468,7 +1599,7 @@
         document.execCommand('copy');
         document.body.removeChild(ta);
         done();
-      } catch {}
+      } catch { }
     }
     document.querySelectorAll('[data-copy]').forEach(btn => {
       btn.addEventListener('click', () => copyText(btn.getAttribute('data-copy'), btn));
