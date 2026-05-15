@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ລວມ PDF · PDF Merge</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fed7aa, #fef3c7);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .pm-wrap { max-width: 720px; margin: 0 auto; padding: 8px 10px 40px; }
+
+    .pm-hdr {
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(249,115,22,0.35); margin-bottom: 10px;
+    }
+    .pm-title { font-size: 1.1rem; font-weight: 900; }
+    .pm-hdr a {
+      color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+      padding: 6px 12px; border-radius: 20px; font-size: .85rem;
+    }
+
+    /* Drop zone */
+    .pm-drop {
+      background: #fff; border: 3px dashed #fdba74; border-radius: 14px;
+      padding: 20px 16px; text-align: center;
+      margin-bottom: 10px; transition: all .15s;
+    }
+    .pm-drop.dragover { border-color: #c2410c; background: #ffedd5; transform: scale(1.01); }
+    .pm-drop .em { font-size: 2.4rem; line-height: 1; display: block; margin-bottom: 6px; }
+    .pm-drop .hint { color: #94a3b8; font-size: .85rem; margin-bottom: 10px; }
+    .pm-drop label {
+      padding: 9px 16px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      color: #fff; font-size: .88rem; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 5px;
+      position: relative; overflow: hidden;
+    }
+    .pm-drop label:active { transform: translateY(2px); }
+    .pm-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* List */
+    .pm-list-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px 8px; font-weight: 900; font-size: .95rem; color: #475569;
+    }
+    .pm-list-hdr .count {
+      background: #fff; color: #94a3b8; font-size: .72rem; padding: 2px 8px;
+      border-radius: 99px; font-weight: 800; margin-left: auto;
+    }
+    .pm-files { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    .pm-file {
+      background: #fff; border-radius: 12px; padding: 10px 12px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      position: relative; overflow: hidden;
+    }
+    .pm-file::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, #f97316, #c2410c);
+    }
+    .pm-file .num {
+      background: linear-gradient(135deg, #fed7aa, #fdba74);
+      color: #c2410c; font-weight: 900; font-size: .85rem;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pm-file .body { flex: 1; min-width: 0; }
+    .pm-file .name {
+      font-weight: 800; font-size: .92rem; color: #1e293b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pm-file .meta { font-size: .72rem; color: #64748b; margin-top: 2px; }
+    .pm-file .meta span { margin-right: 8px; }
+    .pm-file .actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .pm-file .actions button {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: none; background: #f1f5f9; color: #475569;
+      cursor: pointer; font-family: inherit; font-size: .9rem;
+    }
+    .pm-file .actions button:active { transform: scale(.9); }
+    .pm-file .actions button:disabled { opacity: .3; }
+    .pm-file .actions .del { color: #ef4444; }
+    .pm-file .actions .del:hover { background: #fee2e2; }
+
+    /* Empty */
+    .pm-empty {
+      text-align: center; padding: 18px 12px; color: #94a3b8;
+      font-style: italic; font-size: .9rem;
+    }
+
+    /* Total */
+    .pm-total {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-radius: 12px; padding: 10px 14px;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 10px;
+      border: 1px solid #fcd34d;
+      display: none;
+    }
+    .pm-total.show { display: flex; }
+    .pm-total .em { font-size: 1.4rem; }
+    .pm-total .lbl { font-size: .75rem; color: #92400e; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+    .pm-total .val { font-size: 1rem; font-weight: 900; color: #1e293b; }
+
+    /* Progress */
+    .pm-progress {
+      display: none;
+      background: #fff; border-radius: 12px; padding: 14px;
+      margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .pm-progress.show { display: block; }
+    .pm-progress .bar {
+      height: 8px; background: #f1f5f9; border-radius: 99px;
+      margin: 8px 0; overflow: hidden;
+    }
+    .pm-progress .bar > div {
+      height: 100%; background: linear-gradient(90deg, #f97316, #c2410c);
+      transition: width .25s; width: 0%;
+    }
+    .pm-progress .lbl { font-size: .85rem; font-weight: 700; color: #475569; }
+
+    /* Actions */
+    .pm-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .pm-actions button {
+      padding: 14px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 900; font-family: inherit;
+      cursor: pointer; color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .pm-actions button:active { transform: translateY(2px); }
+    .pm-actions button:disabled { opacity: .4; cursor: not-allowed; }
+    .pm-actions .clear { background: linear-gradient(135deg, #94a3b8, #64748b); }
+    .pm-actions .gen   { background: linear-gradient(135deg, #f97316, #c2410c); }
+
+    /* Toast */
+    .pm-toast {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15,23,42,.92); color: #fff;
+      padding: 10px 18px; border-radius: 99px;
+      font-size: .85rem; font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0,0,0,.3);
+      opacity: 0; pointer-events: none;
+      transition: all .25s; z-index: 100;
+    }
+    .pm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Modal */
+    .pm-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(15,23,42,.7); backdrop-filter: blur(4px); z-index: 200;
+    }
+    .pm-modal.show { display: flex; }
+    .pm-modal-card {
+      background: #fff; border-radius: 18px; padding: 22px 24px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .pm-modal-card h2 { margin: 0 0 8px; color: #c2410c; font-size: 1.2rem; }
+    .pm-modal-card p { margin: 6px 0 16px; color: #475569; font-size: .9rem; line-height: 1.5; }
+    .pm-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pm-modal-btn {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 800; font-family: inherit;
+      cursor: pointer;
+    }
+    .pm-modal-btn.cancel  { background: #f1f5f9; color: #475569; }
+    .pm-modal-btn.confirm { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="pm-wrap">
+    <div class="pm-hdr">
+      <div class="pm-title" id="hdr-title">📄+📄 ລວມ PDF</div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+    </div>
+
+    <div class="pm-drop" id="drop">
+      <span class="em">📄</span>
+      <div class="hint" id="drop-hint">ກົດເລືອກ ຫຼື ລາກ PDF ມາວາງ<br><span style="font-size:.75rem;">(ຫຼາຍໄຟລ໌ໄດ້)</span></div>
+      <label id="btn-pick">📁 <span id="btn-pick-lbl">ເລືອກ PDF</span>
+        <input type="file" id="file-input" accept="application/pdf,.pdf" multiple>
+      </label>
+    </div>
+
+    <div class="pm-total" id="total">
+      <span class="em">📊</span>
+      <div>
+        <div class="lbl" id="lbl-total">ລວມ</div>
+        <div class="val" id="total-val">—</div>
+      </div>
+    </div>
+
+    <div class="pm-list-hdr">
+      <span>📄</span>
+      <span id="lbl-files">PDF ທີ່ຈະລວມ</span>
+      <span class="count" id="file-count">0</span>
+    </div>
+
+    <div class="pm-files" id="files"></div>
+    <div class="pm-empty" id="empty" data-i18n="empty">ຍັງບໍ່ມີ PDF ກົດເລືອກໄຟລ໌ ຫຼື ລາກມາວາງ</div>
+
+    <div class="pm-progress" id="progress">
+      <div class="lbl" id="progress-lbl">ກຳລັງລວມ...</div>
+      <div class="bar"><div id="progress-bar"></div></div>
+    </div>
+
+    <div class="pm-actions">
+      <button class="clear" id="btn-clear" disabled>🗑 <span id="btn-clear-lbl">ລ້າງ</span></button>
+      <button class="gen"   id="btn-gen"   disabled>📄 <span id="btn-gen-lbl">ລວມເປັນ PDF</span></button>
+    </div>
+  </div>
+
+  <div class="pm-toast" id="toast"></div>
+
+  <div class="pm-modal" id="modal-clear">
+    <div class="pm-modal-card">
+      <h2 id="clear-title">⚠️</h2>
+      <p id="clear-text">ລ້າງໄຟລ໌ທັງໝົດ?</p>
+      <div class="pm-modal-actions">
+        <button class="pm-modal-btn cancel"  id="clear-cancel">ຍົກເລີກ</button>
+        <button class="pm-modal-btn confirm" id="clear-confirm">ລ້າງ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="js/pdf-merge.js"></script>
+</body>
+</html>

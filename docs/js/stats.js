@@ -53,6 +53,9 @@
     { key:'freeDraw',     cat:'tools',   icon:'🎨' },
     { key:'stickerChart', cat:'tools',   icon:'⭐', complex:'sticker_chart_v1' },
     { key:'gpsTracker',   cat:'tools',   icon:'📍', complex:'location_trips_v1' },
+    { key:'imgPdf',       cat:'tools',   icon:'🖼️' },
+    { key:'pdfMerge',     cat:'tools',   icon:'➕' },
+    { key:'pdfSplit',     cat:'tools',   icon:'✂️' },
     { key:'pdfWord',      cat:'tools',   icon:'📄' }
   ];
 
@@ -89,7 +92,7 @@
         sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย', maze:'เขาวงกต', whack:'ตีตัวตุ่น',
         tetris:'เททริส', pacman:'Pac-Man', snake:'งู', slither:'Slither',
         spaceInv:'Space Invaders', fps:'ยิงลูกโป่ง', piano:'เปียโน', towerDef:'ป้องกันฐาน',
-        freeDraw:'วาดอิสระ', stickerChart:'สติกเกอร์รางวัล', gpsTracker:'GPS Tracker', pdfWord:'PDF → Word'
+        freeDraw:'วาดอิสระ', stickerChart:'สติกเกอร์รางวัล', gpsTracker:'GPS Tracker', imgPdf:'รูปเป็น PDF', pdfMerge:'รวม PDF', pdfSplit:'แยก PDF', pdfWord:'PDF → Word'
       },
       best:'ดีสุด', level:'เลเวล', plays:'เล่น', noData:'ยังไม่มีข้อมูล',
       tripsCount:'ทริป', stickersCount:'สติกเกอร์', children:'เด็ก',
@@ -125,7 +128,7 @@
         sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack', maze:'Maze', whack:'Whack-a-Mole',
         tetris:'Tetris', pacman:'Pac-Man', snake:'Snake', slither:'Slither',
         spaceInv:'Space Invaders', fps:'Balloon Shooter', piano:'Piano', towerDef:'Tower Defense',
-        freeDraw:'Free Draw', stickerChart:'Sticker Chart', gpsTracker:'GPS Tracker', pdfWord:'PDF → Word'
+        freeDraw:'Free Draw', stickerChart:'Sticker Chart', gpsTracker:'GPS Tracker', imgPdf:'Image → PDF', pdfMerge:'PDF Merge', pdfSplit:'PDF Split', pdfWord:'PDF → Word'
       },
       best:'Best', level:'Lv', plays:'Plays', noData:'No data yet',
       tripsCount:'Trips', stickersCount:'Stickers', children:'Children',
@@ -161,7 +164,7 @@
         sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ', maze:'ເຂົາວົງກົດ', whack:'ຕີໜູ',
         tetris:'ເທັດຣິສ', pacman:'Pac-Man', snake:'ງູ', slither:'Slither',
         spaceInv:'Space Invaders', fps:'ຍິງປູມເປົ້າ', piano:'ເປຍໂນ', towerDef:'ປ້ອງກັນຖານ',
-        freeDraw:'ແຕ້ມຮູບ', stickerChart:'ສະຕິກເກີຮາງວັນ', gpsTracker:'GPS Tracker', pdfWord:'PDF → Word'
+        freeDraw:'ແຕ້ມຮູບ', stickerChart:'ສະຕິກເກີຮາງວັນ', gpsTracker:'GPS Tracker', imgPdf:'ຮູບເປັນ PDF', pdfMerge:'ລວມ PDF', pdfSplit:'ແຍກ PDF', pdfWord:'PDF → Word'
       },
       best:'ດີສຸດ', level:'ລະດັບ', plays:'ຫຼິ້ນ', noData:'ຍັງບໍ່ມີຂໍ້ມູນ',
       tripsCount:'ການເດີນທາງ', stickersCount:'ສະຕິກເກີ', children:'ເດັກ',

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ຮູບເປັນ PDF · Image to PDF</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: linear-gradient(180deg, #fee2e2, #fef3c7);
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .ip-wrap { max-width: 720px; margin: 0 auto; padding: 8px 10px 40px; }
+
+    .ip-hdr {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff; padding: 14px 16px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(220,38,38,0.35); margin-bottom: 10px;
+    }
+    .ip-title { font-size: 1.1rem; font-weight: 900; }
+    .ip-hdr a {
+      color: #fff; text-decoration: none; background: rgba(255,255,255,.22);
+      padding: 6px 12px; border-radius: 20px; font-size: .85rem;
+    }
+
+    /* Drop zone */
+    .ip-drop {
+      background: #fff; border: 3px dashed #fca5a5; border-radius: 14px;
+      padding: 20px 16px; text-align: center;
+      margin-bottom: 10px; transition: all .15s;
+    }
+    .ip-drop.dragover { border-color: #dc2626; background: #fee2e2; transform: scale(1.01); }
+    .ip-drop .em { font-size: 2.4rem; line-height: 1; display: block; margin-bottom: 6px; }
+    .ip-drop .hint {
+      color: #94a3b8; font-size: .85rem; margin-bottom: 10px;
+    }
+    .ip-drop .actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .ip-drop label, .ip-drop button {
+      padding: 9px 16px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff; font-size: .88rem; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 5px;
+      position: relative; overflow: hidden;
+    }
+    .ip-drop label:active, .ip-drop button:active { transform: translateY(2px); }
+    .ip-drop input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* Thumbnails */
+    .ip-list-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px 8px; font-weight: 900; font-size: .95rem; color: #475569;
+    }
+    .ip-list-hdr .count {
+      background: #fff; color: #94a3b8; font-size: .72rem; padding: 2px 8px;
+      border-radius: 99px; font-weight: 800; margin-left: auto;
+    }
+
+    .ip-thumbs {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px; margin-bottom: 10px;
+    }
+    .ip-thumb {
+      background: #fff; border-radius: 12px; padding: 6px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .ip-thumb .img-wrap {
+      aspect-ratio: 1 / 1.2;
+      background: #f8fafc; border-radius: 8px;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    .ip-thumb img {
+      width: 100%; height: 100%; object-fit: contain;
+    }
+    .ip-thumb .num {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,.7); color: #fff;
+      font-size: .7rem; font-weight: 900;
+      padding: 2px 7px; border-radius: 99px;
+    }
+    .ip-thumb .del {
+      position: absolute; top: 8px; right: 8px;
+      width: 26px; height: 26px; border-radius: 50%;
+      border: none; background: rgba(239,68,68,.95); color: #fff;
+      font-size: .85rem; cursor: pointer; font-family: inherit;
+      box-shadow: 0 2px 4px rgba(0,0,0,.2);
+    }
+    .ip-thumb .del:active { transform: scale(.9); }
+    .ip-thumb .moves {
+      display: flex; justify-content: space-between; gap: 4px;
+      margin-top: 4px;
+    }
+    .ip-thumb .moves button {
+      flex: 1; padding: 4px; border: none; border-radius: 6px;
+      background: #f1f5f9; color: #475569; cursor: pointer;
+      font-family: inherit; font-size: .9rem; font-weight: 800;
+    }
+    .ip-thumb .moves button:active { transform: scale(.9); }
+    .ip-thumb .moves button:disabled { opacity: .3; }
+
+    /* Settings */
+    .ip-settings {
+      background: #fff; border-radius: 14px; padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 10px;
+    }
+    .ip-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0;
+    }
+    .ip-row + .ip-row { border-top: 1px solid #f1f5f9; }
+    .ip-row .lbl {
+      flex: 1; font-size: .88rem; font-weight: 800; color: #475569;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ip-row .opts { display: flex; gap: 4px; flex-wrap: wrap; }
+    .ip-opt {
+      padding: 5px 10px; border-radius: 8px;
+      background: #f1f5f9; color: #475569;
+      font-size: .82rem; font-weight: 800; font-family: inherit;
+      cursor: pointer; border: 2px solid transparent;
+    }
+    .ip-opt:active { transform: scale(.95); }
+    .ip-opt.active {
+      background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff;
+      border-color: #b91c1c;
+    }
+
+    /* Actions */
+    .ip-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .ip-actions button {
+      padding: 14px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 900; font-family: inherit;
+      cursor: pointer; color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .ip-actions button:active { transform: translateY(2px); }
+    .ip-actions button:disabled { opacity: .4; cursor: not-allowed; }
+    .ip-actions .clear { background: linear-gradient(135deg, #94a3b8, #64748b); }
+    .ip-actions .gen   { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+
+    /* Progress */
+    .ip-progress {
+      display: none;
+      background: #fff; border-radius: 12px; padding: 14px;
+      margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .ip-progress.show { display: block; }
+    .ip-progress .bar {
+      height: 8px; background: #f1f5f9; border-radius: 99px;
+      margin: 8px 0; overflow: hidden;
+    }
+    .ip-progress .bar > div {
+      height: 100%; background: linear-gradient(90deg, #dc2626, #b91c1c);
+      transition: width .25s; width: 0%;
+    }
+    .ip-progress .lbl { font-size: .85rem; font-weight: 700; color: #475569; }
+
+    /* Empty state */
+    .ip-empty {
+      text-align: center; padding: 18px 12px; color: #94a3b8;
+      font-style: italic; font-size: .9rem;
+    }
+
+    /* Toast */
+    .ip-toast {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15,23,42,.92); color: #fff;
+      padding: 10px 18px; border-radius: 99px;
+      font-size: .85rem; font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0,0,0,.3);
+      opacity: 0; pointer-events: none;
+      transition: all .25s;
+      z-index: 100;
+    }
+    .ip-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Confirm modal */
+    .ip-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: rgba(15,23,42,.7); backdrop-filter: blur(4px); z-index: 200;
+    }
+    .ip-modal.show { display: flex; }
+    .ip-modal-card {
+      background: #fff; border-radius: 18px; padding: 22px 24px;
+      max-width: 92%; min-width: 280px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .ip-modal-card h2 { margin: 0 0 8px; color: #b91c1c; font-size: 1.2rem; }
+    .ip-modal-card p { margin: 6px 0 16px; color: #475569; font-size: .9rem; line-height: 1.5; }
+    .ip-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ip-modal-btn {
+      padding: 12px; border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 800; font-family: inherit;
+      cursor: pointer;
+    }
+    .ip-modal-btn.cancel  { background: #f1f5f9; color: #475569; }
+    .ip-modal-btn.confirm { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+
+    @media (max-width: 380px) {
+      .ip-thumbs { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="ip-wrap">
+    <div class="ip-hdr">
+      <div class="ip-title" id="hdr-title">🖼️ → 📄 ຮູບເປັນ PDF</div>
+      <a href="index.html" id="hdr-back">← ໜ້າຫຼັກ</a>
+    </div>
+
+    <div class="ip-drop" id="drop">
+      <span class="em">🖼️</span>
+      <div class="hint" id="drop-hint">ກົດເລືອກ ຫຼື ລາກຮູບມາວາງທີ່ນີ້<br><span style="font-size:.75rem;">JPG · PNG · WEBP (ຫຼາຍຮູບໄດ້)</span></div>
+      <div class="actions">
+        <label id="btn-pick">📁 <span id="btn-pick-lbl">ເລືອກໄຟລ໌</span>
+          <input type="file" id="file-input" accept="image/*" multiple>
+        </label>
+        <label id="btn-cam">📷 <span id="btn-cam-lbl">ກ້ອງ</span>
+          <input type="file" id="cam-input" accept="image/*" capture="environment">
+        </label>
+      </div>
+    </div>
+
+    <div class="ip-list-hdr">
+      <span>🖼️</span>
+      <span id="lbl-images">ຮູບ</span>
+      <span class="count" id="thumb-count">0</span>
+    </div>
+
+    <div class="ip-thumbs" id="thumbs"></div>
+    <div class="ip-empty" id="empty" data-i18n="empty">ຍັງບໍ່ມີຮູບ ກົດເລືອກໄຟລ໌ ຫຼື ລາກມາວາງ</div>
+
+    <div class="ip-settings">
+      <div class="ip-row">
+        <span class="lbl">📄 <span id="lbl-page">ຂະໜາດໜ້າ</span></span>
+        <div class="opts" id="opt-page">
+          <button class="ip-opt active" data-v="a4">A4</button>
+          <button class="ip-opt" data-v="letter">Letter</button>
+          <button class="ip-opt" data-v="a5">A5</button>
+          <button class="ip-opt" data-v="fit"><span id="opt-fit">ຕາມຮູບ</span></button>
+        </div>
+      </div>
+      <div class="ip-row">
+        <span class="lbl">🔄 <span id="lbl-orient">ໝຸນ</span></span>
+        <div class="opts" id="opt-orient">
+          <button class="ip-opt active" data-v="auto"><span id="opt-auto">ອັດຕະໂນມັດ</span></button>
+          <button class="ip-opt" data-v="p"><span id="opt-portrait">ຕັ້ງ</span></button>
+          <button class="ip-opt" data-v="l"><span id="opt-landscape">ນອນ</span></button>
+        </div>
+      </div>
+      <div class="ip-row">
+        <span class="lbl">📐 <span id="lbl-margin">ຂອບ</span></span>
+        <div class="opts" id="opt-margin">
+          <button class="ip-opt" data-v="0">0</button>
+          <button class="ip-opt active" data-v="5">5mm</button>
+          <button class="ip-opt" data-v="10">10mm</button>
+          <button class="ip-opt" data-v="20">20mm</button>
+        </div>
+      </div>
+      <div class="ip-row">
+        <span class="lbl">⭐ <span id="lbl-quality">ຄຸນະພາບ</span></span>
+        <div class="opts" id="opt-quality">
+          <button class="ip-opt" data-v="0.7"><span id="opt-low">ປະຢັດ</span></button>
+          <button class="ip-opt active" data-v="0.85"><span id="opt-med">ປານກາງ</span></button>
+          <button class="ip-opt" data-v="0.95"><span id="opt-high">ສູງ</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ip-progress" id="progress">
+      <div class="lbl" id="progress-lbl">ກຳລັງສ້າງ PDF...</div>
+      <div class="bar"><div id="progress-bar"></div></div>
+    </div>
+
+    <div class="ip-actions">
+      <button class="clear" id="btn-clear" disabled>🗑 <span id="btn-clear-lbl">ລ້າງ</span></button>
+      <button class="gen"   id="btn-gen"   disabled>📄 <span id="btn-gen-lbl">ສ້າງ PDF</span></button>
+    </div>
+  </div>
+
+  <div class="ip-toast" id="toast"></div>
+
+  <div class="ip-modal" id="modal-clear">
+    <div class="ip-modal-card">
+      <h2 id="clear-title">⚠️</h2>
+      <p id="clear-text">ລ້າງຮູບທັງໝົດ?</p>
+      <div class="ip-modal-actions">
+        <button class="ip-modal-btn cancel"  id="clear-cancel">ຍົກເລີກ</button>
+        <button class="ip-modal-btn confirm" id="clear-confirm">ລ້າງ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/image-to-pdf.js"></script>
+</body>
+</html>
