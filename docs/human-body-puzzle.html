@@ -1,49 +1,359 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Human Body Puzzle</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-    .piece-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-top: 32px; }
-    .body-piece { border: 3px solid #2196f3; border-radius: 8px; padding: 12px 24px; font-size: 1.1rem; background: #fff; cursor: grab; font-weight: bold; min-width: 120px; margin-bottom: 12px; }
-    .drop-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-top: 60px; max-width: 700px; margin-left: auto; margin-right: auto; }
-    .drop-row-center { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 340px; margin: 0 auto; }
-    .drop-zone { border: 3px solid #f44336; border-radius: 8px; padding: 16px 32px; min-width: 120px; min-height: 32px; margin: 8px 0; text-align: center; font-size: 1.1rem; background: #fff; font-weight: bold; transition: background 0.2s; }
-    .drop-zone.active { background: #c8e6c9; }
-    .drop-zone.filled { background: #c8e6c9; color: #1976d2; }
-    .stats { text-align: center; margin: 18px 0 0 0; font-size: 1.1rem; color: #1976d2; }
-    .tts-btn { margin-left: 8px; background: #fffbe7; border: 1.5px solid #1976d2; border-radius: 6px; color: #1976d2; font-size: 1.1rem; padding: 2px 10px; cursor: pointer; }
+    html, body {
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 50%, #ddd6fe 100%);
+      color: #1a3a5a;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .hbp-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 8px 8px 0;
+      height: 100vh; box-sizing: border-box;
+      width: 100%; max-width: 760px; margin: 0 auto;
+    }
+
+    .hbp-title {
+      color: #7c3aed;
+      margin: 0 0 6px;
+      font-size: 1.5em;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+    }
+
+    .hbp-statusbar {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; font-size: 0.9rem; margin-bottom: 6px;
+      flex-wrap: wrap; padding: 0 6px;
+    }
+    .hbp-pill {
+      background: rgba(124, 58, 237, 0.10);
+      border: 1px solid rgba(124, 58, 237, 0.45);
+      padding: 3px 10px;
+      border-radius: 14px;
+      color: #1a3a5a; white-space: nowrap;
+    }
+    .hbp-pill strong { color: #7c3aed; font-size: 1rem; }
+    .hbp-pill.correct strong { color: #2e7d32; }
+    .hbp-pill.wrong strong   { color: #c62828; }
+
+    /* Mode selector */
+    .hbp-mode-row {
+      display: flex; gap: 6px; justify-content: center;
+      margin: 4px 0 8px; flex-wrap: wrap;
+    }
+    .hbp-mode-btn {
+      padding: 5px 16px; font-size: 0.9rem;
+      border-radius: 14px; border: 2px solid #7c3aed;
+      background: #fff; color: #7c3aed; font-weight: bold;
+      cursor: pointer; transition: background 0.2s, color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hbp-mode-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #be185d);
+      color: #fff; border-color: transparent;
+    }
+
+    /* Figure (body silhouette) */
+    .hbp-figure-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 0; width: 100%;
+      max-height: calc(100vh - 280px);
+    }
+    .hbp-figure {
+      position: relative;
+      width: min(280px, 80vw);
+      background: rgba(255, 255, 255, 0.45);
+      border: 2px dashed rgba(124, 58, 237, 0.45);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.15);
+    }
+    .hbp-figure.face {
+      aspect-ratio: 1 / 1;
+      background:
+        radial-gradient(circle at 50% 50%, #ffe6d5 0%, #fdd5b8 60%, transparent 65%),
+        rgba(255, 255, 255, 0.45);
+      border-radius: 50%;
+    }
+    .hbp-figure.body {
+      aspect-ratio: 1 / 1.7;
+      max-height: calc(100vh - 280px);
+      width: auto;
+      background:
+        /* head */
+        radial-gradient(circle at 50% 12%, #ffe6d5 0 8%, transparent 8.5%),
+        /* torso */
+        radial-gradient(ellipse 18% 18% at 50% 45%, #c5d9ff 60%, transparent 65%),
+        /* arms */
+        radial-gradient(ellipse 4% 16% at 28% 50%, #ffe6d5 60%, transparent 65%),
+        radial-gradient(ellipse 4% 16% at 72% 50%, #ffe6d5 60%, transparent 65%),
+        /* legs */
+        radial-gradient(ellipse 5% 20% at 42% 80%, #c5d9ff 60%, transparent 65%),
+        radial-gradient(ellipse 5% 20% at 58% 80%, #c5d9ff 60%, transparent 65%),
+        rgba(255, 255, 255, 0.45);
+    }
+
+    /* Slots overlaid on the figure */
+    .hbp-slot {
+      position: absolute;
+      width: 14%;
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%);
+      border: 2.5px dashed rgba(124, 58, 237, 0.7);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(18px, 5vw, 28px);
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hbp-figure.body .hbp-slot { width: 11%; }
+    .hbp-slot:active { transform: translate(-50%, -50%) scale(0.92); }
+    .hbp-slot.filled {
+      border-style: solid;
+      border-color: #2e7d32;
+      background: rgba(200, 230, 201, 0.7);
+      box-shadow: 0 0 10px rgba(46, 125, 50, 0.4);
+      cursor: default;
+    }
+    .hbp-slot.wrong {
+      border-color: #c62828;
+      background: rgba(255, 205, 210, 0.7);
+      animation: hbpShake 0.4s;
+    }
+    .hbp-slot.pop { animation: hbpPop 0.5s ease-out; }
+    @keyframes hbpShake {
+      0%, 100% { transform: translate(-50%, -50%); }
+      20% { transform: translate(calc(-50% - 5px), -50%); }
+      40% { transform: translate(calc(-50% + 5px), -50%); }
+      60% { transform: translate(calc(-50% - 4px), -50%); }
+      80% { transform: translate(calc(-50% + 4px), -50%); }
+    }
+    @keyframes hbpPop {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.3); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Palette (piece tiles) */
+    .hbp-palette {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 6px; padding: 8px 4px;
+      width: 100%; max-width: 600px;
+      min-height: 60px;
+    }
+    .hbp-piece {
+      width: 52px; height: 52px;
+      font-size: 1.7em;
+      background: #fff;
+      border: 3px solid #7c3aed;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(124, 58, 237, 0.18);
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      padding: 0;
+    }
+    .hbp-piece:active { transform: scale(0.94); }
+    .hbp-piece.selected {
+      border-color: #fbbf24;
+      background: #fef3c7;
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.7);
+    }
+
+    /* Actions */
+    .hbp-actions {
+      display: flex; gap: 8px; justify-content: center;
+      margin: 4px 0 8px; flex-wrap: wrap;
+    }
+    .hbp-btn {
+      padding: 8px 20px; font-size: 0.95em;
+      border-radius: 10px; border: none; font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(80, 40, 130, 0.4);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .hbp-btn.primary { background: linear-gradient(135deg, #7c3aed, #be185d); color: #fff; }
+    .hbp-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(80, 40, 130, 0.4); }
+
+    /* Floating buttons */
+    #hbp-exit-btn {
+      position: fixed; top: 10px; left: 10px; z-index: 30;
+      padding: 8px 14px; background: #ff4444; color: white;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+      font-size: 0.95em;
+    }
+    #hbp-mute-btn {
+      position: fixed; top: 10px; right: 10px; z-index: 30;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85); color: #7c3aed;
+      border: 2px solid rgba(124, 58, 237, 0.55);
+      font-size: 1.1em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+
+    /* Result modal */
+    .hbp-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7); z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .hbp-card {
+      background: linear-gradient(145deg, #fff, #fce7f3);
+      border: 3px solid #7c3aed; border-radius: 16px;
+      padding: 26px 32px; max-width: 400px; width: 100%;
+      box-shadow: 0 0 30px rgba(124, 58, 237, 0.55);
+      animation: hbpCardPop 0.35s ease-out;
+    }
+    @keyframes hbpCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .hbp-card h2 {
+      margin: 0 0 12px; font-size: 1.6em;
+      background: linear-gradient(90deg, #7c3aed, #be185d);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hbp-result-row {
+      display: flex; justify-content: center; gap: 14px;
+      margin: 14px 0; font-size: 1.1em;
+    }
+    .hbp-result-row span {
+      background: rgba(124, 58, 237, 0.12);
+      padding: 6px 14px; border-radius: 12px;
+    }
+    #hbp-new-record {
+      display: inline-block; background: #ff5252; color: white;
+      padding: 4px 12px; border-radius: 12px; font-weight: bold;
+      margin-bottom: 8px;
+      animation: hbpPulse 0.6s infinite alternate;
+    }
+    @keyframes hbpPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+
+    @media (max-width: 600px) {
+      .hbp-title { font-size: 1.2em; }
+      .hbp-statusbar { font-size: 0.78rem; gap: 5px; }
+      .hbp-pill { padding: 2px 8px; }
+      .hbp-mode-btn { padding: 4px 12px; font-size: 0.8rem; }
+      .hbp-piece { width: 44px; height: 44px; font-size: 1.5em; }
+      .hbp-btn { padding: 7px 16px; font-size: 0.88em; }
+      .hbp-card { padding: 20px 24px; }
+      .hbp-card h2 { font-size: 1.3em; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1 style="text-align:center;">Human Body Puzzle</h1>
-    <div class="piece-row" id="piece-row"></div>
-    <div class="drop-row">
-      <div class="drop-zone" id="drop-ear1">drop zone ear1</div>
-      <div class="drop-zone" id="drop-head">drop zone head</div>
-      <div class="drop-zone" id="drop-ear2">drop zone ear2</div>
+  <a id="hbp-exit-btn" href="index.html">Exit</a>
+  <button id="hbp-mute-btn" aria-label="Mute">🔊</button>
+
+  <div class="hbp-container">
+    <h1 class="hbp-title" id="hbp-title">Human Body Puzzle</h1>
+
+    <div class="hbp-statusbar">
+      <span class="hbp-pill"><span id="label-progress">Progress:</span> <strong id="hbp-progress">0 / 6</strong></span>
+      <span class="hbp-pill correct">✓ <strong id="hbp-correct">0</strong></span>
+      <span class="hbp-pill wrong">✗ <strong id="hbp-wrong">0</strong></span>
+      <span class="hbp-pill">⏱ <strong id="hbp-time">00:00</strong></span>
+      <span class="hbp-pill">🏆 <strong id="hbp-best">—</strong></span>
     </div>
-    <div class="drop-row-center">
-      <div class="drop-zone" id="drop-eyes">drop zone eyes</div>
-      <div class="drop-zone" id="drop-nose">drop zone nose</div>
-      <div class="drop-zone" id="drop-mouth">drop zone mouth</div>
+
+    <div class="hbp-mode-row">
+      <button class="hbp-mode-btn" id="hbp-mode-face">Face · 6</button>
+      <button class="hbp-mode-btn" id="hbp-mode-body">Body · 10</button>
     </div>
-    <div class="stats">
-      <span id="timer">เวลา: 0 วินาที</span> |
-      <span id="correct">ถูก: 0</span>
-      <span id="wrong" style="margin-left: 12px;">ผิด: 0</span>
+
+    <div class="hbp-figure-wrap">
+      <div class="hbp-figure" id="hbp-figure"></div>
     </div>
-    <div id="result" style="text-align:center;font-size:1.2rem;color:#388e3c;margin-top:10px;"></div>
-      <div id="wrong-result" style="text-align:center;font-size:1.1rem;color:#d32f2f;margin-top:6px;"></div>
-    <div style="text-align:center;margin-top:18px;">
-      <button onclick="window.location.href='index.html'" style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#fffbe7;color:#1976d2;border:1.5px solid #1976d2;">ย้อนกลับหน้าแรก</button>
-      <button id="restart-btn" style="padding:8px 18px;font-size:1.1rem;border-radius:8px;background:#fffbe7;color:#1976d2;border:1.5px solid #1976d2;">เริ่มใหม่</button>
+
+    <div class="hbp-palette" id="hbp-palette"></div>
+
+    <div class="hbp-actions">
+      <button id="hbp-newgame-btn" class="hbp-btn primary">New Game</button>
     </div>
   </div>
+
+  <!-- Result modal -->
+  <div id="hbp-result-modal" class="hbp-overlay" style="display:none;">
+    <div class="hbp-card">
+      <h2 id="hbp-result-title">All Placed! 🎉</h2>
+      <div id="hbp-new-record" style="display:none;">NEW RECORD!</div>
+      <div class="hbp-result-row">
+        <span>⏱ <strong id="hbp-result-time">00:00</strong></span>
+        <span>✗ <strong id="hbp-result-wrong">0</strong></span>
+      </div>
+      <button id="hbp-replay-btn" class="hbp-btn primary">Play Again</button>
+    </div>
+  </div>
+
   <script src="js/human-body-puzzle.js"></script>
+  <script>
+    const hbpLangData = {
+      th: {
+        title: 'จับคู่ส่วนของร่างกาย',
+        progress: 'ก้าวหน้า:',
+        face: 'ใบหน้า · 6', body: 'ทั้งตัว · 10',
+        newGame: 'เริ่มใหม่', exit: 'ออกเกม',
+        resultTitle: 'วางครบหมด! 🎉', newRecord: 'สถิติใหม่!',
+        playAgain: 'เล่นอีก'
+      },
+      en: {
+        title: 'Human Body Puzzle',
+        progress: 'Progress:',
+        face: 'Face · 6', body: 'Body · 10',
+        newGame: 'New Game', exit: 'Exit',
+        resultTitle: 'All Placed! 🎉', newRecord: 'NEW RECORD!',
+        playAgain: 'Play Again'
+      },
+      lao: {
+        title: 'ຕໍ່ສ່ວນຮ່າງກາຍ',
+        progress: 'ກ້າວໜ້າ:',
+        face: 'ໜ້າ · 6', body: 'ທັງຕົວ · 10',
+        newGame: 'ເລີ່ມໃໝ່', exit: 'ອອກເກມ',
+        resultTitle: 'ວາງຄົບແລ້ວ! 🎉', newRecord: 'ສະຖິຕິໃໝ່!',
+        playAgain: 'ຫຼິ້ນອີກ'
+      }
+    };
+    function setHbpLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = hbpLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('hbp-title', t.title);
+      set('label-progress', t.progress);
+      set('hbp-mode-face', t.face);
+      set('hbp-mode-body', t.body);
+      set('hbp-newgame-btn', t.newGame);
+      set('hbp-exit-btn', t.exit);
+      set('hbp-result-title', t.resultTitle);
+      set('hbp-new-record', t.newRecord);
+      set('hbp-replay-btn', t.playAgain);
+    }
+    document.addEventListener('DOMContentLoaded', setHbpLang);
+  </script>
 </body>
 </html>
