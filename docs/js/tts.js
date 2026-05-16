@@ -20,19 +20,6 @@
     return p === 'android' || p === 'ios';
   }
 
-  // Lao TTS voice is usually not installed on Android, so fall back to Thai —
-  // the two languages share many phonetic patterns and a Thai voice
-  // pronounces Lao words far more clearly than a missing/default voice.
-  function mapLang(lang) {
-    if (!lang) return 'en-US';
-    const lower = String(lang).toLowerCase();
-    if (lower === 'lao' || lower === 'lo' ||
-        lower.indexOf('lo-') === 0 || lower.indexOf('lo_') === 0) {
-      return 'th-TH';
-    }
-    return lang;
-  }
-
   // Call native TextToSpeech plugin via whichever bridge API is available.
   function nativeCall(method, options) {
     const Cap = window.Capacitor;
@@ -100,7 +87,7 @@
       try {
         const p = nativeCall('speak', {
           text:   (utterance && utterance.text) || '',
-          lang:   mapLang((utterance && utterance.lang) || 'en-US'),
+          lang:   (utterance && utterance.lang) || 'en-US',
           rate:   (utterance && typeof utterance.rate   === 'number') ? utterance.rate   : 1.0,
           pitch:  (utterance && typeof utterance.pitch  === 'number') ? utterance.pitch  : 1.0,
           volume: (utterance && typeof utterance.volume === 'number') ? utterance.volume : 1.0,
