@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Solar System · ระบบสุริยะ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: radial-gradient(ellipse at 50% 50%, #0b1437 0%, #050818 70%, #000 100%);
+      color: #e2e8f0;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* Starfield background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 20%,  rgba(255,255,255,0.8) 1px, transparent 1px),
+        radial-gradient(1px 1px at 65% 38%,  rgba(255,255,255,0.6) 1px, transparent 1px),
+        radial-gradient(1px 1px at 28% 70%,  rgba(255,255,255,0.7) 1px, transparent 1px),
+        radial-gradient(1px 1px at 80% 12%,  rgba(255,255,255,0.5) 1px, transparent 1px),
+        radial-gradient(1px 1px at 50% 85%,  rgba(255,255,255,0.6) 1px, transparent 1px),
+        radial-gradient(1px 1px at 92% 60%,  rgba(255,255,255,0.7) 1px, transparent 1px),
+        radial-gradient(1px 1px at 8% 50%,   rgba(255,255,255,0.5) 1px, transparent 1px),
+        radial-gradient(1px 1px at 38% 8%,   rgba(255,255,255,0.6) 1px, transparent 1px),
+        radial-gradient(2px 2px at 72% 80%,  rgba(255,255,255,0.9) 1px, transparent 1.5px),
+        radial-gradient(2px 2px at 20% 35%,  rgba(255,255,255,0.85) 1px, transparent 1.5px);
+      background-size: 100% 100%;
+      pointer-events: none;
+      animation: starsTwinkle 4s ease-in-out infinite;
+    }
+    @keyframes starsTwinkle {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+
+    .ss-title {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 20;
+      font-size: 1.2em; font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #93c5fd, #c084fc, #f0abfc);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 14px rgba(192, 132, 252, 0.5);
+      pointer-events: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* 3D stage */
+    #ss-stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      perspective: 1400px;
+      perspective-origin: 50% 50%;
+      cursor: grab;
+    }
+    #ss-stage:active { cursor: grabbing; }
+
+    #ss-world {
+      position: relative;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      transition: transform 0.05s linear;
+    }
+
+    /* Sun */
+    #ss-sun {
+      position: absolute;
+      width: 50px; height: 50px;
+      left: -25px; top: -25px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff8a0, #f59e0b 60%, #b45309);
+      box-shadow:
+        0 0 25px #fbbf24,
+        0 0 60px #fbbf2488,
+        0 0 100px #fbbf2444,
+        inset -6px -6px 16px #92400e88;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      animation: sunPulse 3s ease-in-out infinite;
+    }
+    @keyframes sunPulse {
+      0%, 100% { box-shadow: 0 0 25px #fbbf24, 0 0 60px #fbbf2488, 0 0 100px #fbbf2444, inset -6px -6px 16px #92400e88; }
+      50%      { box-shadow: 0 0 35px #fbbf24, 0 0 80px #fbbf24aa, 0 0 130px #fbbf2466, inset -6px -6px 16px #92400e88; }
+    }
+
+    /* Orbits — each is a circle centered at (0,0) */
+    .ss-orbit {
+      position: absolute;
+      left: 0; top: 0;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 50%;
+      transform-style: preserve-3d;
+      animation-name: orbitSpin;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      pointer-events: none;  /* Only the planet child catches taps */
+    }
+    .ss-orbit.hide-line { border-color: transparent; }
+    @keyframes orbitSpin {
+      from { transform: rotateZ(0deg); }
+      to   { transform: rotateZ(360deg); }
+    }
+    body.ss-paused .ss-orbit,
+    body.ss-touching .ss-orbit { animation-play-state: paused; }
+
+    /* Planet sits on the orbit's edge (right side, position: absolute top:50%; right:0 with -50%/-50% translate) */
+    .ss-planet {
+      position: absolute;
+      top: 50%; right: 0;
+      transform: translate(50%, -50%);
+      border-radius: 50%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s;
+      pointer-events: auto;
+    }
+    /* Invisible extended hit area so small planets (8-12px) are easy to tap on mobile */
+    .ss-planet::before {
+      content: '';
+      position: absolute;
+      inset: -16px;
+      border-radius: 50%;
+    }
+    .ss-planet:active { transform: translate(50%, -50%) scale(0.85); }
+    .ss-planet:hover { filter: brightness(1.15); }
+
+    /* Saturn rings */
+    .ss-planet .ss-ring {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 220%; height: 30%;
+      transform: translate(-50%, -50%) rotateZ(-15deg);
+      border-radius: 50%;
+      border: 2px solid #f5deb3;
+      background: linear-gradient(to right, transparent 10%, rgba(245, 222, 179, 0.4) 50%, transparent 90%);
+      pointer-events: none;
+    }
+
+    /* Floating buttons */
+    #ss-exit-btn {
+      position: fixed; top: 10px; left: 10px; z-index: 30;
+      padding: 8px 14px; background: #ef4444; color: white;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+      font-size: 0.95em;
+    }
+    #ss-mute-btn {
+      position: fixed; top: 10px; right: 10px; z-index: 30;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.7); color: #c084fc;
+      border: 2px solid rgba(192, 132, 252, 0.6);
+      font-size: 1.1em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+
+    /* Control panel (bottom) */
+    .ss-controls {
+      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 20;
+      display: flex; gap: 8px;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    }
+    .ss-ctrl-btn {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.85);
+      color: #e2e8f0;
+      border: 1px solid rgba(192, 132, 252, 0.3);
+      font-size: 1.1em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ss-ctrl-btn:active { transform: scale(0.93); }
+    .ss-ctrl-btn:hover { background: rgba(124, 58, 237, 0.5); }
+    .ss-ctrl-btn.off { opacity: 0.45; }
+
+    /* Hint */
+    .ss-hint {
+      position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%);
+      z-index: 19;
+      color: rgba(226, 232, 240, 0.6);
+      font-size: 0.78rem;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* Info modal */
+    .ss-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .ss-card {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 2px solid #7c3aed;
+      border-radius: 16px;
+      padding: 22px 26px 24px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 0 36px rgba(124, 58, 237, 0.55);
+      animation: ssCardPop 0.35s ease-out;
+      position: relative;
+      text-align: center;
+    }
+    @keyframes ssCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .ss-info-preview-wrap {
+      display: flex; justify-content: center;
+      margin: 0 auto 10px;
+    }
+    #ss-info-preview {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      position: relative;
+    }
+    .ss-preview-ring {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 220%; height: 30%;
+      transform: translate(-50%, -50%) rotateZ(-15deg);
+      border-radius: 50%;
+      border: 3px solid #f5deb3;
+      background: linear-gradient(to right, transparent 10%, rgba(245, 222, 179, 0.45) 50%, transparent 90%);
+    }
+    #ss-info-name {
+      margin: 4px 0 4px;
+      font-size: 1.6em;
+      font-weight: 900;
+      background: linear-gradient(90deg, #93c5fd, #c084fc);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    #ss-info-fact {
+      color: #cbd5e1;
+      margin: 6px 0 14px;
+      line-height: 1.4;
+    }
+    .ss-info-stats {
+      text-align: left;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 6px 0 14px;
+    }
+    .ss-info-stats > div {
+      padding: 4px 0;
+      font-size: 0.95em;
+    }
+    .ss-info-stats > div:not(:last-child) {
+      border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .ss-info-stats > div:empty { display: none; }
+    .ss-info-label { color: #94a3b8; }
+    .ss-info-stats strong { color: #fbbf24; }
+    #ss-info-close {
+      padding: 10px 22px; font-size: 1em; font-weight: bold;
+      background: linear-gradient(135deg, #7c3aed, #be185d);
+      color: white; border: none; border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(80, 40, 130, 0.55);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    #ss-info-close:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(80, 40, 130, 0.55); }
+
+    @media (max-width: 600px) {
+      .ss-title { font-size: 1em; }
+      #ss-info-name { font-size: 1.3em; }
+      .ss-card { padding: 18px 20px 20px; }
+      #ss-info-preview { width: 78px; height: 78px; }
+      .ss-ctrl-btn { width: 38px; height: 38px; font-size: 1em; }
+      .ss-hint { font-size: 0.7rem; bottom: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <a id="ss-exit-btn" href="index.html">Exit</a>
+  <button id="ss-mute-btn" aria-label="Mute">🔊</button>
+
+  <h1 class="ss-title" id="ss-title">🌌 Solar System</h1>
+
+  <div id="ss-stage">
+    <div id="ss-world">
+      <div id="ss-sun" title="Sun"></div>
+      <!-- Orbits/planets inserted by JS -->
+    </div>
+  </div>
+
+  <p class="ss-hint" id="ss-hint">Drag to rotate · Pinch to zoom · Tap a planet</p>
+
+  <div class="ss-controls">
+    <button class="ss-ctrl-btn" id="ss-pause-btn"  title="Pause">⏸</button>
+    <button class="ss-ctrl-btn" id="ss-orbit-btn" title="Orbits">○</button>
+    <button class="ss-ctrl-btn" id="ss-zoom-out"  title="Zoom out">➖</button>
+    <button class="ss-ctrl-btn" id="ss-zoom-in"   title="Zoom in">➕</button>
+    <button class="ss-ctrl-btn" id="ss-reset-btn" title="Reset view">⌂</button>
+  </div>
+
+  <!-- Info modal -->
+  <div id="ss-info-modal" class="ss-overlay" style="display:none;">
+    <div class="ss-card">
+      <div class="ss-info-preview-wrap">
+        <div id="ss-info-preview"></div>
+      </div>
+      <h2 id="ss-info-name">Planet</h2>
+      <p id="ss-info-fact"></p>
+      <div class="ss-info-stats">
+        <div id="ss-info-diameter"></div>
+        <div id="ss-info-distance"></div>
+        <div id="ss-info-year"></div>
+        <div id="ss-info-moons"></div>
+      </div>
+      <button id="ss-info-close">Close</button>
+    </div>
+  </div>
+
+  <script src="js/solar-system.js"></script>
+  <script>
+    const solarLangData = {
+      th: {
+        title: '🌌 ระบบสุริยะ',
+        exit: 'ออกเกม',
+        hint: 'ลากเพื่อหมุน · บีบเพื่อซูม · แตะดาวเพื่อดูข้อมูล',
+        close: 'ปิด',
+        diameter: 'เส้นผ่านศูนย์กลาง',
+        distance: 'ระยะห่างจากดวงอาทิตย์',
+        year: 'หนึ่งปี',
+        moons: 'จำนวนดวงจันทร์',
+        days: 'วัน',
+        earthYears: 'ปีโลก',
+        sun: 'ดวงอาทิตย์',
+        sunFact: 'ดาวฤกษ์ที่เป็นศูนย์กลางของระบบสุริยะ ให้ความร้อนและแสงสว่างแก่โลก'
+      },
+      en: {
+        title: '🌌 Solar System',
+        exit: 'Exit',
+        hint: 'Drag to rotate · Pinch to zoom · Tap a planet',
+        close: 'Close',
+        diameter: 'Diameter',
+        distance: 'Distance from Sun',
+        year: 'Year length',
+        moons: 'Moons',
+        days: 'days',
+        earthYears: 'Earth years',
+        sun: 'Sun',
+        sunFact: 'The star at the center of our solar system, giving Earth heat and light.'
+      },
+      lao: {
+        title: '🌌 ລະບົບສຸລິຍະ',
+        exit: 'ອອກເກມ',
+        hint: 'ລາກເພື່ອໝຸນ · ບີບເພື່ອຊູມ · ແຕະດາວເພື່ອເບິ່ງຂໍ້ມູນ',
+        close: 'ປິດ',
+        diameter: 'ເສັ້ນຜ່ານສູນກາງ',
+        distance: 'ໄລຍະຫ່າງຈາກດວງຕາເວັນ',
+        year: 'ໜຶ່ງປີ',
+        moons: 'ຈຳນວນດວງເດືອນ',
+        days: 'ມື້',
+        earthYears: 'ປີໂລກ',
+        sun: 'ດວງຕາເວັນ',
+        sunFact: 'ດາວທີ່ເປັນສູນກາງຂອງລະບົບສຸລິຍະ ໃຫ້ຄວາມຮ້ອນແລະແສງສະຫວ່າງແກ່ໂລກ'
+      }
+    };
+    function setSolarLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = solarLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('ss-title', t.title);
+      set('ss-exit-btn', t.exit);
+      set('ss-hint', t.hint);
+      set('ss-info-close', t.close);
+      window.solarLang = t;
+    }
+    document.addEventListener('DOMContentLoaded', setSolarLang);
+  </script>
+</body>
+</html>
