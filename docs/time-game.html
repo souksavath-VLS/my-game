@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Time Game · Clock Reading</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 50%, #ddd6fe 100%);
+      color: #1a3a5a;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .tg-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 8px 8px 0;
+      height: 100vh; box-sizing: border-box;
+      width: 100%; max-width: 760px; margin: 0 auto;
+    }
+
+    .tg-title {
+      color: #7c3aed;
+      margin: 0 0 4px;
+      font-size: 1.5em;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(124, 58, 237, 0.25);
+    }
+
+    .tg-statusbar {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; font-size: 0.9rem; margin-bottom: 6px;
+      flex-wrap: wrap; padding: 0 6px;
+    }
+    .tg-pill {
+      background: rgba(124, 58, 237, 0.10);
+      border: 1px solid rgba(124, 58, 237, 0.45);
+      padding: 3px 10px; border-radius: 14px;
+      color: #1a3a5a; white-space: nowrap;
+    }
+    .tg-pill strong { color: #7c3aed; font-size: 1rem; }
+    .tg-pill.correct strong { color: #2e7d32; }
+    .tg-pill.wrong strong   { color: #c62828; }
+
+    /* Difficulty selector */
+    .tg-diff-row {
+      display: flex; gap: 6px; justify-content: center;
+      margin: 2px 0 8px; flex-wrap: wrap;
+    }
+    .tg-diff-btn {
+      padding: 5px 14px; font-size: 0.85rem;
+      border-radius: 14px; border: 2px solid #7c3aed;
+      background: #fff; color: #7c3aed; font-weight: bold;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tg-diff-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #be185d);
+      color: #fff; border-color: transparent;
+    }
+
+    /* Prompt */
+    .tg-prompt {
+      color: #5b21b6;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    /* Clock */
+    .tg-clock-wrap {
+      display: flex; align-items: center; justify-content: center;
+      margin: 4px 0 10px;
+    }
+    #tg-clock {
+      width: min(220px, 56vw, 36vh);
+      height: auto;
+      filter: drop-shadow(0 4px 18px rgba(124, 58, 237, 0.35));
+    }
+
+    /* Option buttons */
+    .tg-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      width: 100%; max-width: 360px;
+      padding: 0 4px;
+    }
+    @media (min-width: 500px) {
+      .tg-options { grid-template-columns: repeat(4, 1fr); max-width: 600px; }
+    }
+    .tg-option {
+      padding: 14px 10px;
+      font-size: 1.4em;
+      font-weight: 900;
+      border-radius: 12px;
+      border: 3px solid #7c3aed;
+      background: #fff;
+      color: #1a3a5a;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      box-shadow: 0 3px 10px rgba(124, 58, 237, 0.15);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+    .tg-option:active { transform: scale(0.96); }
+    .tg-option.correct {
+      background: #c8e6c9;
+      border-color: #2e7d32;
+      box-shadow: 0 0 18px rgba(46, 125, 50, 0.6);
+      animation: tgPop 0.5s ease-out;
+    }
+    .tg-option.wrong {
+      background: #ffcdd2;
+      border-color: #c62828;
+      animation: tgShake 0.4s;
+    }
+    .tg-option.dim { opacity: 0.4; }
+    @keyframes tgPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes tgShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* Actions */
+    .tg-actions {
+      display: flex; gap: 8px; justify-content: center;
+      margin: 10px 0 0; flex-wrap: wrap;
+    }
+    .tg-btn {
+      padding: 8px 22px; font-size: 0.95em;
+      border-radius: 10px; border: none; font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(80, 40, 130, 0.4);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .tg-btn.primary { background: linear-gradient(135deg, #7c3aed, #be185d); color: #fff; }
+    .tg-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(80, 40, 130, 0.4); }
+
+    /* Floating buttons */
+    #tg-exit-btn {
+      position: fixed; top: 10px; left: 10px; z-index: 30;
+      padding: 8px 14px; background: #ff4444; color: white;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+      font-size: 0.95em;
+    }
+    #tg-mute-btn {
+      position: fixed; top: 10px; right: 10px; z-index: 30;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85); color: #7c3aed;
+      border: 2px solid rgba(124, 58, 237, 0.55);
+      font-size: 1.1em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+
+    /* Result modal */
+    .tg-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7); z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .tg-card {
+      background: linear-gradient(145deg, #fff, #fce7f3);
+      border: 3px solid #7c3aed; border-radius: 16px;
+      padding: 26px 32px; max-width: 400px; width: 100%;
+      box-shadow: 0 0 30px rgba(124, 58, 237, 0.55);
+      animation: tgCardPop 0.35s ease-out;
+    }
+    @keyframes tgCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .tg-card h2 {
+      margin: 0 0 12px; font-size: 1.6em;
+      background: linear-gradient(90deg, #7c3aed, #be185d);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .tg-result-row {
+      display: flex; justify-content: center; gap: 14px;
+      margin: 14px 0; font-size: 1.1em;
+    }
+    .tg-result-row span {
+      background: rgba(124, 58, 237, 0.12);
+      padding: 6px 14px; border-radius: 12px;
+    }
+    #tg-new-record {
+      display: inline-block; background: #ff5252; color: white;
+      padding: 4px 12px; border-radius: 12px; font-weight: bold;
+      margin-bottom: 8px;
+      animation: tgPulse 0.6s infinite alternate;
+    }
+    @keyframes tgPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+
+    @media (max-width: 600px) {
+      .tg-title { font-size: 1.2em; }
+      .tg-statusbar { font-size: 0.78rem; gap: 5px; }
+      .tg-pill { padding: 2px 8px; }
+      .tg-diff-btn { padding: 4px 12px; font-size: 0.78rem; }
+      .tg-option { padding: 11px 8px; font-size: 1.2em; }
+      .tg-btn { padding: 7px 16px; font-size: 0.88em; }
+      .tg-card { padding: 20px 24px; }
+      .tg-card h2 { font-size: 1.3em; }
+    }
+  </style>
+</head>
+<body>
+  <a id="tg-exit-btn" href="index.html">Exit</a>
+  <button id="tg-mute-btn" aria-label="Mute">🔊</button>
+
+  <div class="tg-container">
+    <h1 class="tg-title" id="tg-title">⏰ Time Game</h1>
+
+    <div class="tg-statusbar">
+      <span class="tg-pill"><span id="label-round">Round:</span> <strong id="tg-round">1 / 10</strong></span>
+      <span class="tg-pill correct">✓ <strong id="tg-correct">0</strong></span>
+      <span class="tg-pill wrong">✗ <strong id="tg-wrong">0</strong></span>
+      <span class="tg-pill">⏱ <strong id="tg-time">00:00</strong></span>
+      <span class="tg-pill">🏆 <strong id="tg-best">—</strong></span>
+    </div>
+
+    <div class="tg-diff-row">
+      <button class="tg-diff-btn" id="tg-diff-easy">Easy · :00</button>
+      <button class="tg-diff-btn" id="tg-diff-medium">Medium · :15</button>
+      <button class="tg-diff-btn" id="tg-diff-hard">Hard · :05</button>
+    </div>
+
+    <p class="tg-prompt" id="tg-prompt">What time is it?</p>
+
+    <div class="tg-clock-wrap">
+      <svg id="tg-clock" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="tg-options" id="tg-options"></div>
+
+    <div class="tg-actions">
+      <button id="tg-newgame-btn" class="tg-btn primary">New Game</button>
+    </div>
+  </div>
+
+  <!-- Result modal -->
+  <div id="tg-result-modal" class="tg-overlay" style="display:none;">
+    <div class="tg-card">
+      <h2 id="tg-result-title">Game Complete! ⏰</h2>
+      <div id="tg-new-record" style="display:none;">NEW RECORD!</div>
+      <div class="tg-result-row">
+        <span>✓ <strong id="tg-result-correct">0</strong></span>
+        <span>✗ <strong id="tg-result-wrong">0</strong></span>
+      </div>
+      <p>⏱ <strong id="tg-result-time">00:00</strong></p>
+      <button id="tg-replay-btn" class="tg-btn primary">Play Again</button>
+    </div>
+  </div>
+
+  <script src="js/time-game.js"></script>
+  <script>
+    const timeGameLangData = {
+      th: {
+        title: '⏰ เกมดูเวลา',
+        round: 'รอบที่:',
+        easy: 'ง่าย · :00', medium: 'กลาง · :15', hard: 'ยาก · :05',
+        prompt: 'นาฬิกาบอกกี่โมง?',
+        newGame: 'เริ่มใหม่', exit: 'ออกเกม',
+        resultTitle: 'จบเกม! ⏰', newRecord: 'สถิติใหม่!',
+        playAgain: 'เล่นอีก'
+      },
+      en: {
+        title: '⏰ Time Game',
+        round: 'Round:',
+        easy: 'Easy · :00', medium: 'Medium · :15', hard: 'Hard · :05',
+        prompt: 'What time is it?',
+        newGame: 'New Game', exit: 'Exit',
+        resultTitle: 'Game Complete! ⏰', newRecord: 'NEW RECORD!',
+        playAgain: 'Play Again'
+      },
+      lao: {
+        title: '⏰ ເກມເບິ່ງເວລາ',
+        round: 'ຮອບທີ:',
+        easy: 'ງ່າຍ · :00', medium: 'ກາງ · :15', hard: 'ຍາກ · :05',
+        prompt: 'ໂມງບອກຈັກໂມງ?',
+        newGame: 'ເລີ່ມໃໝ່', exit: 'ອອກເກມ',
+        resultTitle: 'ຈົບເກມ! ⏰', newRecord: 'ສະຖິຕິໃໝ່!',
+        playAgain: 'ຫຼິ້ນອີກ'
+      }
+    };
+    function setTimeGameLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = timeGameLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('tg-title', t.title);
+      set('label-round', t.round);
+      set('tg-diff-easy', t.easy);
+      set('tg-diff-medium', t.medium);
+      set('tg-diff-hard', t.hard);
+      set('tg-prompt', t.prompt);
+      set('tg-newgame-btn', t.newGame);
+      set('tg-exit-btn', t.exit);
+      set('tg-result-title', t.resultTitle);
+      set('tg-new-record', t.newRecord);
+      set('tg-replay-btn', t.playAgain);
+    }
+    document.addEventListener('DOMContentLoaded', setTimeGameLang);
+  </script>
+</body>
+</html>
