@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Candy Crush · เกมแคนดี้</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #ffe4e1 0%, #fff0f5 40%, #e6e6fa 100%);
+      color: #1a3a5a;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .cc-container {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 8px 0;
+      height: 100vh; box-sizing: border-box;
+      width: 100%; max-width: 760px; margin: 0 auto;
+    }
+
+    .cc-title {
+      margin: 0 0 4px;
+      font-size: 1.4em;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #ec4899, #f97316, #facc15);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .cc-statusbar {
+      display: flex; justify-content: center; align-items: center;
+      gap: 6px; font-size: 0.85rem; margin-bottom: 4px;
+      flex-wrap: wrap; padding: 0 6px;
+    }
+    .cc-pill {
+      background: rgba(236, 72, 153, 0.10);
+      border: 1px solid rgba(236, 72, 153, 0.5);
+      padding: 3px 10px; border-radius: 14px;
+      color: #1a3a5a; white-space: nowrap;
+    }
+    .cc-pill strong { color: #be185d; font-size: 0.95rem; }
+    .cc-pill.moves strong { color: #f97316; }
+    .cc-pill.best strong { color: #f59e0b; }
+    .cc-pill.level strong { color: #7c3aed; }
+    .cc-pill.wallet { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.5); }
+    .cc-pill.wallet strong { color: #16a34a; }
+    .cc-pill.flash-bad {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border-color: #ef4444 !important;
+      animation: ccShake 0.4s;
+    }
+    @keyframes ccShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Target progress bar (hardcore) */
+    .cc-target-wrap {
+      width: min(420px, 92vw);
+      margin: 2px auto 4px;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.78rem;
+    }
+    .cc-target-bar-bg {
+      flex: 1;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(124, 58, 237, 0.4);
+    }
+    #cc-target-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #facc15, #f97316, #ec4899);
+      transition: width 0.3s;
+    }
+    .cc-target-label { color: #7c3aed; font-weight: bold; white-space: nowrap; }
+
+    /* Mode/Difficulty selector */
+    .cc-diff-row {
+      display: flex; gap: 5px; justify-content: center;
+      margin: 2px 0 6px; flex-wrap: wrap;
+    }
+    .cc-diff-btn {
+      padding: 5px 12px; font-size: 0.82rem;
+      border-radius: 14px;
+      border: 2px solid #ec4899;
+      background: #fff; color: #be185d;
+      font-weight: bold; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cc-diff-btn.active {
+      background: linear-gradient(135deg, #ec4899, #f97316);
+      color: #fff; border-color: transparent;
+    }
+    .cc-diff-btn.hardcore {
+      border-color: #b91c1c;
+      color: #991b1b;
+    }
+    .cc-diff-btn.hardcore.active {
+      background: linear-gradient(135deg, #991b1b, #f97316);
+      color: #fff7ed;
+      box-shadow: 0 0 12px rgba(220, 38, 38, 0.6);
+      border-color: transparent;
+    }
+
+    /* Hint */
+    .cc-hint {
+      color: rgba(0, 0, 0, 0.55);
+      font-size: 0.75rem;
+      margin: 0 0 4px;
+      padding: 0 8px;
+    }
+
+    /* Board */
+    .cc-board-wrap {
+      display: flex; align-items: center; justify-content: center;
+      flex: 1 1 auto; min-height: 0;
+      padding: 2px;
+    }
+    #cc-board {
+      display: grid;
+      grid-template-columns: repeat(var(--cols, 7), 1fr);
+      grid-template-rows: repeat(var(--rows, 7), 1fr);
+      width: min(420px, 92vw, 70vh);
+      aspect-ratio: var(--cols, 7) / var(--rows, 7);
+      max-height: calc(100vh - 280px);
+      gap: 4px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 3px solid #ec4899;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(236, 72, 153, 0.35);
+      box-sizing: border-box;
+    }
+
+    .cc-cell {
+      aspect-ratio: 1 / 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(18px, 4.6vw, 28px);
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 0; min-height: 0;
+    }
+    .cc-cell:active { transform: scale(0.92); }
+    .cc-cell.selected {
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.85);
+      border-color: #fbbf24 !important;
+      transform: scale(1.06);
+      z-index: 2;
+    }
+    .cc-cell.ice {
+      cursor: not-allowed;
+      box-shadow: 0 0 8px rgba(2, 132, 199, 0.55), inset 0 0 6px rgba(255, 255, 255, 0.6);
+    }
+    .cc-cell.matched {
+      animation: ccMatch 0.32s ease-in forwards;
+    }
+    @keyframes ccMatch {
+      0%   { transform: scale(1); opacity: 1; }
+      60%  { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* Booster row (hardcore only) */
+    .cc-booster-row {
+      display: flex; gap: 8px; justify-content: center;
+      margin: 6px 0 4px; flex-wrap: wrap;
+    }
+    .cc-boost-btn {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 3px 8px rgba(245, 158, 11, 0.25);
+      -webkit-tap-highlight-color: transparent;
+      min-width: 64px;
+    }
+    .cc-boost-btn:active { transform: scale(0.95); }
+    .cc-boost-btn .icon { font-size: 1.5em; line-height: 1; }
+    .cc-boost-btn .price {
+      font-size: 0.72rem; font-weight: bold; color: #b45309;
+      margin-top: 2px;
+    }
+    .cc-boost-btn.disabled {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+      color: #6b7280;
+      cursor: not-allowed;
+      box-shadow: none;
+      opacity: 0.6;
+    }
+    .cc-boost-btn.disabled .price { color: #6b7280; }
+    .cc-boost-btn.active {
+      background: linear-gradient(135deg, #fde047, #fb923c);
+      box-shadow: 0 0 14px rgba(251, 146, 60, 0.7);
+      transform: scale(1.05);
+      animation: ccBoosterPulse 1s ease-in-out infinite;
+    }
+    @keyframes ccBoosterPulse {
+      0%, 100% { box-shadow: 0 0 14px rgba(251, 146, 60, 0.7); }
+      50%      { box-shadow: 0 0 22px rgba(251, 146, 60, 1); }
+    }
+
+    /* Toast */
+    .cc-toast {
+      position: fixed;
+      top: 70px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(239, 68, 68, 0.95);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      z-index: 60;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      animation: ccToastIn 0.3s ease-out;
+    }
+    @keyframes ccToastIn {
+      from { opacity: 0; transform: translate(-50%, -10px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* Score popup */
+    .cc-popup {
+      position: fixed;
+      transform: translate(-50%, -50%);
+      font-weight: 900;
+      color: #fff;
+      background: linear-gradient(135deg, #ec4899, #f97316);
+      padding: 4px 10px;
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 50;
+      font-size: 1rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      animation: ccPopupFloat 1s ease-out forwards;
+    }
+    .cc-popup.cc-popup-combo {
+      background: linear-gradient(135deg, #facc15, #ef4444);
+      font-size: 1.2rem;
+    }
+    @keyframes ccPopupFloat {
+      0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      20%  { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -120%) scale(1); opacity: 0; }
+    }
+
+    /* Actions */
+    .cc-actions {
+      display: flex; gap: 8px; justify-content: center;
+      margin: 4px 0 6px; flex-wrap: wrap;
+    }
+    .cc-btn {
+      padding: 8px 22px; font-size: 0.95em;
+      border-radius: 10px; border: none; font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(130, 30, 90, 0.4);
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .cc-btn.primary {
+      background: linear-gradient(135deg, #ec4899, #f97316);
+      color: #fff;
+    }
+    .cc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(130, 30, 90, 0.4); }
+
+    /* Floating buttons */
+    #cc-exit-btn {
+      position: fixed; top: 10px; left: 10px; z-index: 30;
+      padding: 8px 14px; background: #ff4444; color: white;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+      font-size: 0.95em;
+    }
+    #cc-mute-btn {
+      position: fixed; top: 10px; right: 10px; z-index: 30;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85); color: #ec4899;
+      border: 2px solid rgba(236, 72, 153, 0.55);
+      font-size: 1.1em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+
+    /* Modals shared */
+    .cc-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.7); z-index: 40;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .cc-card {
+      background: linear-gradient(145deg, #fff, #fce7f3);
+      border: 3px solid #ec4899; border-radius: 16px;
+      padding: 26px 32px; max-width: 400px; width: 100%;
+      box-shadow: 0 0 30px rgba(236, 72, 153, 0.6);
+      animation: ccCardPop 0.35s ease-out;
+    }
+    @keyframes ccCardPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .cc-card h2 {
+      margin: 0 0 12px; font-size: 1.6em;
+      background: linear-gradient(90deg, #ec4899, #f97316);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    /* Level up modal */
+    #cc-levelup-modal .cc-card {
+      background: linear-gradient(145deg, #fff7ed, #fde68a);
+      border-color: #f59e0b;
+      box-shadow: 0 0 36px rgba(245, 158, 11, 0.7);
+    }
+    #cc-levelup-modal h2 {
+      background: linear-gradient(90deg, #f59e0b, #ec4899);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .cc-levelup-big {
+      font-size: 4em; font-weight: 900;
+      background: linear-gradient(90deg, #facc15, #f97316, #ec4899);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
+      margin: 4px 0;
+      animation: ccLevelPop 0.6s ease-out;
+    }
+    @keyframes ccLevelPop {
+      0% { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+      50% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .cc-levelup-reward {
+      font-size: 1.3em;
+      color: #16a34a;
+      font-weight: bold;
+      margin: 8px 0 16px;
+    }
+
+    .cc-score-big {
+      font-size: 2.6em; font-weight: bold;
+      color: #be185d;
+      text-shadow: 0 0 12px rgba(236, 72, 153, 0.4);
+      margin: 8px 0;
+    }
+    #cc-new-record {
+      display: inline-block; background: #ff5252; color: white;
+      padding: 4px 12px; border-radius: 12px; font-weight: bold;
+      margin-bottom: 8px;
+      animation: ccPulse 0.6s infinite alternate;
+    }
+    @keyframes ccPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
+    }
+    .cc-hi-line { color: #f59e0b; font-size: 1.05em; margin: 8px 0; }
+    .cc-hi-line strong { color: #f59e0b; }
+
+    @media (max-width: 600px) {
+      .cc-title { font-size: 1.15em; }
+      .cc-statusbar { font-size: 0.74rem; gap: 4px; }
+      .cc-pill { padding: 2px 8px; }
+      .cc-pill strong { font-size: 0.85rem; }
+      .cc-diff-btn { padding: 4px 10px; font-size: 0.74rem; }
+      .cc-hint { font-size: 0.68rem; }
+      .cc-btn { padding: 7px 16px; font-size: 0.85em; }
+      .cc-card { padding: 20px 24px; }
+      .cc-card h2 { font-size: 1.25em; }
+      .cc-score-big { font-size: 2.1em; }
+      .cc-levelup-big { font-size: 3em; }
+      #cc-board { gap: 3px; padding: 6px; }
+      .cc-boost-btn { padding: 5px 9px; min-width: 56px; }
+      .cc-boost-btn .icon { font-size: 1.3em; }
+      .cc-boost-btn .price { font-size: 0.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <a id="cc-exit-btn" href="index.html">Exit</a>
+  <button id="cc-mute-btn" aria-label="Mute">🔊</button>
+
+  <div class="cc-container">
+    <h1 class="cc-title" id="cc-title">🍬 Candy Crush</h1>
+
+    <div class="cc-statusbar">
+      <span class="cc-pill"><span id="label-score">Score:</span> <strong id="cc-score">0</strong></span>
+      <span class="cc-pill moves"><span id="label-moves">Moves:</span> <strong id="cc-moves">20</strong></span>
+      <span class="cc-pill level" id="cc-level-pill" style="display:none;"><span id="label-level">Lvl:</span> <strong id="cc-level">1</strong></span>
+      <span class="cc-pill wallet" id="cc-wallet-pill" style="display:none;">💰 <strong id="cc-wallet">30</strong></span>
+      <span class="cc-pill best">🏆 <strong id="cc-best">0</strong></span>
+    </div>
+
+    <!-- Target progress (hardcore only) -->
+    <div class="cc-target-wrap" id="cc-target-wrap" style="display:none;">
+      <span class="cc-target-label" id="cc-target-label">Target:</span>
+      <div class="cc-target-bar-bg"><div id="cc-target-bar"></div></div>
+      <strong id="cc-target">500</strong>
+    </div>
+
+    <div class="cc-diff-row">
+      <button class="cc-diff-btn" id="cc-diff-easy">Easy · 6×6</button>
+      <button class="cc-diff-btn" id="cc-diff-medium">Medium · 7×7</button>
+      <button class="cc-diff-btn" id="cc-diff-hard">Hard · 8×8</button>
+      <button class="cc-diff-btn hardcore" id="cc-diff-hardcore">🔥 Hardcore</button>
+    </div>
+
+    <p class="cc-hint" id="cc-hint">Swipe a candy toward a neighbor, or tap two to swap</p>
+
+    <div class="cc-board-wrap">
+      <div id="cc-board"></div>
+    </div>
+
+    <!-- Booster row (hardcore only) -->
+    <div class="cc-booster-row" id="cc-booster-row" style="display:none;">
+      <button class="cc-boost-btn" id="cc-boost-hammer" title="Hammer">
+        <span class="icon">🔨</span>
+        <span class="price">💰 5</span>
+      </button>
+      <button class="cc-boost-btn" id="cc-boost-rowbomb" title="Row Bomb">
+        <span class="icon">💥</span>
+        <span class="price">💰 10</span>
+      </button>
+      <button class="cc-boost-btn" id="cc-boost-moves5" title="+5 Moves">
+        <span class="icon">⏩</span>
+        <span class="price">💰 15</span>
+      </button>
+    </div>
+
+    <div class="cc-actions">
+      <button id="cc-newgame-btn" class="cc-btn primary">New Game</button>
+    </div>
+  </div>
+
+  <!-- Level up modal -->
+  <div id="cc-levelup-modal" class="cc-overlay" style="display:none;">
+    <div class="cc-card">
+      <h2 id="cc-levelup-title">Level Up! 🎉</h2>
+      <p id="cc-levelup-next-label">Next Level</p>
+      <div class="cc-levelup-big"><span id="cc-levelup-level">2</span></div>
+      <p class="cc-levelup-reward">💰 <span id="cc-levelup-reward">+15</span> <span id="cc-levelup-reward-label">to wallet</span></p>
+      <button id="cc-levelup-btn" class="cc-btn primary">Continue</button>
+    </div>
+  </div>
+
+  <!-- Result modal -->
+  <div id="cc-result-modal" class="cc-overlay" style="display:none;">
+    <div class="cc-card">
+      <h2 id="cc-result-title">Game Over 🍭</h2>
+      <div id="cc-new-record" style="display:none;">NEW RECORD!</div>
+      <p id="cc-result-label">Your Score</p>
+      <div class="cc-score-big"><span id="cc-result-score">0</span></div>
+      <p class="cc-hi-line">🏆 <span id="cc-result-best-label">Best:</span> <strong id="cc-result-best">0</strong></p>
+      <button id="cc-replay-btn" class="cc-btn primary">Play Again</button>
+    </div>
+  </div>
+
+  <script src="js/candy-crush.js"></script>
+  <script>
+    const candyLangData = {
+      th: {
+        title: '🍬 เกมแคนดี้',
+        score: 'คะแนน:', moves: 'ตา:', level: 'ด่าน:',
+        easy: 'ง่าย · 6×6', medium: 'กลาง · 7×7', hard: 'ยาก · 8×8', hardcore: '🔥 โหดสุด',
+        targetLabel: 'เป้าหมาย:',
+        hint: 'ปัดลูกอมไปทางตัวข้างๆ หรือแตะ 2 ตัวเพื่อสลับ',
+        newGame: 'เริ่มใหม่', exit: 'ออกเกม',
+        levelupTitle: 'ผ่านด่าน! 🎉',
+        nextLevel: 'ด่านถัดไป',
+        rewardLabel: 'เข้ากระเป๋า',
+        continue: 'ไปต่อ',
+        resultTitle: 'จบเกม! 🍭', newRecord: 'สถิติใหม่!',
+        resultLabel: 'คะแนนของคุณ', resultBest: 'สูงสุด:',
+        bestLevel: 'ด่านสูงสุด:',
+        hardcoreFailed: 'ถึงด่าน {L} แล้ว',
+        playAgain: 'เล่นอีก',
+        walletEmpty: 'เงินในกระเป๋าไม่พอ'
+      },
+      en: {
+        title: '🍬 Candy Crush',
+        score: 'Score:', moves: 'Moves:', level: 'Lvl:',
+        easy: 'Easy · 6×6', medium: 'Medium · 7×7', hard: 'Hard · 8×8', hardcore: '🔥 Hardcore',
+        targetLabel: 'Target:',
+        hint: 'Swipe a candy toward a neighbor, or tap two to swap',
+        newGame: 'New Game', exit: 'Exit',
+        levelupTitle: 'Level Up! 🎉',
+        nextLevel: 'Next Level',
+        rewardLabel: 'to wallet',
+        continue: 'Continue',
+        resultTitle: 'Game Over 🍭', newRecord: 'NEW RECORD!',
+        resultLabel: 'Your Score', resultBest: 'Best:',
+        bestLevel: 'Best Level:',
+        hardcoreFailed: 'Reached Level {L}',
+        playAgain: 'Play Again',
+        walletEmpty: 'Not enough money'
+      },
+      lao: {
+        title: '🍬 ເກມລູກກວາດ',
+        score: 'ຄະແນນ:', moves: 'ຄັ້ງ:', level: 'ດ່ານ:',
+        easy: 'ງ່າຍ · 6×6', medium: 'ກາງ · 7×7', hard: 'ຍາກ · 8×8', hardcore: '🔥 ໂຫດສຸດ',
+        targetLabel: 'ເປົ້າໝາຍ:',
+        hint: 'ປັດລູກກວາດໄປຫາຕົວຂ້າງໆ ຫຼື ແຕະ 2 ຕົວເພື່ອສະຫຼັບ',
+        newGame: 'ເລີ່ມໃໝ່', exit: 'ອອກເກມ',
+        levelupTitle: 'ຜ່ານດ່ານ! 🎉',
+        nextLevel: 'ດ່ານຕໍ່ໄປ',
+        rewardLabel: 'ເຂົ້າກະເປົາ',
+        continue: 'ໄປຕໍ່',
+        resultTitle: 'ຈົບເກມ! 🍭', newRecord: 'ສະຖິຕິໃໝ່!',
+        resultLabel: 'ຄະແນນຂອງເຈົ້າ', resultBest: 'ສູງສຸດ:',
+        bestLevel: 'ດ່ານສູງສຸດ:',
+        hardcoreFailed: 'ໄປເຖິງດ່ານ {L} ແລ້ວ',
+        playAgain: 'ຫຼິ້ນອີກ',
+        walletEmpty: 'ເງິນໃນກະເປົາບໍ່ພໍ'
+      }
+    };
+    window.candyLangData = candyLangData;
+
+    function setCandyLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = candyLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('cc-title', t.title);
+      set('label-score', t.score);
+      set('label-moves', t.moves);
+      set('label-level', t.level);
+      set('cc-target-label', t.targetLabel);
+      set('cc-diff-easy', t.easy);
+      set('cc-diff-medium', t.medium);
+      set('cc-diff-hard', t.hard);
+      set('cc-diff-hardcore', t.hardcore);
+      set('cc-hint', t.hint);
+      set('cc-newgame-btn', t.newGame);
+      set('cc-exit-btn', t.exit);
+      set('cc-levelup-title', t.levelupTitle);
+      set('cc-levelup-next-label', t.nextLevel);
+      set('cc-levelup-reward-label', t.rewardLabel);
+      set('cc-levelup-btn', t.continue);
+      set('cc-result-title', t.resultTitle);
+      set('cc-new-record', t.newRecord);
+      set('cc-result-label', t.resultLabel);
+      set('cc-result-best-label', t.resultBest);
+      set('cc-replay-btn', t.playAgain);
+    }
+    document.addEventListener('DOMContentLoaded', setCandyLang);
+  </script>
+</body>
+</html>
