@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Survival · เกมเอาตัวรอด</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #050816;
+      color: #e2e8f0;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+    /* Stage / canvas */
+    #srv-stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #1e293b 0%, #050816 80%);
+    }
+    #srv-canvas {
+      display: block;
+      image-rendering: pixelated;
+      box-shadow: 0 6px 36px rgba(34, 197, 94, 0.25);
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+
+    /* Top-left exit (compact, blends with player frame) */
+    #srv-exit-btn {
+      position: fixed; top: 4px; left: 4px; z-index: 30;
+      width: 28px; height: 28px;
+      background: rgba(127, 29, 29, 0.85); color: #fff;
+      text-decoration: none; border-radius: 50%; font-weight: bold;
+      font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(239, 68, 68, 0.7);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    /* Pause / mute as small icons top-right */
+    .srv-icon-btn {
+      position: fixed; top: 4px; z-index: 30;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.85);
+      color: #22d3ee;
+      border: 1.5px solid rgba(34, 211, 238, 0.55);
+      font-size: 0.9em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    #srv-mute-btn  { right: 4px; }
+    #srv-pause-btn { right: 40px; }
+
+    /* ===================== MMORPG-style PLAYER FRAME (top-left) ===================== */
+    .srv-hud { position: fixed; z-index: 20; pointer-events: none; }
+
+    .srv-unit-frame {
+      position: fixed; top: 4px; left: 38px; z-index: 21;
+      display: flex; gap: 4px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.78), rgba(2,6,23,0.78));
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      border-radius: 8px;
+      padding: 3px 6px 3px 3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.55), inset 0 0 6px rgba(34,211,238,0.08);
+      pointer-events: none;
+      align-items: center;
+    }
+    .srv-portrait {
+      position: relative;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #67e8f9, #0e7490);
+      border: 1.5px solid #facc15;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.05rem;
+      box-shadow: 0 0 8px rgba(34, 211, 238, 0.45);
+      flex-shrink: 0;
+    }
+    .srv-portrait .srv-portrait-icon { line-height: 1; }
+    .srv-portrait-lv {
+      position: absolute; bottom: -2px; right: -2px;
+      background: #facc15; color: #1f2937;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      font-size: 0.56rem; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #0b1220;
+      box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+    .srv-unit-bars { display: flex; flex-direction: column; gap: 2px; width: 110px; }
+    .srv-bar {
+      position: relative;
+      height: 9px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 5px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+    }
+    .srv-bar-fill {
+      height: 100%; width: 100%;
+      transition: width 0.2s ease-out;
+      border-radius: 5px;
+    }
+    .srv-bar-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; font-weight: bold;
+      color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
+      letter-spacing: 0.2px;
+      line-height: 1;
+    }
+    .srv-bar.hp .srv-bar-fill      { background: linear-gradient(90deg, #b91c1c, #ef4444 50%, #fca5a5); }
+    .srv-bar.stamina .srv-bar-fill { background: linear-gradient(90deg, #15803d, #22c55e 50%, #86efac); }
+    .srv-bar.hp      { border: 1px solid rgba(239,68,68,0.5); }
+    .srv-bar.stamina { border: 1px solid rgba(34,197,94,0.5); height: 5px; }
+
+    /* Compact hunger/thirst chips below bars */
+    .srv-stat-row {
+      display: flex; gap: 3px; margin-top: 1px;
+      font-size: 0.52rem; color: #cbd5e1;
+    }
+    .srv-stat-chip {
+      display: inline-flex; align-items: center; gap: 2px;
+      background: rgba(0,0,0,0.45);
+      border-radius: 3px;
+      padding: 0 3px;
+      min-width: 24px;
+    }
+    .srv-stat-chip.low { color: #fca5a5; border: 1px solid rgba(239,68,68,0.5); }
+    .srv-stat-chip .mini-bar {
+      flex: 1; height: 3px;
+      background: rgba(0,0,0,0.55); border-radius: 2px;
+      overflow: hidden; min-width: 22px;
+    }
+    .srv-stat-chip .mini-fill {
+      height: 100%; transition: width 0.2s;
+    }
+    .srv-stat-chip.hunger .mini-fill { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .srv-stat-chip.thirst .mini-fill { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+
+    /* ===================== WORLD FRAME (top-right) ===================== */
+    .srv-world-frame {
+      position: fixed; top: 4px; right: 78px; z-index: 21;
+      background: linear-gradient(145deg, rgba(15,23,42,0.78), rgba(2,6,23,0.78));
+      border: 1px solid rgba(192, 132, 252, 0.5);
+      border-radius: 8px;
+      padding: 3px 6px;
+      font-size: 0.65rem;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.55), inset 0 0 6px rgba(192,132,252,0.08);
+      min-width: 108px;
+    }
+    .srv-day-row { display: flex; justify-content: space-between; align-items: center; gap: 5px; }
+    .srv-day-row strong { color: #facc15; font-size: 0.82rem; }
+    .srv-day-bar {
+      margin-top: 2px;
+      height: 3px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .srv-day-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #facc15, #fb923c, #6366f1, #312e81);
+      transition: width 0.2s;
+    }
+    .srv-level-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 5px; margin-top: 2px;
+      font-size: 0.58rem;
+    }
+    .srv-level-row strong { color: #22d3ee; font-size: 0.75rem; }
+    #srv-points-badge {
+      background: #facc15;
+      color: #1f2937;
+      border-radius: 50%;
+      width: 12px; height: 12px;
+      display: inline-block; text-align: center;
+      font-size: 0.6rem; font-weight: 900;
+      line-height: 12px;
+      margin-left: 2px;
+      animation: srvPointPulse 0.9s ease-in-out infinite;
+    }
+    @keyframes srvPointPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250,204,21,0.6); }
+      50% { transform: scale(1.18); box-shadow: 0 0 0 5px rgba(250,204,21,0); }
+    }
+    .srv-xp-bar {
+      flex: 1; height: 3px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .srv-xp-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #06b6d4, #a855f7, #facc15);
+      transition: width 0.2s;
+    }
+    #srv-weather-icon { margin-left: 3px; }
+    #srv-minimap {
+      display: block;
+      margin: 3px auto 0;
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      border-radius: 5px;
+      width: 70px; height: 70px;
+      image-rendering: pixelated;
+      background: #020617;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 600px) {
+      #srv-minimap { width: 60px; height: 60px; }
+      .srv-world-frame { min-width: 96px; padding: 3px 5px; font-size: 0.6rem; right: 72px; }
+      .srv-unit-frame { padding: 3px 5px 3px 3px; }
+      .srv-unit-bars { width: 90px; }
+      .srv-portrait { width: 28px; height: 28px; font-size: 0.9rem; }
+      .srv-portrait-lv { width: 12px; height: 12px; font-size: 0.5rem; }
+    }
+    @media (max-width: 380px) {
+      .srv-unit-bars { width: 76px; }
+      .srv-world-frame { min-width: 80px; right: 68px; font-size: 0.55rem; }
+      #srv-minimap { width: 50px; height: 50px; }
+    }
+
+    /* Skill tree */
+    .srv-skill-header {
+      display: flex; justify-content: space-around;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: #c4b5fd;
+    }
+    .srv-skill-header strong { color: #facc15; font-size: 1rem; }
+    .srv-skill-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      max-height: 50vh;
+      overflow-y: auto;
+      margin: 8px 0;
+    }
+    .srv-skill {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(34, 211, 238, 0.4);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-family: inherit;
+      color: #e2e8f0;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .srv-skill:hover:not(.disabled):not(.maxed) {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: rgba(34, 211, 238, 0.7);
+    }
+    .srv-skill.disabled { opacity: 0.5; cursor: not-allowed; }
+    .srv-skill.maxed { opacity: 0.7; border-color: #facc15; background: rgba(250, 204, 21, 0.12); cursor: default; }
+    .srv-skill-head {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+    .srv-skill-icon { font-size: 1.3rem; }
+    .srv-skill-name { flex: 1; }
+    .srv-rank-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      margin: 0 1px;
+      border: 1px solid rgba(34, 211, 238, 0.45);
+    }
+    .srv-rank-dot.on {
+      background: #facc15;
+      border-color: #facc15;
+      box-shadow: 0 0 6px rgba(250, 204, 21, 0.7);
+    }
+    .srv-skill-desc { font-size: 0.78rem; color: #94a3b8; }
+
+    /* Status FX row (under player frame, horizontal) */
+    .srv-status-fx {
+      position: fixed;
+      top: 48px; left: 38px;
+      z-index: 20;
+      display: flex; flex-direction: row; flex-wrap: wrap;
+      gap: 3px;
+      pointer-events: none;
+      max-width: 180px;
+    }
+    @media (max-width: 600px) {
+      .srv-status-fx { top: 42px; left: 38px; max-width: 150px; }
+    }
+    .srv-fx {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 50%;
+      font-size: 0.65rem;
+      border: 1px solid rgba(239, 68, 68, 0.55);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      animation: srvFxPulse 1.2s ease-in-out infinite;
+    }
+    .srv-fx.bleed { border-color: #dc2626; }
+    .srv-fx.burn  { border-color: #f97316; }
+    .srv-fx.cold  { border-color: #38bdf8; }
+    .srv-fx.pet     { border-color: #06b6d4; animation: none; }
+    .srv-fx.fed     { border-color: #22c55e; animation: none; }
+    .srv-fx.hungry  { border-color: #f59e0b; }
+    .srv-fx.thirsty { border-color: #38bdf8; }
+    .srv-fx.wb      { border-color: #facc15; animation: none; }
+
+    /* Achievements list */
+    .srv-ach-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 8px 0;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+    .srv-ach {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1.5px solid rgba(148, 163, 184, 0.35);
+      border-radius: 8px;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.55;
+    }
+    .srv-ach.unlocked {
+      opacity: 1;
+      background: rgba(250, 204, 21, 0.12);
+      border-color: rgba(250, 204, 21, 0.6);
+    }
+    .srv-ach-icon { font-size: 1.4rem; }
+    .srv-ach-text { flex: 1; min-width: 0; }
+    .srv-ach-name { font-size: 0.85rem; font-weight: bold; color: #fde047; }
+    .srv-ach.unlocked .srv-ach-name { color: #facc15; }
+    .srv-ach-desc { font-size: 0.7rem; color: #94a3b8; }
+    @media (max-width: 600px) {
+      .srv-ach-list { grid-template-columns: 1fr; }
+    }
+    @keyframes srvFxPulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.12); }
+    }
+
+    /* Quest list */
+    .srv-quest-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin: 10px 0;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+    .srv-quest {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(34, 211, 238, 0.4);
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: left;
+      color: #e2e8f0;
+    }
+    .srv-quest.done {
+      background: rgba(34, 197, 94, 0.18);
+      border-color: rgba(34, 197, 94, 0.7);
+      opacity: 0.85;
+    }
+    .srv-quest-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 8px;
+    }
+    .srv-quest-name { font-weight: bold; color: #fde047; }
+    .srv-quest.done .srv-quest-name { color: #86efac; }
+    .srv-quest-reward { font-size: 0.78rem; color: #c4b5fd; }
+    .srv-quest-desc { font-size: 0.8rem; color: #94a3b8; margin: 3px 0; }
+    .srv-quest-bar {
+      position: relative;
+      height: 14px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .srv-quest-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #06b6d4, #facc15);
+      transition: width 0.3s;
+    }
+    .srv-quest-prog {
+      position: absolute;
+      inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 4px #000;
+    }
+
+    /* Side menu (vertical strip on right edge, under world frame) */
+    .srv-side-btns {
+      position: fixed;
+      right: 4px; top: 4px;
+      display: flex; flex-direction: column;
+      gap: 4px;
+      z-index: 23;
+    }
+    .srv-side-btn {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #c084fc;
+      border: 1px solid rgba(192, 132, 252, 0.55);
+      font-size: 0.92em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .srv-side-btn:active { transform: scale(0.92); }
+    .srv-side-btn .srv-side-badge {
+      position: absolute; top: -3px; right: -3px;
+      background: #facc15; color: #1f2937;
+      border-radius: 50%;
+      width: 12px; height: 12px;
+      font-size: 0.55rem; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #0b1220;
+    }
+    /* Move side menu to be below mute/pause icons */
+    #srv-btn-inv   { margin-top: 34px; }
+
+    /* Hotbar (bottom center) – MMORPG action bar style */
+    .srv-hotbar {
+      position: fixed;
+      bottom: 4px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 3px;
+      z-index: 22;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.92));
+      padding: 3px 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.55), inset 0 0 5px rgba(34,211,238,0.08);
+    }
+    .srv-hotbar-slot {
+      width: 36px; height: 36px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1.5px solid rgba(148, 163, 184, 0.4);
+      border-radius: 7px;
+      position: relative;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+    .srv-hotbar-slot:active { transform: scale(0.92); }
+    .srv-hotbar-slot.selected {
+      border-color: #facc15;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.7), inset 0 0 6px rgba(250, 204, 21, 0.2);
+      background: rgba(250, 204, 21, 0.18);
+    }
+    .srv-key {
+      position: absolute;
+      top: 0; left: 2px;
+      font-size: 0.52rem;
+      color: rgba(226, 232, 240, 0.55);
+    }
+    .srv-slot-icon {
+      font-size: 1.2rem;
+      line-height: 36px;
+      display: block;
+      text-align: center;
+    }
+    .srv-slot-count {
+      position: absolute;
+      bottom: 0; right: 2px;
+      font-size: 0.6rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 4px #000, 0 0 2px #000;
+    }
+
+    /* Touch overlay (joystick + action wheel) */
+    .srv-touch-overlay {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 18;
+    }
+    #srv-stick-area {
+      position: absolute; left: 0; bottom: 0;
+      width: 45%; height: 55%;
+      pointer-events: auto;
+    }
+    #srv-stick-base, #srv-stick-thumb {
+      position: absolute;
+      pointer-events: none;
+      display: none;
+      border-radius: 50%;
+    }
+    #srv-stick-base {
+      width: 96px; height: 96px;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0.08) 60%, transparent);
+      border: 2px solid rgba(34, 211, 238, 0.65);
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.3);
+    }
+    #srv-stick-thumb {
+      width: 44px; height: 44px;
+      background: radial-gradient(circle at 35% 30%, #67e8f9, #0e7490);
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+
+    /* ===================== MMORPG ACTION WHEEL ===================== */
+    .srv-action-btns {
+      position: absolute;
+      right: 8px; bottom: 52px;
+      pointer-events: auto;
+      width: 148px; height: 148px;
+    }
+    .srv-action-btn {
+      position: absolute;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, 0.45);
+      background: rgba(15, 23, 42, 0.7);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      padding: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.55), inset 0 -3px 0 rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .srv-action-btn.pressed,
+    .srv-action-btn:active {
+      transform: scale(0.92);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 12px rgba(255,255,255,0.18);
+    }
+    /* Cooldown ring overlay using conic gradient */
+    .srv-action-btn .srv-cd-ring {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(
+        rgba(0, 0, 0, 0.65) calc(var(--cd, 0) * 1%),
+        transparent 0
+      );
+      pointer-events: none;
+      transition: background 0.1s linear;
+    }
+    .srv-action-btn .srv-cd-ring::after {
+      content: ''; position: absolute; inset: 3px;
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    /* Big primary attack: bottom-right of cluster */
+    #srv-btn-attack {
+      width: 68px; height: 68px;
+      right: 4px; bottom: 4px;
+      font-size: 1.6rem;
+      background: radial-gradient(circle at 35% 30%, #fca5a5, #b91c1c 70%);
+      border-color: rgba(254, 202, 202, 0.7);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.55), inset 0 -3px 0 rgba(0,0,0,0.3);
+    }
+    /* Use button: upper-left of cluster */
+    #srv-btn-use {
+      width: 48px; height: 48px;
+      left: 4px; top: 12px;
+      font-size: 1.2rem;
+      background: radial-gradient(circle at 35% 30%, #86efac, #15803d 70%);
+      border-color: rgba(187, 247, 208, 0.7);
+    }
+    /* Dodge: upper-right of cluster */
+    #srv-btn-dodge {
+      width: 48px; height: 48px;
+      right: 14px; top: 6px;
+      font-size: 1.2rem;
+      background: radial-gradient(circle at 35% 30%, #7dd3fc, #0369a1 70%);
+      border-color: rgba(186, 230, 253, 0.7);
+    }
+    /* Block: lower-left */
+    #srv-btn-block {
+      width: 42px; height: 42px;
+      left: 10px; bottom: 18px;
+      font-size: 1.05rem;
+      background: radial-gradient(circle at 35% 30%, #fde68a, #ca8a04 70%);
+      border-color: rgba(254, 240, 138, 0.7);
+    }
+    /* Auto-target toggle (small, top-center) */
+    #srv-btn-auto {
+      width: 32px; height: 32px;
+      left: 50%; transform: translateX(-50%);
+      top: -4px;
+      font-size: 0.82rem;
+      background: rgba(15, 23, 42, 0.85);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+    }
+    #srv-btn-auto.active {
+      background: radial-gradient(circle at 35% 30%, #fef08a, #ca8a04 70%);
+      color: #1f2937;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+      border-color: #facc15;
+    }
+    #srv-btn-auto:active { transform: translateX(-50%) scale(0.92); }
+
+    /* Glow when attack range has target */
+    #srv-btn-attack.has-target {
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), 0 0 22px rgba(254, 226, 226, 0.55), inset 0 -4px 0 rgba(0,0,0,0.3);
+      animation: srvAttackPulse 1.0s ease-in-out infinite;
+    }
+    @keyframes srvAttackPulse {
+      0%, 100% { box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), 0 0 18px rgba(254, 226, 226, 0.45), inset 0 -4px 0 rgba(0,0,0,0.3); }
+      50%      { box-shadow: 0 4px 14px rgba(239, 68, 68, 0.55), 0 0 28px rgba(254, 226, 226, 0.85), inset 0 -4px 0 rgba(0,0,0,0.3); }
+    }
+
+    /* Hide touch overlay on hover-capable devices (desktop) */
+    @media (hover: hover) and (pointer: fine) {
+      .srv-touch-overlay { display: none; }
+    }
+
+    /* Mobile portrait sizing */
+    @media (max-width: 600px) {
+      .srv-action-btns { right: 4px; bottom: 48px; width: 132px; height: 132px; }
+      #srv-btn-attack { width: 60px; height: 60px; font-size: 1.4rem; }
+      #srv-btn-use, #srv-btn-dodge { width: 42px; height: 42px; font-size: 1.05rem; }
+      #srv-btn-block { width: 38px; height: 38px; font-size: 0.95rem; }
+      #srv-btn-auto  { width: 28px; height: 28px; font-size: 0.72rem; }
+      .srv-side-btn { width: 28px; height: 28px; font-size: 0.85em; }
+      #srv-btn-inv { margin-top: 32px; }
+    }
+    @media (max-height: 480px) {
+      /* Landscape phones: compact bottom */
+      .srv-action-btns { bottom: 44px; }
+    }
+
+    /* Modal overlays */
+    .srv-overlay {
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(5, 8, 22, 0.88);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    .srv-card {
+      background: linear-gradient(145deg, #0f172a, #020617);
+      border: 2px solid #22d3ee;
+      border-radius: 14px;
+      padding: 18px 22px;
+      max-width: 480px; width: 100%;
+      max-height: calc(100vh - 16px);
+      overflow-y: auto;
+      text-align: center;
+      box-shadow: 0 0 32px rgba(34, 211, 238, 0.35);
+      animation: srvPop 0.3s ease-out;
+      box-sizing: border-box;
+    }
+    @keyframes srvPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .srv-card h2 {
+      margin: 0 0 12px; font-size: 1.5em;
+      background: linear-gradient(90deg, #22d3ee, #c084fc, #facc15);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      letter-spacing: 1px;
+    }
+    .srv-card p { color: #cbd5e1; margin: 6px 0; line-height: 1.5; }
+    .srv-btn {
+      display: inline-block;
+      padding: 10px 22px; font-size: 0.95rem; font-weight: bold;
+      background: linear-gradient(135deg, #06b6d4, #6366f1);
+      color: #fff; border: none; border-radius: 10px;
+      cursor: pointer; margin: 4px;
+      box-shadow: 0 4px 0 rgba(20, 60, 120, 0.55);
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .srv-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(20, 60, 120, 0.55); }
+    .srv-btn.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 0 rgba(40, 40, 80, 0.55);
+    }
+    .srv-btn.danger {
+      background: linear-gradient(135deg, #b91c1c, #f97316);
+      box-shadow: 0 4px 0 rgba(120, 30, 30, 0.55);
+    }
+
+    /* Controls help block */
+    .srv-controls-help {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 4px 14px;
+      font-size: 0.82rem;
+      margin: 10px auto;
+      max-width: 320px;
+      color: #c4b5fd;
+      text-align: left;
+    }
+    .srv-controls-help b { color: #fde047; }
+
+    /* Inventory grid */
+    .srv-inv-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      margin: 10px 0;
+    }
+    .srv-inv-slot {
+      aspect-ratio: 1 / 1;
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(148, 163, 184, 0.3);
+      border-radius: 8px;
+      position: relative;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 0; min-width: 0;
+    }
+    .srv-inv-slot:hover { background: rgba(34, 211, 238, 0.18); }
+    .srv-inv-slot.hotbar { border-color: rgba(250, 204, 21, 0.55); }
+    .srv-inv-slot.selected {
+      border-color: #22d3ee;
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.7);
+    }
+    .srv-inv-slot .srv-slot-icon { font-size: 1.4rem; line-height: 1; }
+    .srv-inv-slot .srv-slot-count {
+      position: absolute;
+      bottom: 2px; right: 4px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 4px #000;
+    }
+    .srv-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.6), transparent);
+      margin: 6px 0;
+    }
+
+    /* Crafting list */
+    .srv-craft-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin: 10px 0;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    .srv-recipe {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(148, 163, 184, 0.3);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-family: inherit;
+      color: #e2e8f0;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .srv-recipe:hover:not(.disabled) {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: rgba(34, 211, 238, 0.55);
+    }
+    .srv-recipe.disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .srv-recipe-head {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .srv-recipe-icon { font-size: 1.3rem; }
+    .srv-recipe-req {
+      display: flex; gap: 6px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+    }
+    .srv-req {
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.35);
+    }
+    .srv-req.ok  { color: #86efac; border: 1px solid rgba(34, 197, 94, 0.45); }
+    .srv-req.bad { color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.45); }
+
+    .srv-score-big {
+      font-size: 2.4em;
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+      margin: 10px 0;
+    }
+
+    @media (max-width: 600px) {
+      .srv-hotbar { padding: 3px 4px; gap: 2px; }
+      .srv-hotbar-slot { width: 32px; height: 32px; border-radius: 6px; }
+      .srv-slot-icon { font-size: 1.05rem; line-height: 32px; }
+      .srv-key { font-size: 0.48rem; }
+      .srv-slot-count { font-size: 0.55rem; }
+      .srv-card { padding: 14px 14px; border-radius: 12px; }
+      .srv-card h2 { font-size: 1.05em; margin: 0 0 8px; }
+      .srv-card p { font-size: 0.78rem; margin: 4px 0; }
+      .srv-inv-grid { grid-template-columns: repeat(6, 1fr); gap: 3px; }
+      .srv-inv-slot { border-radius: 6px; border-width: 1.5px; }
+      .srv-inv-slot .srv-slot-icon { font-size: 1rem; }
+      .srv-inv-slot .srv-slot-count { font-size: 0.6rem; }
+      .srv-skill { padding: 7px 10px; }
+      .srv-skill-name { font-size: 0.82rem; }
+      .srv-skill-desc { font-size: 0.7rem; }
+      .srv-skill-icon { font-size: 1.1rem; }
+      .srv-quest { padding: 6px 10px; }
+      .srv-quest-name { font-size: 0.82rem; }
+      .srv-quest-desc { font-size: 0.7rem; }
+      .srv-quest-reward { font-size: 0.66rem; }
+      .srv-recipe { padding: 6px 10px; }
+      .srv-recipe-head { font-size: 0.85rem; }
+      .srv-recipe-req { font-size: 0.68rem; }
+      .srv-ach { padding: 5px 6px; }
+      .srv-ach-name { font-size: 0.76rem; }
+      .srv-ach-desc { font-size: 0.62rem; }
+      .srv-ach-icon { font-size: 1.2rem; }
+      .srv-btn { padding: 8px 16px; font-size: 0.85rem; }
+      .srv-skill-header { gap: 6px; font-size: 0.74rem; margin-bottom: 6px; }
+      .srv-skill-header strong { font-size: 0.88rem; }
+    }
+    @media (max-width: 420px) {
+      .srv-card { padding: 12px 10px; max-height: calc(100vh - 12px); }
+      .srv-card h2 { font-size: 0.98em; }
+      .srv-inv-grid { gap: 2px; }
+      .srv-inv-slot .srv-slot-icon { font-size: 0.92rem; }
+      .srv-skill-list, .srv-quest-list, .srv-craft-list, .srv-ach-list {
+        max-height: 55vh;
+      }
+      .srv-controls-help { font-size: 0.72rem; gap: 3px 10px; }
+    }
+    /* Portrait phones — vertical orientation tweaks */
+    @media (orientation: portrait) and (max-width: 480px) {
+      .srv-overlay { padding: 6px; align-items: flex-start; padding-top: 12px; }
+      .srv-card { max-width: 100%; }
+      .srv-ach-list { grid-template-columns: 1fr; }
+      .srv-skill-list, .srv-quest-list, .srv-craft-list { max-height: 52vh; }
+    }
+    /* Landscape phones — short height tweaks */
+    @media (orientation: landscape) and (max-height: 480px) {
+      .srv-card { padding: 10px 14px; max-height: calc(100vh - 8px); }
+      .srv-card h2 { font-size: 0.95em; margin: 0 0 6px; }
+      .srv-card p { margin: 3px 0; }
+      .srv-skill-list, .srv-quest-list, .srv-craft-list, .srv-ach-list { max-height: 45vh; }
+      .srv-skill-header { margin-bottom: 4px; }
+      .srv-btn { padding: 6px 14px; font-size: 0.82rem; margin: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <a id="srv-exit-btn" href="index.html" aria-label="Exit">✕</a>
+  <button id="srv-pause-btn" class="srv-icon-btn" aria-label="Pause">⏸</button>
+  <button id="srv-mute-btn"  class="srv-icon-btn" aria-label="Mute">🔊</button>
+
+  <div id="srv-stage">
+    <canvas id="srv-canvas"></canvas>
+  </div>
+
+  <!-- MMORPG-style Player Unit Frame (top-left) -->
+  <div class="srv-unit-frame">
+    <div class="srv-portrait">
+      <span class="srv-portrait-icon">🧙</span>
+      <span class="srv-portrait-lv" id="srv-portrait-lv">1</span>
+    </div>
+    <div class="srv-unit-bars">
+      <div class="srv-bar hp">
+        <div id="srv-hp-fill" class="srv-bar-fill"></div>
+        <div class="srv-bar-text" id="srv-hp-text">100 / 100</div>
+      </div>
+      <div class="srv-bar stamina">
+        <div id="srv-stamina-fill" class="srv-bar-fill"></div>
+      </div>
+      <div class="srv-stat-row">
+        <div class="srv-stat-chip hunger" id="srv-hunger-chip">
+          <span>🍖</span>
+          <div class="mini-bar"><div id="srv-hunger-fill" class="mini-fill"></div></div>
+        </div>
+        <div class="srv-stat-chip thirst" id="srv-thirst-chip">
+          <span>💧</span>
+          <div class="mini-bar"><div id="srv-thirst-fill" class="mini-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- World Frame (top-right) -->
+  <div class="srv-world-frame">
+    <div class="srv-day-row">
+      <span><span id="srv-time-icon">☀️</span> <span id="srv-weather-icon"></span></span>
+      <span><span id="srv-day-label">Day</span> <strong id="srv-day">1</strong></span>
+    </div>
+    <div class="srv-day-bar"><div id="srv-day-bar-fill" class="srv-day-bar-fill"></div></div>
+    <div class="srv-level-row">
+      <span><span id="srv-lv-label">Lv</span> <strong id="srv-level">1</strong>
+        <span id="srv-points-badge" style="display:none;">!</span></span>
+      <div class="srv-xp-bar"><div id="srv-xp-fill" class="srv-xp-bar-fill"></div></div>
+    </div>
+    <canvas id="srv-minimap" width="96" height="96"></canvas>
+  </div>
+
+  <!-- Side menu strip (top-right edge, vertical) -->
+  <div class="srv-side-btns">
+    <button id="srv-btn-inv"   class="srv-side-btn" aria-label="Inventory">🎒</button>
+    <button id="srv-btn-craft" class="srv-side-btn" aria-label="Crafting">🛠️</button>
+    <button id="srv-btn-skill" class="srv-side-btn" aria-label="Skills">🌟<span id="srv-side-points" class="srv-side-badge" style="display:none;"></span></button>
+    <button id="srv-btn-quest" class="srv-side-btn" aria-label="Quests">📜</button>
+    <button id="srv-btn-ach"   class="srv-side-btn" aria-label="Achievements">🏆</button>
+  </div>
+
+  <!-- Status FX icons (under player frame, horizontal) -->
+  <div id="srv-status-fx" class="srv-status-fx"></div>
+
+  <!-- Hotbar (bottom center) -->
+  <div id="srv-hotbar" class="srv-hotbar"></div>
+
+  <!-- Touch overlay (joystick + action wheel) -->
+  <div class="srv-touch-overlay">
+    <div id="srv-stick-area">
+      <div id="srv-stick-base"></div>
+      <div id="srv-stick-thumb"></div>
+    </div>
+    <div class="srv-action-btns">
+      <button id="srv-btn-attack" class="srv-action-btn" aria-label="Attack">
+        <span style="position:relative;z-index:2;">⚔</span>
+        <span class="srv-cd-ring"></span>
+      </button>
+      <button id="srv-btn-use"    class="srv-action-btn" aria-label="Use">
+        <span style="position:relative;z-index:2;">✋</span>
+        <span class="srv-cd-ring"></span>
+      </button>
+      <button id="srv-btn-dodge"  class="srv-action-btn" aria-label="Dodge">
+        <span style="position:relative;z-index:2;">⚡</span>
+        <span class="srv-cd-ring"></span>
+      </button>
+      <button id="srv-btn-block"  class="srv-action-btn" aria-label="Block">
+        <span style="position:relative;z-index:2;">🛡</span>
+        <span class="srv-cd-ring"></span>
+      </button>
+      <button id="srv-btn-auto"   class="srv-action-btn" aria-label="Auto-target">🎯</button>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="srv-menu" class="srv-overlay">
+    <div class="srv-card">
+      <h2 id="srv-title">🌲 Survival</h2>
+      <p id="srv-subtitle">Gather · Craft · Survive day and night</p>
+      <div class="srv-controls-help" id="srv-help">
+        <span><b>WASD</b> Move</span>           <span><b>Joystick</b> Move</span>
+        <span><b>Shift</b> Sprint</span>         <span><b>Push hard</b> Sprint</span>
+        <span><b>Space</b> Dodge</span>          <span><b>⚡</b> Dodge</span>
+        <span><b>Click / J / F</b> Attack</span> <span><b>⚔</b> Attack</span>
+        <span><b>E / R-Click</b> Use</span>      <span><b>✋</b> Use / Pick</span>
+        <span><b>B</b> Block</span>              <span><b>🛡</b> Block</span>
+        <span><b>R</b> Auto-target</span>        <span><b>🎯</b> Auto-target</span>
+        <span><b>I / C</b> Inv / Craft</span>    <span><b>🎒 🛠️</b> Inv / Craft</span>
+        <span><b>1-6</b> Hotbar</span>           <span><b>Tap</b> Hotbar</span>
+      </div>
+      <button id="srv-start-btn"   class="srv-btn">▶ Start</button>
+      <button id="srv-newgame-btn" class="srv-btn secondary">⟳ New World</button>
+    </div>
+  </div>
+
+  <!-- Pause modal -->
+  <div id="srv-pause-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-pause-title">Paused</h2>
+      <button id="srv-resume-btn"     class="srv-btn">Resume</button>
+      <button id="srv-pause-save-btn" class="srv-btn secondary">💾 Save & Quit</button>
+      <button id="srv-pause-new-btn"  class="srv-btn danger">⟳ New World</button>
+    </div>
+  </div>
+
+  <!-- Game over modal -->
+  <div id="srv-gameover-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-go-title">💀 You Died</h2>
+      <p id="srv-go-label">Survived for</p>
+      <div class="srv-score-big"><span id="srv-gameover-days">1</span> <span id="srv-go-day-unit">days</span></div>
+      <button id="srv-go-restart-btn" class="srv-btn">⟳ Try Again</button>
+    </div>
+  </div>
+
+  <!-- Inventory modal -->
+  <div id="srv-inventory-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-inv-title">🎒 Inventory</h2>
+      <p id="srv-inv-hint">Tap to select, tap again to swap</p>
+      <div id="srv-inv-grid" class="srv-inv-grid"></div>
+      <button id="srv-inv-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Crafting modal -->
+  <div id="srv-crafting-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-craft-title">🛠️ Crafting</h2>
+      <p id="srv-craft-hint">Tap a recipe to craft (greyed = missing items)</p>
+      <div id="srv-craft-list" class="srv-craft-list"></div>
+      <button id="srv-craft-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Achievements modal -->
+  <div id="srv-ach-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-ach-title">🏆 Achievements</h2>
+      <p id="srv-ach-hint">Unlocked: <strong id="srv-ach-progress">0 / 0</strong></p>
+      <div id="srv-ach-list" class="srv-ach-list"></div>
+      <button id="srv-ach-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Trader modal -->
+  <div id="srv-trade-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-trade-title">🧙 Trader</h2>
+      <p id="srv-trade-hint">Tap a trade to exchange items</p>
+      <div id="srv-trade-list" class="srv-craft-list"></div>
+      <button id="srv-trade-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Quest log modal -->
+  <div id="srv-quest-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-quest-title">📜 Quests</h2>
+      <p id="srv-quest-hint">Objectives auto-complete with rewards</p>
+      <div id="srv-quest-list" class="srv-quest-list"></div>
+      <button id="srv-quest-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Skill tree modal -->
+  <div id="srv-skill-modal" class="srv-overlay" style="display:none;">
+    <div class="srv-card">
+      <h2 id="srv-skill-title">🌟 Skill Tree</h2>
+      <div class="srv-skill-header">
+        <div><span id="srv-skill-lv-label">Level</span> <strong id="srv-skill-level">1</strong></div>
+        <div><span id="srv-skill-xp-label">XP</span> <strong id="srv-skill-xp">0 / 100</strong></div>
+        <div><span id="srv-skill-pt-label">Points</span> <strong id="srv-skill-points">0</strong></div>
+      </div>
+      <p id="srv-skill-hint">Tap a skill to spend a point</p>
+      <div id="srv-skill-list" class="srv-skill-list"></div>
+      <button id="srv-skill-close" class="srv-btn">Close</button>
+    </div>
+  </div>
+
+  <script src="js/survival.js"></script>
+  <script>
+    const srvLangData = {
+      th: {
+        title: '🌲 เกมเอาตัวรอด',
+        subtitle: 'หาของ · คราฟ · เอาชีวิตรอดทั้งวันและคืน',
+        start: '▶ เริ่มเล่น',
+        newWorld: '⟳ โลกใหม่',
+        pauseTitle: 'หยุดชั่วคราว',
+        resume: 'เล่นต่อ',
+        saveQuit: '💾 เซฟแล้วออก',
+        gameOver: '💀 คุณตายแล้ว',
+        survivedFor: 'รอดชีวิต',
+        dayUnit: 'วัน',
+        tryAgain: '⟳ ลองใหม่',
+        invTitle: '🎒 กระเป๋า',
+        invHint: 'แตะเพื่อเลือก · แตะอีกครั้งเพื่อสลับ',
+        close: 'ปิด',
+        craftTitle: '🛠️ คราฟ',
+        craftHint: 'แตะสูตรเพื่อสร้าง (เทา = วัสดุไม่พอ)',
+        dayLabel: 'วันที่',
+        lvLabel: 'Lv',
+        skillTitle: '🌟 ต้นไม้ทักษะ',
+        skillLevel: 'ระดับ', skillXp: 'EXP', skillPoints: 'แต้ม',
+        skillHint: 'แตะทักษะเพื่อใช้แต้ม',
+        tradeTitle: '🧙 พ่อค้า',
+        tradeHint: 'แตะเพื่อแลกของ',
+        questTitle: '📜 ภารกิจ',
+        questHint: 'ภารกิจสะสมเอง พอครบรับรางวัล',
+        quests: {
+          q_chop_n: 'นักตัดไม้',    q_chop_d: 'ตัดต้นไม้ 10 ต้น',
+          q_mine_n: 'นักทำเหมือง',  q_mine_d: 'ทุบหิน 10 ก้อน',
+          q_kill_zomb_n: 'นักล่าซอมบี้', q_kill_zomb_d: 'ฆ่าซอมบี้ 5 ตัว',
+          q_kill_wolf_n: 'นักล่าหมาป่า',  q_kill_wolf_d: 'ฆ่าหมาป่า 5 ตัว',
+          q_craft_sword_n: 'มีอาวุธ',  q_craft_sword_d: 'คราฟดาบ 1 เล่ม',
+          q_camp_n: 'อบอุ่น',         q_camp_d: 'สร้างกองไฟ',
+          q_survive_2_n: 'รุ่งอรุณ 2',  q_survive_2_d: 'รอดชีวิต 2 วัน',
+          q_iron_n: 'ยุคเหล็ก',      q_iron_d: 'ขุดเหล็ก 3 ก้อน',
+          q_titan_n: 'นักล่ายักษ์', q_titan_d: 'เอาชนะ Stone Titan'
+        },
+        achTitle: '🏆 รางวัลความสำเร็จ',
+        achHint: 'ปลดล็อก:',
+        achievements: {
+          a_first_day_n: 'รุ่งอรุณแรก',     a_first_day_d: 'รอดชีวิต 1 วัน',
+          a_5_days_n: 'นักเดินทาง',         a_5_days_d: 'รอดชีวิต 5 วัน',
+          a_iron_n: 'ยุคเหล็ก',             a_iron_d: 'คราฟไอเทมเหล็กชิ้นแรก',
+          a_50_trees_n: 'นักตัดไม้เอก',     a_50_trees_d: 'ตัดต้นไม้ 50 ต้น',
+          a_titan_n: 'ผู้พิชิตยักษ์',       a_titan_d: 'เอาชนะ Stone Titan',
+          a_golem_n: 'นักทำลายโกเลม',       a_golem_d: 'เอาชนะ Crystal Golem',
+          a_pet_n: 'เพื่อนซี้',             a_pet_d: 'เลี้ยงสัตว์เป็นเพื่อน',
+          a_farm_n: 'ชาวสวน',               a_farm_d: 'เก็บเกี่ยวพืชผล',
+          a_trade_n: 'พ่อค้ามือใหม่',       a_trade_d: 'แลกของกับพ่อค้า',
+          a_bow_n: 'นักธนู',                a_bow_d: 'ล้มศัตรูด้วยธนู',
+          a_cozy_n: 'อบอุ่นใจ',             a_cozy_d: 'สร้างกองไฟ',
+          a_turret_n: 'วิศวกรป้อม',         a_turret_d: 'วางป้อมยิงธนู'
+        },
+        exit: 'ออกเกม'
+      },
+      en: {
+        title: '🌲 Survival',
+        subtitle: 'Gather · Craft · Survive day and night',
+        start: '▶ Start',
+        newWorld: '⟳ New World',
+        pauseTitle: 'Paused',
+        resume: 'Resume',
+        saveQuit: '💾 Save & Quit',
+        gameOver: '💀 You Died',
+        survivedFor: 'Survived for',
+        dayUnit: 'days',
+        tryAgain: '⟳ Try Again',
+        invTitle: '🎒 Inventory',
+        invHint: 'Tap to select, tap again to swap',
+        close: 'Close',
+        craftTitle: '🛠️ Crafting',
+        craftHint: 'Tap a recipe to craft (greyed = missing items)',
+        dayLabel: 'Day',
+        lvLabel: 'Lv',
+        skillTitle: '🌟 Skill Tree',
+        skillLevel: 'Level', skillXp: 'XP', skillPoints: 'Points',
+        skillHint: 'Tap a skill to spend a point',
+        tradeTitle: '🧙 Trader',
+        tradeHint: 'Tap a trade to exchange items',
+        questTitle: '📜 Quests',
+        questHint: 'Objectives auto-complete with rewards',
+        quests: {
+          q_chop_n: 'Lumberjack',     q_chop_d: 'Chop down 10 trees',
+          q_mine_n: 'Stonecutter',    q_mine_d: 'Mine 10 rocks',
+          q_kill_zomb_n: 'Walker Hunter', q_kill_zomb_d: 'Kill 5 zombies',
+          q_kill_wolf_n: 'Wolf Slayer',   q_kill_wolf_d: 'Kill 5 wolves',
+          q_craft_sword_n: 'Armed',   q_craft_sword_d: 'Craft a sword',
+          q_camp_n: 'Cozy Camper',    q_camp_d: 'Build a campfire',
+          q_survive_2_n: 'Two Sunrises', q_survive_2_d: 'Survive 2 days',
+          q_iron_n: 'Iron Age',       q_iron_d: 'Mine 3 iron',
+          q_titan_n: 'Titan Slayer',  q_titan_d: 'Defeat the Stone Titan'
+        },
+        achTitle: '🏆 Achievements',
+        achHint: 'Unlocked:',
+        achievements: {
+          a_first_day_n: 'First Sunrise',  a_first_day_d: 'Survive your first day',
+          a_5_days_n: 'Veteran',           a_5_days_d: 'Survive 5 days',
+          a_iron_n: 'Iron Age',            a_iron_d: 'Craft your first iron item',
+          a_50_trees_n: 'Master Lumberjack', a_50_trees_d: 'Chop 50 trees',
+          a_titan_n: 'Titan Slayer',       a_titan_d: 'Defeat the Stone Titan',
+          a_golem_n: 'Golem Breaker',      a_golem_d: 'Defeat the Crystal Golem',
+          a_pet_n: 'Best Friend',          a_pet_d: 'Tame an animal companion',
+          a_farm_n: 'Farmer',              a_farm_d: 'Harvest a grown crop',
+          a_trade_n: 'Trader',             a_trade_d: 'Trade with the merchant',
+          a_bow_n: 'Archer',               a_bow_d: 'Down an enemy with a bow',
+          a_cozy_n: 'Cozy Camper',         a_cozy_d: 'Build a campfire',
+          a_turret_n: 'Engineer',          a_turret_d: 'Deploy an arrow turret'
+        },
+        exit: 'Exit'
+      },
+      lao: {
+        title: '🌲 ເກມເອົາຕົວລອດ',
+        subtitle: 'ຫາຂອງ · ສ້າງ · ເອົາຊີວິດລອດທັງມື້ ແລະ ກາງຄືນ',
+        start: '▶ ເລີ່ມຫຼິ້ນ',
+        newWorld: '⟳ ໂລກໃໝ່',
+        pauseTitle: 'ຢຸດຊົ່ວຄາວ',
+        resume: 'ຫຼິ້ນຕໍ່',
+        saveQuit: '💾 ບັນທຶກແລ້ວອອກ',
+        gameOver: '💀 ເຈົ້າຕາຍແລ້ວ',
+        survivedFor: 'ລອດຊີວິດ',
+        dayUnit: 'ມື້',
+        tryAgain: '⟳ ລອງໃໝ່',
+        invTitle: '🎒 ກະເປົາ',
+        invHint: 'ແຕະເພື່ອເລືອກ · ແຕະອີກເພື່ອສະຫຼັບ',
+        close: 'ປິດ',
+        craftTitle: '🛠️ ສ້າງ',
+        craftHint: 'ແຕະສູດເພື່ອສ້າງ (ສີເທົາ = ວັດສະດຸບໍ່ພໍ)',
+        dayLabel: 'ມື້ທີ',
+        lvLabel: 'Lv',
+        skillTitle: '🌟 ຕົ້ນທັກສະ',
+        skillLevel: 'ລະດັບ', skillXp: 'EXP', skillPoints: 'ແຕ້ມ',
+        skillHint: 'ແຕະທັກສະເພື່ອໃຊ້ແຕ້ມ',
+        tradeTitle: '🧙 ພໍ່ຄ້າ',
+        tradeHint: 'ແຕະເພື່ອແລກສິນຄ້າ',
+        questTitle: '📜 ພາລະກິດ',
+        questHint: 'ພາລະກິດສະສົມເອງ ຄົບແລ້ວຮັບລາງວັນ',
+        quests: {
+          q_chop_n: 'ນັກຕັດໄມ້',    q_chop_d: 'ຕັດຕົ້ນໄມ້ 10 ຕົ້ນ',
+          q_mine_n: 'ນັກຂຸດແຮ່',    q_mine_d: 'ທຸບຫີນ 10 ກ້ອນ',
+          q_kill_zomb_n: 'ນັກລ່າຜີດິບ', q_kill_zomb_d: 'ຂ້າຊອມບີ 5 ຕົວ',
+          q_kill_wolf_n: 'ນັກລ່າໝາປ່າ',  q_kill_wolf_d: 'ຂ້າໝາປ່າ 5 ຕົວ',
+          q_craft_sword_n: 'ມີອາວຸດ',   q_craft_sword_d: 'ສ້າງດາບ 1 ເລ່ມ',
+          q_camp_n: 'ອົບອຸ່ນ',          q_camp_d: 'ສ້າງກອງໄຟ',
+          q_survive_2_n: 'ຮຸ່ງເຊົ້າ 2',  q_survive_2_d: 'ລອດຊີວິດ 2 ມື້',
+          q_iron_n: 'ຍຸກເຫຼັກ',        q_iron_d: 'ຂຸດເຫຼັກ 3 ກ້ອນ',
+          q_titan_n: 'ນັກລ່າຍັກ',     q_titan_d: 'ຊະນະ Stone Titan'
+        },
+        achTitle: '🏆 ລາງວັນຄວາມສຳເລັດ',
+        achHint: 'ປົດລັອກ:',
+        achievements: {
+          a_first_day_n: 'ຮຸ່ງເຊົ້າທຳອິດ',     a_first_day_d: 'ລອດຊີວິດ 1 ມື້',
+          a_5_days_n: 'ນັກເດີນທາງ',            a_5_days_d: 'ລອດຊີວິດ 5 ມື້',
+          a_iron_n: 'ຍຸກເຫຼັກ',                a_iron_d: 'ສ້າງໄອເທມເຫຼັກອັນທຳອິດ',
+          a_50_trees_n: 'ນັກຕັດໄມ້ເອກ',        a_50_trees_d: 'ຕັດຕົ້ນໄມ້ 50 ຕົ້ນ',
+          a_titan_n: 'ຜູ້ພິຊິດຍັກ',            a_titan_d: 'ຊະນະ Stone Titan',
+          a_golem_n: 'ນັກທຳລາຍໂກເລມ',          a_golem_d: 'ຊະນະ Crystal Golem',
+          a_pet_n: 'ໝູ່ສະນິດ',                 a_pet_d: 'ລ້ຽງສັດເປັນເພື່ອນ',
+          a_farm_n: 'ຊາວສວນ',                  a_farm_d: 'ເກັບກ່ຽວພືດຜົນ',
+          a_trade_n: 'ພໍ່ຄ້າມືໃໝ່',           a_trade_d: 'ແລກສິນຄ້າກັບພໍ່ຄ້າ',
+          a_bow_n: 'ນັກທະນູ',                  a_bow_d: 'ລົ້ມສັດຕູດ້ວຍທະນູ',
+          a_cozy_n: 'ອົບອຸ່ນໃຈ',               a_cozy_d: 'ສ້າງກອງໄຟ',
+          a_turret_n: 'ວິສະວະກອນປ້ອມ',         a_turret_d: 'ວາງປ້ອມຍິງທະນູ'
+        },
+        exit: 'ອອກເກມ'
+      }
+    };
+    function setSrvLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = srvLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('srv-title', t.title);
+      set('srv-subtitle', t.subtitle);
+      set('srv-start-btn', t.start);
+      set('srv-newgame-btn', t.newWorld);
+      set('srv-pause-title', t.pauseTitle);
+      set('srv-resume-btn', t.resume);
+      set('srv-pause-save-btn', t.saveQuit);
+      set('srv-pause-new-btn', t.newWorld);
+      set('srv-go-title', t.gameOver);
+      set('srv-go-label', t.survivedFor);
+      set('srv-go-day-unit', t.dayUnit);
+      set('srv-go-restart-btn', t.tryAgain);
+      set('srv-inv-title', t.invTitle);
+      set('srv-inv-hint', t.invHint);
+      set('srv-inv-close', t.close);
+      set('srv-craft-title', t.craftTitle);
+      set('srv-craft-hint', t.craftHint);
+      set('srv-craft-close', t.close);
+      set('srv-day-label', t.dayLabel);
+      set('srv-lv-label', t.lvLabel);
+      set('srv-skill-title', t.skillTitle);
+      set('srv-skill-lv-label', t.skillLevel);
+      set('srv-skill-xp-label', t.skillXp);
+      set('srv-skill-pt-label', t.skillPoints);
+      set('srv-skill-hint', t.skillHint);
+      set('srv-trade-title', t.tradeTitle);
+      set('srv-trade-hint', t.tradeHint);
+      set('srv-quest-title', t.questTitle);
+      set('srv-quest-hint', t.questHint);
+      set('srv-ach-title', t.achTitle);
+      set('srv-ach-close', t.close);
+      set('srv-quest-close', t.close);
+      set('srv-skill-close', t.close);
+      // ach hint: rebuild with "<hint> <strong id=srv-ach-progress>...</strong>"
+      const achHintEl = document.getElementById('srv-ach-hint');
+      if (achHintEl) {
+        const prog = document.getElementById('srv-ach-progress');
+        const progText = prog ? prog.textContent : '0 / 0';
+        achHintEl.innerHTML = (t.achHint || 'Unlocked:') + ' <strong id="srv-ach-progress">' + progText + '</strong>';
+      }
+      // srv-exit-btn is now a × icon — keep tooltip via title only
+      const exitEl = document.getElementById('srv-exit-btn');
+      if (exitEl) exitEl.title = t.exit;
+      // Expose quest labels to game render
+      window.srvQuestLang = {};
+      for (const [k, v] of Object.entries(t.quests || {})) window.srvQuestLang[k] = v;
+      // Expose achievement labels
+      window.srvAchLang = {};
+      for (const [k, v] of Object.entries(t.achievements || {})) window.srvAchLang[k] = v;
+      // Refresh achievement modal if currently open
+      if (typeof window.survivalToggleAchievements === 'function') {
+        const achModal = document.getElementById('srv-ach-modal');
+        if (achModal && achModal.style.display === 'flex' && typeof window.refreshAchievementsUI === 'function') {
+          window.refreshAchievementsUI();
+        }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', setSrvLang);
+  </script>
+</body>
+</html>

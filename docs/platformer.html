@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Platformer · เกมผจญภัย</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #1f1147;
+      color: #e2e8f0;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Arial, sans-serif;
+      width: 100vw; height: 100vh;
+      overflow: hidden; position: fixed;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    #plf-stage {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at top, #2e1065, #0f0822 80%);
+    }
+    #plf-canvas {
+      display: block;
+      image-rendering: pixelated;
+      box-shadow: 0 12px 40px rgba(124, 58, 237, 0.45);
+      border-radius: 6px;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+
+    /* Top corner floating buttons */
+    #plf-exit-btn {
+      position: fixed; top: 10px; left: 10px; z-index: 30;
+      padding: 8px 14px; background: #ef4444; color: #fff;
+      text-decoration: none; border-radius: 8px; font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .plf-icon-btn {
+      position: fixed; top: 10px; z-index: 30;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.7); color: #c084fc;
+      border: 2px solid rgba(192, 132, 252, 0.55);
+      font-size: 1.0em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    #plf-mute-btn  { right: 10px; }
+    #plf-pause-btn { right: 56px; }
+
+    /* Touch controls overlay */
+    .plf-touch-overlay {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+    #plf-stick-area {
+      position: absolute; left: 0; bottom: 0;
+      width: 45%; height: 55%;
+      pointer-events: auto;
+    }
+    #plf-stick-base, #plf-stick-thumb {
+      position: absolute;
+      pointer-events: none;
+      display: none;
+      border-radius: 50%;
+    }
+    #plf-stick-base {
+      width: 80px; height: 80px;
+      background: rgba(124, 58, 237, 0.25);
+      border: 2px solid rgba(192, 132, 252, 0.6);
+    }
+    #plf-stick-thumb {
+      width: 40px; height: 40px;
+      background: rgba(192, 132, 252, 0.85);
+      box-shadow: 0 0 12px rgba(192, 132, 252, 0.8);
+    }
+
+    .plf-buttons {
+      position: absolute;
+      right: 12px; bottom: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 60px);
+      grid-template-rows: repeat(2, 60px);
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .plf-action-btn {
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      background: rgba(15, 23, 42, 0.55);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.1s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      padding: 0;
+    }
+    .plf-action-btn.pressed,
+    .plf-action-btn:active { transform: scale(0.92); background: rgba(192, 132, 252, 0.55); }
+
+    #plf-btn-jump   { grid-column: 2; grid-row: 1; background: rgba(34, 197, 94, 0.55); }
+    #plf-btn-attack { grid-column: 1; grid-row: 2; background: rgba(239, 68, 68, 0.55); }
+    #plf-btn-dash   { grid-column: 2; grid-row: 2; background: rgba(56, 189, 248, 0.55); }
+
+    /* Hide touch overlay on hover-capable devices (desktops) */
+    @media (hover: hover) and (pointer: fine) {
+      .plf-touch-overlay { display: none; }
+    }
+
+    /* Menu overlays */
+    .plf-overlay {
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(15, 8, 34, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .plf-card {
+      background: linear-gradient(145deg, #2e1065, #1e1b4b);
+      border: 2px solid #a855f7;
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 420px; width: 100%;
+      max-height: calc(100vh - 20px);
+      overflow-y: auto;
+      text-align: center;
+      box-shadow: 0 0 36px rgba(168, 85, 247, 0.55);
+      animation: plfPop 0.35s ease-out;
+      box-sizing: border-box;
+    }
+    .plf-card::-webkit-scrollbar { width: 6px; }
+    .plf-card::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.5); border-radius: 3px; }
+    @keyframes plfPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .plf-card h2 {
+      margin: 0 0 14px; font-size: 1.7em;
+      background: linear-gradient(90deg, #c084fc, #f0abfc, #facc15);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      letter-spacing: 1px;
+    }
+    .plf-card p { color: #c4b5fd; margin: 6px 0; }
+    .plf-btn {
+      display: inline-block;
+      padding: 11px 26px; font-size: 1rem; font-weight: bold;
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      color: #fff; border: none; border-radius: 10px;
+      cursor: pointer; margin: 4px;
+      box-shadow: 0 4px 0 rgba(80, 30, 130, 0.6);
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .plf-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(80, 30, 130, 0.6); }
+    .plf-btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 0 rgba(40, 20, 80, 0.6);
+    }
+    .plf-controls-help {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 6px 14px;
+      font-size: 0.85rem;
+      margin: 10px auto;
+      max-width: 280px;
+      color: #ddd6fe;
+    }
+    .plf-controls-help b { color: #fde047; }
+    .plf-score-big {
+      font-size: 2.2em; font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+      margin: 10px 0;
+    }
+
+    /* Level select grid */
+    .plf-select-card { max-width: 540px; }
+    .plf-level-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      margin: 8px 0;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .plf-level-cell {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border: 1.5px solid rgba(192, 132, 252, 0.5);
+      background: rgba(124, 58, 237, 0.18);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.7rem;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s, background 0.15s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .plf-level-cell:active { transform: scale(0.93); }
+    .plf-level-cell:hover { background: rgba(124, 58, 237, 0.4); }
+    .plf-level-cell .num { display: block; }
+    .plf-level-cell .badge {
+      position: absolute;
+      top: -2px; right: -2px;
+      font-size: 0.7rem;
+      line-height: 1;
+    }
+    .plf-level-cell.completed {
+      background: rgba(34, 197, 94, 0.25);
+      border-color: rgba(34, 197, 94, 0.7);
+      color: #bbf7d0;
+    }
+    .plf-level-cell.boss {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #ef4444;
+      color: #fecaca;
+    }
+    .plf-level-cell.boss.completed { background: rgba(168, 85, 247, 0.4); border-color: #a855f7; }
+    .plf-level-cell.final {
+      background: linear-gradient(135deg, #facc15, #ec4899, #a855f7);
+      border-color: #facc15;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+      animation: plfFinalPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes plfFinalPulse {
+      0%, 100% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.6); }
+      50%      { box-shadow: 0 0 22px rgba(236, 72, 153, 0.9); }
+    }
+    .plf-level-cell.locked {
+      background: rgba(0, 0, 0, 0.35);
+      border-color: rgba(100, 100, 100, 0.4);
+      color: rgba(200, 200, 200, 0.4);
+      cursor: not-allowed;
+    }
+    .plf-level-cell.locked .badge { content: '🔒'; }
+    .plf-level-cell.locked::before {
+      content: '🔒';
+      position: absolute;
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+    .plf-level-cell.locked .num { display: none; }
+
+    @media (max-width: 600px) {
+      .plf-level-grid {
+        grid-template-columns: repeat(10, 1fr);
+        gap: 3px;
+      }
+      .plf-level-cell { font-size: 0.6rem; }
+      .plf-level-cell .badge { font-size: 0.55rem; }
+    }
+    @media (max-width: 420px) {
+      .plf-level-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    /* Stats grid in main menu */
+    .plf-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin: 10px 0 14px;
+      font-size: 0.85rem;
+    }
+    .plf-stat-cell {
+      background: rgba(124, 58, 237, 0.2);
+      border: 1px solid rgba(192, 132, 252, 0.4);
+      border-radius: 8px;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .plf-stat-cell .lbl { color: #c4b5fd; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+    .plf-stat-cell .val { color: #facc15; font-size: 1.05rem; font-weight: 900; line-height: 1.2; }
+
+    /* Landscape orientation prompt (mobile portrait) */
+    #plf-rotate-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #2e1065, #1f1147);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      color: #fff;
+    }
+    #plf-rotate-overlay svg {
+      width: 110px; height: 110px;
+      fill: #c084fc;
+      margin-bottom: 22px;
+      animation: plfRotatePhone 2.2s ease-in-out infinite;
+      filter: drop-shadow(0 0 18px rgba(192, 132, 252, 0.7));
+    }
+    @keyframes plfRotatePhone {
+      0%, 15%   { transform: rotate(0deg); }
+      55%, 100% { transform: rotate(-90deg); }
+    }
+    #plf-rotate-title {
+      background: linear-gradient(90deg, #c084fc, #facc15);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+      font-size: 1.5rem; font-weight: 900;
+      margin: 0 0 8px;
+      letter-spacing: 1px;
+    }
+    #plf-rotate-desc {
+      color: #ddd6fe;
+      font-size: 1rem;
+      max-width: 320px;
+      line-height: 1.5;
+      margin: 0 0 22px;
+    }
+    #plf-rotate-exit {
+      padding: 9px 22px;
+      background: rgba(239, 68, 68, 0.85);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    @media screen and (max-width: 900px) and (orientation: portrait) {
+      #plf-rotate-overlay { display: flex; }
+    }
+
+    /* Landscape phones / short screens — compress menu card so it fits */
+    @media (max-height: 500px) {
+      .plf-overlay { padding: 6px; align-items: flex-start; padding-top: 8px; }
+      .plf-card { padding: 12px 18px; max-height: calc(100vh - 16px); }
+      .plf-card h2 { font-size: 1.2em; margin: 0 0 6px; }
+      .plf-card p { font-size: 0.78rem; margin: 3px 0; }
+      .plf-controls-help {
+        font-size: 0.68rem; gap: 2px 10px; margin: 6px auto;
+        max-width: 260px;
+      }
+      .plf-stats-grid { font-size: 0.7rem; gap: 4px; margin: 6px 0 8px; }
+      .plf-stat-cell { padding: 3px 8px; }
+      .plf-stat-cell .lbl { font-size: 0.58rem; }
+      .plf-stat-cell .val { font-size: 0.85rem; }
+      .plf-btn { padding: 7px 16px; font-size: 0.85rem; margin: 2px; }
+      .plf-score-big { font-size: 1.5em; margin: 4px 0; }
+    }
+
+    /* Very short screens (landscape phones < 360px tall) — even tighter */
+    @media (max-height: 380px) {
+      .plf-controls-help { display: none; }
+      .plf-stats-grid { grid-template-columns: repeat(4, 1fr); }
+      .plf-card { padding: 10px 14px; }
+      .plf-card h2 { font-size: 1.05em; }
+    }
+
+    /* Narrow screens — keep 2-col stats grid readable */
+    @media (max-width: 400px) {
+      .plf-controls-help { font-size: 0.72rem; gap: 3px 8px; }
+      .plf-card { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Landscape orientation prompt (auto-shows on mobile portrait) -->
+  <div id="plf-rotate-overlay">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7.5 21.5L2.5 16.5L12.5 6.5L17.5 11.5L7.5 21.5M17.5 1.5L21.5 5.5L19.5 7.5L15.5 3.5L17.5 1.5M14.4 4.6L19.4 9.6L9.4 19.6L4.4 14.6L14.4 4.6M19 19L19 14L21 14L21 21L14 21L14 19L19 19Z"/>
+    </svg>
+    <h2 id="plf-rotate-title">Please Rotate Phone</h2>
+    <p id="plf-rotate-desc">This game is best played in landscape mode.</p>
+    <a id="plf-rotate-exit" href="index.html">Exit</a>
+  </div>
+
+  <a id="plf-exit-btn" href="index.html">Exit</a>
+  <button id="plf-pause-btn" class="plf-icon-btn" aria-label="Pause">⏸</button>
+  <button id="plf-mute-btn"  class="plf-icon-btn" aria-label="Mute">🔊</button>
+
+  <div id="plf-stage">
+    <canvas id="plf-canvas"></canvas>
+  </div>
+
+  <!-- Touch overlay (joystick + action buttons) -->
+  <div class="plf-touch-overlay">
+    <div id="plf-stick-area">
+      <div id="plf-stick-base"></div>
+      <div id="plf-stick-thumb"></div>
+    </div>
+    <div class="plf-buttons">
+      <button id="plf-btn-jump"   class="plf-action-btn" aria-label="Jump">⤴</button>
+      <button id="plf-btn-attack" class="plf-action-btn" aria-label="Attack">⚔</button>
+      <button id="plf-btn-dash"   class="plf-action-btn" aria-label="Dash">⚡</button>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="plf-menu" class="plf-overlay">
+    <div class="plf-card">
+      <h2 id="plf-title">⚔️ Platformer Adventure</h2>
+      <p id="plf-subtitle">Collect coins, defeat slimes, reach the gold flag!</p>
+      <div class="plf-controls-help" id="plf-help">
+        <span><b>← →</b> Move</span>      <span><b>Joystick</b> Move</span>
+        <span><b>Space</b> Jump (×2)</span> <span><b>⤴</b> Jump (×2)</span>
+        <span><b>X</b> Attack</span>      <span><b>⚔</b> Attack</span>
+        <span><b>Shift</b> Dash</span>    <span><b>⚡</b> Dash</span>
+      </div>
+      <div class="plf-stats-grid" id="plf-stats-grid" style="display:none;">
+        <div class="plf-stat-cell"><div class="lbl" id="plf-lbl-best">Best Coins</div><div class="val" id="plf-stat-best">0</div></div>
+        <div class="plf-stat-cell"><div class="lbl" id="plf-lbl-wins">Victories</div><div class="val" id="plf-stat-wins">0</div></div>
+        <div class="plf-stat-cell"><div class="lbl" id="plf-lbl-totalCoins">Total Coins</div><div class="val" id="plf-stat-total">0</div></div>
+        <div class="plf-stat-cell"><div class="lbl" id="plf-lbl-runs">Runs</div><div class="val" id="plf-stat-runs">0</div></div>
+      </div>
+      <button id="plf-start-btn" class="plf-btn" style="display:block;width:100%;margin:6px 0;">▶ Continue</button>
+      <button id="plf-select-btn" class="plf-btn secondary" style="display:block;width:100%;margin:6px 0;">📋 Level Select</button>
+    </div>
+  </div>
+
+  <!-- Pause modal -->
+  <div id="plf-pause-modal" class="plf-overlay" style="display:none;">
+    <div class="plf-card">
+      <h2 id="plf-pause-title">Paused</h2>
+      <button id="plf-resume-btn" class="plf-btn">Resume</button>
+      <button id="plf-pause-restart-btn" class="plf-btn secondary">Restart</button>
+      <button id="plf-pause-select-btn" class="plf-btn secondary">Levels</button>
+    </div>
+  </div>
+
+  <!-- Game over modal -->
+  <div id="plf-gameover-modal" class="plf-overlay" style="display:none;">
+    <div class="plf-card">
+      <h2 id="plf-go-title">💀 Game Over</h2>
+      <p><span id="plf-go-level-label">Level</span> <strong id="plf-go-level">1</strong></p>
+      <p id="plf-go-label">Coins collected</p>
+      <div class="plf-score-big"><span id="plf-go-coins">0</span></div>
+      <button id="plf-go-restart-btn" class="plf-btn">Try Again</button>
+      <button id="plf-go-select-btn" class="plf-btn secondary">Levels</button>
+    </div>
+  </div>
+
+  <!-- Victory modal -->
+  <div id="plf-victory-modal" class="plf-overlay" style="display:none;">
+    <div class="plf-card">
+      <h2 id="plf-win-title">🏆 Victory!</h2>
+      <p><span id="plf-win-level-label">Level</span> <strong id="plf-win-level">1</strong> ✓</p>
+      <div id="plf-win-ultimate" style="display:none;">
+        <p style="background:linear-gradient(90deg,#facc15,#ec4899,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.2em;font-weight:900;letter-spacing:1px;">
+          👑 ULTIMATE VICTORY 👑
+        </p>
+        <p id="plf-win-ultimate-desc">You defeated all 100 levels!</p>
+      </div>
+      <p id="plf-win-label">Coins collected</p>
+      <div class="plf-score-big"><span id="plf-win-coins">0</span></div>
+      <button id="plf-win-next-btn" class="plf-btn">▶ Next Level</button>
+      <button id="plf-win-restart-btn" class="plf-btn secondary">Replay</button>
+      <button id="plf-win-select-btn" class="plf-btn secondary">Levels</button>
+    </div>
+  </div>
+
+  <!-- Level Select modal -->
+  <div id="plf-select-modal" class="plf-overlay" style="display:none;">
+    <div class="plf-card plf-select-card">
+      <h2 id="plf-select-title">📋 Select Level</h2>
+      <p id="plf-select-hint">⭐ Cleared · 💀 Boss · 👑 Final Boss · 🔒 Locked</p>
+      <div id="plf-select-grid" class="plf-level-grid"></div>
+      <button id="plf-select-close-btn" class="plf-btn secondary">Back</button>
+    </div>
+  </div>
+
+  <script src="js/platformer.js"></script>
+  <script>
+    const plfLangData = {
+      th: {
+        title: '⚔️ ผจญภัย Platformer',
+        subtitle: 'ผ่านให้ครบ 100 ด่าน · บอสทุก 10 ด่าน!',
+        start: '▶ เล่นต่อ',
+        select: '📋 เลือกด่าน',
+        pauseTitle: 'หยุดชั่วคราว',
+        resume: 'เล่นต่อ',
+        restart: 'เริ่มใหม่',
+        levelsBtn: 'รายการด่าน',
+        gameOver: '💀 จบเกม',
+        coins: 'เหรียญที่เก็บได้',
+        levelLabel: 'ด่านที่',
+        tryAgain: 'ลองใหม่',
+        victory: '🏆 ผ่านด่าน!',
+        nextLevel: '▶ ด่านถัดไป',
+        replay: 'เล่นอีก',
+        ultimate: 'คุณผ่านครบ 100 ด่านแล้ว!',
+        exit: 'ออกเกม',
+        rotateTitle: 'กรุณาหมุนโทรศัพท์',
+        rotateDesc: 'เกมนี้ต้องเล่นในแนวนอน เพื่อประสบการณ์ที่ดีที่สุด',
+        selectTitle: '📋 เลือกด่าน',
+        selectHint: '⭐ ผ่านแล้ว · 💀 บอส · 👑 บอสสุดท้าย · 🔒 ปิดอยู่',
+        back: 'กลับ',
+        statBest: 'เหรียญสูงสุด',
+        statWins: 'ผ่านด่าน',
+        statTotal: 'เหรียญสะสม',
+        statRuns: 'จำนวนรอบ'
+      },
+      en: {
+        title: '⚔️ Platformer Adventure',
+        subtitle: 'Beat all 100 levels · Boss every 10 levels!',
+        start: '▶ Continue',
+        select: '📋 Level Select',
+        pauseTitle: 'Paused',
+        resume: 'Resume',
+        restart: 'Restart',
+        levelsBtn: 'Levels',
+        gameOver: '💀 Game Over',
+        coins: 'Coins collected',
+        levelLabel: 'Level',
+        tryAgain: 'Try Again',
+        victory: '🏆 Level Cleared!',
+        nextLevel: '▶ Next Level',
+        replay: 'Replay',
+        ultimate: 'You defeated all 100 levels!',
+        exit: 'Exit',
+        rotateTitle: 'Please Rotate Phone',
+        rotateDesc: 'This game is best played in landscape mode.',
+        selectTitle: '📋 Select Level',
+        selectHint: '⭐ Cleared · 💀 Boss · 👑 Final Boss · 🔒 Locked',
+        back: 'Back',
+        statBest: 'Best Coins',
+        statWins: 'Victories',
+        statTotal: 'Total Coins',
+        statRuns: 'Runs'
+      },
+      lao: {
+        title: '⚔️ ຜະຈົນໄພ Platformer',
+        subtitle: 'ຜ່ານ 100 ດ່ານ · ບອສທຸກ 10 ດ່ານ!',
+        start: '▶ ຫຼິ້ນຕໍ່',
+        select: '📋 ເລືອກດ່ານ',
+        pauseTitle: 'ຢຸດຊົ່ວຄາວ',
+        resume: 'ຫຼິ້ນຕໍ່',
+        restart: 'ເລີ່ມໃໝ່',
+        levelsBtn: 'ດ່ານ',
+        gameOver: '💀 ຈົບເກມ',
+        coins: 'ຫຼຽນທີ່ເກັບໄດ້',
+        levelLabel: 'ດ່ານ',
+        tryAgain: 'ລອງໃໝ່',
+        victory: '🏆 ຜ່ານດ່ານ!',
+        nextLevel: '▶ ດ່ານຕໍ່ໄປ',
+        replay: 'ຫຼິ້ນອີກ',
+        ultimate: 'ເຈົ້າຜ່ານ 100 ດ່ານໝົດແລ້ວ!',
+        exit: 'ອອກເກມ',
+        rotateTitle: 'ກະລຸນາໝຸນໂທລະສັບ',
+        rotateDesc: 'ເກມນີ້ຫຼິ້ນດີທີ່ສຸດໃນແນວນອນ',
+        selectTitle: '📋 ເລືອກດ່ານ',
+        selectHint: '⭐ ຜ່ານແລ້ວ · 💀 ບອສ · 👑 ບອສສຸດທ້າຍ · 🔒 ຍັງປິດຢູ່',
+        back: 'ກັບ',
+        statBest: 'ຫຼຽນສູງສຸດ',
+        statWins: 'ຜ່ານດ່ານ',
+        statTotal: 'ຫຼຽນສະສົມ',
+        statRuns: 'ຈຳນວນຮອບ'
+      }
+    };
+    function setPlfLang() {
+      let l = localStorage.getItem('lang') || 'en';
+      if (!['th', 'en', 'lao'].includes(l)) l = 'en';
+      const t = plfLangData[l];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('plf-title', t.title);
+      set('plf-subtitle', t.subtitle);
+      set('plf-start-btn', t.start);
+      set('plf-select-btn', t.select);
+      set('plf-pause-title', t.pauseTitle);
+      set('plf-resume-btn', t.resume);
+      set('plf-pause-restart-btn', t.restart);
+      set('plf-pause-select-btn', t.levelsBtn);
+      set('plf-go-title', t.gameOver);
+      set('plf-go-label', t.coins);
+      set('plf-go-level-label', t.levelLabel);
+      set('plf-go-restart-btn', t.tryAgain);
+      set('plf-go-select-btn', t.levelsBtn);
+      set('plf-win-title', t.victory);
+      set('plf-win-label', t.coins);
+      set('plf-win-level-label', t.levelLabel);
+      set('plf-win-next-btn', t.nextLevel);
+      set('plf-win-restart-btn', t.replay);
+      set('plf-win-select-btn', t.levelsBtn);
+      set('plf-win-ultimate-desc', t.ultimate);
+      set('plf-select-title', t.selectTitle);
+      set('plf-select-hint', t.selectHint);
+      set('plf-select-close-btn', t.back);
+      set('plf-exit-btn', t.exit);
+      set('plf-rotate-title', t.rotateTitle);
+      set('plf-rotate-desc', t.rotateDesc);
+      set('plf-rotate-exit', t.exit);
+      set('plf-lbl-best', t.statBest);
+      set('plf-lbl-wins', t.statWins);
+      set('plf-lbl-totalCoins', t.statTotal);
+      set('plf-lbl-runs', t.statRuns);
+
+      // Populate stats from localStorage
+      try {
+        const stats = JSON.parse(localStorage.getItem('plfStats') || '{}');
+        const grid = document.getElementById('plf-stats-grid');
+        const has = (stats.totalRuns || 0) > 0;
+        if (grid) grid.style.display = has ? '' : 'none';
+        document.getElementById('plf-stat-best').textContent = stats.bestCoins || 0;
+        document.getElementById('plf-stat-wins').textContent = stats.victories || 0;
+        document.getElementById('plf-stat-total').textContent = stats.totalCoins || 0;
+        document.getElementById('plf-stat-runs').textContent = stats.totalRuns || 0;
+      } catch (e) {}
+    }
+    document.addEventListener('DOMContentLoaded', setPlfLang);
+  </script>
+</body>
+</html>
