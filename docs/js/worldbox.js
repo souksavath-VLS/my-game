@@ -58,6 +58,35 @@ let brushSize = 2;
 let nextKingdomId = 1;
 let lastTouch = { x: -1, y: -1, active: false };
 
+// V2: View zoom & pan
+const MIN_ZOOM = 1, MAX_ZOOM = 5;
+let zoom = 1;
+let panX = 0, panY = 0;     // top-left of visible window in world coords
+function constrainPan() {
+  const viewW = VIEW_W / zoom;
+  const viewH = VIEW_H / zoom;
+  panX = clamp(panX, 0, Math.max(0, VIEW_W - viewW));
+  panY = clamp(panY, 0, Math.max(0, VIEW_H - viewH));
+}
+function zoomAt(screenX, screenY, newZoom) {
+  newZoom = clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
+  if (newZoom === zoom) return;
+  // World point under the screen anchor
+  const wx = panX + screenX / zoom;
+  const wy = panY + screenY / zoom;
+  zoom = newZoom;
+  // Keep that world point under the same screen anchor
+  panX = wx - screenX / zoom;
+  panY = wy - screenY / zoom;
+  constrainPan();
+  refreshZoomUI();
+}
+function resetView() { zoom = 1; panX = 0; panY = 0; refreshZoomUI(); }
+function refreshZoomUI() {
+  const el = document.getElementById('wb-zoom-label');
+  if (el) el.textContent = zoom.toFixed(1).replace('.0','') + 'x';
+}
+
 // V2: Divine mana (limits power spam)
 const MAX_MANA = 200;
 let mana = MAX_MANA;
@@ -1170,21 +1199,25 @@ function drawEffects() {
       ctx.fillStyle = 'rgba(127, 29, 29, ' + (e.life / 14) + ')';
       ctx.font = 'bold 10px sans-serif';
       ctx.fillText('✖', e.x - 4, e.y + 4);
-    } else if (e.type === 'achievement') {
-      // Top-center floating banner
-      const t = e.life > 160 ? (180 - e.life) / 20 : e.life < 30 ? e.life / 30 : 1;
-      ctx.fillStyle = 'rgba(15, 23, 42, ' + 0.9 * t + ')';
-      const w = ctx.measureText(e.text).width + 40;
-      ctx.fillRect(VIEW_W / 2 - w / 2, 18, w, 28);
-      ctx.strokeStyle = 'rgba(250, 204, 21, ' + t + ')';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(VIEW_W / 2 - w / 2, 18, w, 28);
-      ctx.fillStyle = '#facc15';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(e.text, VIEW_W / 2, 37);
-      ctx.textAlign = 'start';
     }
+  }
+}
+
+function drawScreenEffects() {
+  for (const e of effects) {
+    if (e.type !== 'achievement') continue;
+    const t = e.life > 160 ? (180 - e.life) / 20 : e.life < 30 ? e.life / 30 : 1;
+    ctx.font = 'bold 14px sans-serif';
+    const w = ctx.measureText(e.text).width + 40;
+    ctx.fillStyle = 'rgba(15, 23, 42, ' + 0.9 * t + ')';
+    ctx.fillRect(VIEW_W / 2 - w / 2, 18, w, 28);
+    ctx.strokeStyle = 'rgba(250, 204, 21, ' + t + ')';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(VIEW_W / 2 - w / 2, 18, w, 28);
+    ctx.fillStyle = '#facc15';
+    ctx.textAlign = 'center';
+    ctx.fillText(e.text, VIEW_W / 2, 37);
+    ctx.textAlign = 'start';
   }
 }
 
@@ -1269,13 +1302,16 @@ function drawDayNightTint() {
 // RENDER
 // =================================================================
 function render() {
-  // Camera shake
+  // Reset, then apply camera shake + zoom + pan
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  let sx = 0, sy = 0;
   if (cameraShakeAmt > 0) {
-    const ox = (Math.random() - 0.5) * cameraShakeAmt * 0.4;
-    const oy = (Math.random() - 0.5) * cameraShakeAmt * 0.4;
-    ctx.setTransform(1, 0, 0, 1, ox, oy);
+    sx = (Math.random() - 0.5) * cameraShakeAmt * 0.4;
+    sy = (Math.random() - 0.5) * cameraShakeAmt * 0.4;
   }
+  // World transform: screen = (worldPoint - pan) * zoom + shake
+  ctx.setTransform(zoom, 0, 0, zoom, sx - panX * zoom, sy - panY * zoom);
+  // Cull: only redraw tiles that are visible
   // Tile pass — simple full redraw (96×64 = 6144 quads, well within budget)
   for (let y = 0; y < WORLD_H; y++) {
     for (let x = 0; x < WORLD_W; x++) {
@@ -1315,13 +1351,10 @@ function render() {
   // Units
   for (const u of units) if (!u.dead) u.draw(ctx);
 
-  // Effects
+  // Effects (world-space)
   drawEffects();
 
-  // Day/night tint overlay
-  drawDayNightTint();
-
-  // Brush preview
+  // Brush preview (world-space)
   if (lastTouch.active && lastTouch.x >= 0) {
     const t = TOOL_DEFS.find(t => t.id === activeTool);
     const isTerrain = t && t.cat === 'terrain';
@@ -1329,11 +1362,18 @@ function render() {
       ? brushSize * TILE_PX
       : 18;
     ctx.strokeStyle = 'rgba(250, 204, 21, 0.7)';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 / zoom;  // keep visually consistent
     ctx.beginPath();
     ctx.arc(lastTouch.x, lastTouch.y, r, 0, Math.PI * 2);
     ctx.stroke();
   }
+
+  // === Back to screen space for overlays ===
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Day/night tint covers the whole canvas regardless of zoom
+  drawDayNightTint();
+  // Screen-space effects (achievement banner)
+  drawScreenEffects();
 }
 
 // =================================================================
@@ -1453,16 +1493,29 @@ window.addEventListener('resize', () => { if (canvas) resizeCanvas(); });
 // =================================================================
 // INPUT
 // =================================================================
-function canvasPos(clientX, clientY) {
+// Map client → canvas-screen coords (0..VIEW_W, 0..VIEW_H)
+function canvasScreenPos(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
-  const x = ((clientX - r.left) / r.width) * VIEW_W;
-  const y = ((clientY - r.top) / r.height) * VIEW_H;
+  return {
+    x: ((clientX - r.left) / r.width) * VIEW_W,
+    y: ((clientY - r.top) / r.height) * VIEW_H
+  };
+}
+// Map client → world coords (accounting for zoom/pan)
+function canvasPos(clientX, clientY) {
+  const s = canvasScreenPos(clientX, clientY);
+  const x = panX + s.x / zoom;
+  const y = panY + s.y / zoom;
   return { x: clamp(x, 0, VIEW_W - 1), y: clamp(y, 0, VIEW_H - 1) };
 }
 
 function attachInput() {
   let dragging = false;
   let dragTimer = 0;
+  // Pinch / two-finger state
+  const pinch = { active: false, startDist: 0, startZoom: 1, centerX: 0, centerY: 0, lastCenterX: 0, lastCenterY: 0 };
+  // PC right/middle-click pan
+  const panDrag = { active: false, lastX: 0, lastY: 0 };
 
   const handleStart = (cx, cy) => {
     const p = canvasPos(cx, cy);
@@ -1474,9 +1527,8 @@ function attachInput() {
     const p = canvasPos(cx, cy);
     lastTouch.x = p.x; lastTouch.y = p.y; lastTouch.active = true;
     if (!dragging) return;
-    // Repeat only for terrain / paint-like tools
     const t = TOOL_DEFS.find(t => t.id === activeTool);
-    if (t && (t.cat === 'terrain' || activeTool === 'fire' || activeTool === 'heal' || activeTool === 'plague' || t.cat === 'spawn')) {
+    if (t && (t.cat === 'terrain' || activeTool === 'fire' || activeTool === 'heal' || activeTool === 'plague' || t.cat === 'spawn' || t.cat === 'wild')) {
       dragTimer++;
       if (dragTimer % 4 === 0) applyTool(activeTool, p.x, p.y);
     }
@@ -1486,47 +1538,139 @@ function attachInput() {
     setTimeout(() => { lastTouch.active = false; }, 200);
   };
 
-  // Touch
+  // --- Touch ---
   canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length >= 2) {
+      // Begin pinch+pan
+      dragging = false;
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const s0 = canvasScreenPos(t0.clientX, t0.clientY);
+      const s1 = canvasScreenPos(t1.clientX, t1.clientY);
+      pinch.active = true;
+      pinch.startDist = Math.hypot(s1.x - s0.x, s1.y - s0.y) || 1;
+      pinch.startZoom = zoom;
+      pinch.centerX = (s0.x + s1.x) / 2;
+      pinch.centerY = (s0.y + s1.y) / 2;
+      pinch.lastCenterX = pinch.centerX;
+      pinch.lastCenterY = pinch.centerY;
+      return;
+    }
     const t = e.touches[0];
     if (t) handleStart(t.clientX, t.clientY);
-    e.preventDefault();
   }, { passive: false });
+
   canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (pinch.active && e.touches.length >= 2) {
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const s0 = canvasScreenPos(t0.clientX, t0.clientY);
+      const s1 = canvasScreenPos(t1.clientX, t1.clientY);
+      const newDist = Math.hypot(s1.x - s0.x, s1.y - s0.y) || 1;
+      const newCenterX = (s0.x + s1.x) / 2;
+      const newCenterY = (s0.y + s1.y) / 2;
+      // Zoom around the gesture center
+      const targetZoom = pinch.startZoom * (newDist / pinch.startDist);
+      zoomAt(newCenterX, newCenterY, targetZoom);
+      // Pan by the center delta (in world coords)
+      const dx = (newCenterX - pinch.lastCenterX) / zoom;
+      const dy = (newCenterY - pinch.lastCenterY) / zoom;
+      panX -= dx; panY -= dy;
+      constrainPan();
+      pinch.lastCenterX = newCenterX;
+      pinch.lastCenterY = newCenterY;
+      return;
+    }
     const t = e.touches[0];
     if (t) handleMove(t.clientX, t.clientY);
-    e.preventDefault();
   }, { passive: false });
-  canvas.addEventListener('touchend', () => { handleEnd(); }, { passive: false });
 
-  // Mouse
+  canvas.addEventListener('touchend', (e) => {
+    if (pinch.active && e.touches.length < 2) {
+      pinch.active = false;
+      dragging = false;  // don't apply tool when releasing pinch
+      lastTouch.active = false;
+    } else {
+      handleEnd();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', () => {
+    pinch.active = false;
+    handleEnd();
+  });
+
+  // --- Mouse ---
   let mouseDown = false;
   canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 1 || e.button === 2) {
+      // Middle / right click = pan
+      panDrag.active = true;
+      panDrag.lastX = e.clientX;
+      panDrag.lastY = e.clientY;
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+      return;
+    }
     mouseDown = true;
     handleStart(e.clientX, e.clientY);
   });
   canvas.addEventListener('mousemove', (e) => {
+    if (panDrag.active) {
+      const dxScreen = (e.clientX - panDrag.lastX) * (VIEW_W / canvas.getBoundingClientRect().width);
+      const dyScreen = (e.clientY - panDrag.lastY) * (VIEW_H / canvas.getBoundingClientRect().height);
+      panX -= dxScreen / zoom;
+      panY -= dyScreen / zoom;
+      constrainPan();
+      panDrag.lastX = e.clientX;
+      panDrag.lastY = e.clientY;
+      return;
+    }
     if (mouseDown) handleMove(e.clientX, e.clientY);
     else {
       const p = canvasPos(e.clientX, e.clientY);
       lastTouch.x = p.x; lastTouch.y = p.y; lastTouch.active = true;
     }
   });
-  window.addEventListener('mouseup', () => { mouseDown = false; handleEnd(); });
+  window.addEventListener('mouseup', (e) => {
+    if (panDrag.active) {
+      panDrag.active = false;
+      canvas.style.cursor = '';
+      return;
+    }
+    mouseDown = false;
+    handleEnd();
+  });
   canvas.addEventListener('mouseleave', () => { lastTouch.active = false; });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Keyboard shortcuts for tools (1-9, q-y, a-h)
+  // --- Mouse wheel: zoom around cursor ---
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const s = canvasScreenPos(e.clientX, e.clientY);
+    const factor = e.deltaY < 0 ? 1.2 : (1 / 1.2);
+    zoomAt(s.x, s.y, zoom * factor);
+  }, { passive: false });
+
+  // Keyboard shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.key === ' ') {
       e.preventDefault();
       paused = !paused;
       refreshSpeedUI();
+    } else if (e.key === '+' || e.key === '=') {
+      zoomAt(VIEW_W / 2, VIEW_H / 2, zoom + 0.5);
+    } else if (e.key === '-' || e.key === '_') {
+      zoomAt(VIEW_W / 2, VIEW_H / 2, zoom - 0.5);
+    } else if (e.key === '0') {
+      resetView();
     } else if (e.key >= '1' && e.key <= '7') {
-      // terrain
       const idx = parseInt(e.key) - 1;
       if (TOOL_DEFS[idx]) selectTool(TOOL_DEFS[idx].id);
-    }
+    } else if (e.key === 'ArrowLeft')  { panX -= 30 / zoom; constrainPan(); }
+    else if (e.key === 'ArrowRight')   { panX += 30 / zoom; constrainPan(); }
+    else if (e.key === 'ArrowUp')      { panY -= 30 / zoom; constrainPan(); }
+    else if (e.key === 'ArrowDown')    { panY += 30 / zoom; constrainPan(); }
   });
 }
 
@@ -1781,6 +1925,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (achStat) achStat.addEventListener('click', toggleAchModal);
   const achClose = document.getElementById('wb-ach-close');
   if (achClose) achClose.addEventListener('click', toggleAchModal);
+
+  // Zoom buttons
+  document.getElementById('wb-zoom-in').addEventListener('click',
+    () => zoomAt(VIEW_W / 2, VIEW_H / 2, zoom + 0.5));
+  document.getElementById('wb-zoom-out').addEventListener('click',
+    () => zoomAt(VIEW_W / 2, VIEW_H / 2, zoom - 0.5));
+  document.getElementById('wb-zoom-reset').addEventListener('click', resetView);
+  refreshZoomUI();
 
   // Show help on first visit
   if (!localStorage.getItem('wbVisited')) {

@@ -80,6 +80,11 @@
       border-color: #22d3ee;
       box-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
     }
+    .wb-zoom-label-btn {
+      width: 36px;
+      font-size: 0.62rem;
+      color: #facc15;
+    }
 
     /* Canvas area */
     #wb-canvas-wrap {
@@ -362,6 +367,9 @@
       </div>
       <div class="wb-stat" id="wb-ach-stat" title="Achievements">🏆 <span class="wb-num" id="wb-ach-count">0 / 14</span></div>
       <div class="wb-speed">
+        <button class="wb-speed-btn" id="wb-zoom-out" title="Zoom Out (-)">🔍−</button>
+        <button class="wb-speed-btn wb-zoom-label-btn" id="wb-zoom-reset" title="Reset View (0)"><span id="wb-zoom-label">1x</span></button>
+        <button class="wb-speed-btn" id="wb-zoom-in" title="Zoom In (+)">🔍+</button>
         <button class="wb-speed-btn" id="wb-help-btn" title="Help">❓</button>
         <button class="wb-speed-btn" id="wb-reset-btn" title="New World">🔄</button>
         <button class="wb-speed-btn" data-speed="0" title="Pause">⏸</button>
@@ -402,6 +410,7 @@
         <b>🔵 Bless</b><span data-i18n="helpBless">Heal a region or end all wars in peace</span>
         <b>🟣 Spawn</b><span data-i18n="helpSpawn">Place humans, elves, dwarves, or orcs</span>
         <b>⏩ Speed</b><span data-i18n="helpSpeed">Speed up time when waiting for civilizations</span>
+        <b>🔍 Zoom</b><span data-i18n="helpZoom">Pinch / wheel to zoom · drag two fingers (or right-click) to pan</span>
         <b>👥 Mating</b><span data-i18n="helpMate">Same-race adults breed and grow population</span>
         <b>⚔ Wars</b><span data-i18n="helpWar">Different races attack each other; kingdoms form clusters</span>
       </div>
@@ -436,6 +445,7 @@
         helpBless: 'รักษาบริเวณ หรือยุติสงครามทั้งหมด',
         helpSpawn: 'วางมนุษย์ เอลฟ์ คนแคระ หรือออร์ค',
         helpSpeed: 'เร่งเวลาเมื่อรออารยธรรม',
+        helpZoom: 'หนีบ / ล้อเมาส์เพื่อซูม · ลากสองนิ้ว (หรือคลิกขวา) เพื่อเลื่อนแผนที่',
         helpMate: 'เผ่าพันธุ์เดียวกันผสมพันธุ์และเพิ่มประชากร',
         helpWar: 'ต่างเผ่าจะโจมตีกัน อาณาจักรเกิดจากกลุ่มชน',
         toolNames: {
@@ -486,6 +496,7 @@
         helpBless: 'Heal a region or end all wars in peace',
         helpSpawn: 'Place humans, elves, dwarves, or orcs',
         helpSpeed: 'Speed up time when waiting for civilizations',
+        helpZoom: 'Pinch / mouse-wheel to zoom · two-finger drag (or right-click) to pan',
         helpMate: 'Same-race adults breed and grow population',
         helpWar: 'Different races attack each other; kingdoms form clusters',
         toolNames: {
@@ -537,6 +548,7 @@
         helpBless: 'ປິ່ນປົວເຂດ ຫຼື ຢຸດສົງຄາມທັງໝົດ',
         helpSpawn: 'ວາງມະນຸດ ເອວຟ໌ ຄົນແຄະ ຫຼື ໂອກ',
         helpSpeed: 'ເລັ່ງເວລາເມື່ອລໍຖ້າອາລະຍະທຳ',
+        helpZoom: 'ບີບ / ໝູນລໍ້ເມົ້າເພື່ອຊູມ · ລາກສອງນິ້ວ (ຫຼື ກົດຂວາ) ເພື່ອເລື່ອນແຜນທີ່',
         helpMate: 'ເຜົ່າພັນດຽວກັນຈັບຄູ່ ແລະ ເພີ່ມປະຊາກອນ',
         helpWar: 'ຄົນລະເຜົ່າຈະຕີກັນ ອານາຈັກເກີດຈາກກຸ່ມຊົນ',
         toolNames: {
