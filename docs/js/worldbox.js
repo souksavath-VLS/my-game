@@ -40,6 +40,34 @@ const TECH_LABELS_EMOJI = ['🪨', '⚒️', '⚔️', '🏰'];
 function techDmgMul(tech) { return [1.0, 1.2, 1.4, 1.6][tech] || 1.0; }
 function techHpMul(tech)  { return [1.0, 1.1, 1.25, 1.5][tech] || 1.0; }
 
+// V3: Character classes (skill specialization)
+const CLASS_WARRIOR = 0, CLASS_ARCHER = 1, CLASS_MAGE = 2,
+      CLASS_KNIGHT = 3, CLASS_HEALER = 4, CLASS_HERO = 5;
+const CLASS_KEYS = ['warrior','archer','mage','knight','healer','hero'];
+const CLASS_DEFS = [
+  // [maxHp, dmg, atkRange, atkCd, color]
+  { hp: 32, dmg: 6,  range: 9,   cd: 28, color: '#dc2626' },  // Warrior
+  { hp: 22, dmg: 5,  range: 90,  cd: 60, color: '#16a34a' },  // Archer (ranged)
+  { hp: 20, dmg: 9,  range: 75,  cd: 80, color: '#8b5cf6' },  // Mage (ranged)
+  { hp: 50, dmg: 4,  range: 9,   cd: 35, color: '#64748b' },  // Knight (tank)
+  { hp: 22, dmg: 2,  range: 60,  cd: 70, color: '#06b6d4' },  // Healer (heals allies)
+  { hp: 120,dmg: 14, range: 18,  cd: 22, color: '#facc15' }   // Hero (epic)
+];
+// Class chance distribution for auto-generated populations
+const CLASS_WEIGHTS = [
+  { c: CLASS_WARRIOR, w: 5 },
+  { c: CLASS_ARCHER,  w: 3 },
+  { c: CLASS_KNIGHT,  w: 2 },
+  { c: CLASS_MAGE,    w: 2 },
+  { c: CLASS_HEALER,  w: 1 }
+];
+function rollClass() {
+  const total = CLASS_WEIGHTS.reduce((s, w) => s + w.w, 0);
+  let r = Math.random() * total;
+  for (const e of CLASS_WEIGHTS) { r -= e.w; if (r <= 0) return e.c; }
+  return CLASS_WARRIOR;
+}
+
 // =================================================================
 // STATE
 // =================================================================
@@ -242,17 +270,28 @@ function noise2D(passes) {
 // UNIT
 // =================================================================
 class Unit {
-  constructor(x, y, race) {
+  constructor(x, y, race, charClass) {
     this.x = x; this.y = y;
     this.race = race;
+    this.class = (race < MORTAL_RACES)
+      ? (charClass != null ? charClass : rollClass())
+      : -1;  // animals have no class
     // Wildlife has different stats
-    if (race === RACE_SHEEP) { this.maxHp = 10; this.dmg = 0; }
-    else if (race === RACE_WOLF)  { this.maxHp = 20; this.dmg = 5; }
-    else if (race === RACE_BEAR)  { this.maxHp = 60; this.dmg = 10; }
-    else                          { this.maxHp = 30; this.dmg = 4; }
+    if (race === RACE_SHEEP) { this.maxHp = 10; this.dmg = 0; this.range = 6; this.atkCdMax = 60; }
+    else if (race === RACE_WOLF)  { this.maxHp = 22; this.dmg = 5; this.range = 9; this.atkCdMax = 25; }
+    else if (race === RACE_BEAR)  { this.maxHp = 70; this.dmg = 11; this.range = 10; this.atkCdMax = 50; }
+    else {
+      const def = CLASS_DEFS[this.class];
+      this.maxHp = def.hp;
+      this.dmg = def.dmg;
+      this.range = def.range;
+      this.atkCdMax = def.cd;
+    }
     this.hp = this.maxHp;
     this.age = 0;
-    this.maxAge = race >= MORTAL_RACES ? (40 + Math.random() * 40) : (80 + Math.random() * 80);
+    this.maxAge = race >= MORTAL_RACES ? (40 + Math.random() * 40)
+                : this.class === CLASS_HERO ? (200 + Math.random() * 100)
+                : (80 + Math.random() * 80);
     this.vx = 0; this.vy = 0;
     this.kingdom = null;
     this.target = null;
@@ -263,11 +302,28 @@ class Unit {
     this.wanderTimer = 0;
     this.plague = 0;
     this.dead = false;
+    // V3 additions
+    this.isKing = false;
+    this.downed = 0;       // unconscious counter (frames left)
+    this.facing = 1;       // 1 right, -1 left (for sprite flip)
+    this.animFrame = Math.floor(Math.random() * 60);
   }
   isAnimal() { return this.race >= MORTAL_RACES; }
   isHostileAnimal() { return this.race === RACE_WOLF || this.race === RACE_BEAR; }
+  isRanged() { return this.class === CLASS_ARCHER || this.class === CLASS_MAGE; }
+  isHero()   { return this.class === CLASS_HERO; }
 
   update() {
+    this.animFrame++;
+    // Downed (unconscious) state — recovers after ~250 frames to 30% HP
+    if (this.downed > 0) {
+      this.downed--;
+      this.vx *= 0.5; this.vy *= 0.5;
+      if (this.downed === 0) {
+        this.hp = Math.max(1, Math.floor(this.maxHp * 0.30));
+      }
+      return;
+    }
     // Aging
     this.age += 0.008;
     if (this.age >= this.maxAge) { this.die('age'); return; }
@@ -390,39 +446,76 @@ class Unit {
       this.target = null;
     }
 
+    // Healer: find a wounded ally instead of an enemy if no enemy nearby
+    if (this.class === CLASS_HEALER && !nearestEnemy && this.attackCd === 0) {
+      for (let i = frameCount % 4; i < units.length; i += 4) {
+        const u = units[i];
+        if (u === this || u.dead || u.downed > 0) continue;
+        if (u.race !== this.race || u.hp >= u.maxHp * 0.7) continue;
+        const d = dist2(this.x, this.y, u.x, u.y);
+        if (d < 60 * 60) { this.target = u; this.state = 'heal'; break; }
+      }
+    }
+
     // Movement / action
     if (this.target && !this.target.dead) {
       const dx = this.target.x - this.x, dy = this.target.y - this.y;
       const d = Math.sqrt(dx*dx + dy*dy) || 1;
+      // Update facing
+      if (Math.abs(dx) > 0.2) this.facing = dx > 0 ? 1 : -1;
       let sp;
       if (this.state === 'flee') {
         sp = 0.65;
         this.vx = -(dx / d) * sp;
         this.vy = -(dy / d) * sp;
+      } else if (this.state === 'attack' && this.isRanged() && d < this.range) {
+        // Ranged: stop and shoot
+        sp = 0;
+        this.vx *= 0.5; this.vy *= 0.5;
       } else {
         sp = this.state === 'attack'
-          ? (this.race === RACE_WOLF ? 0.7 : this.race === RACE_BEAR ? 0.45 : 0.55)
+          ? (this.race === RACE_WOLF ? 0.7 : this.race === RACE_BEAR ? 0.45 : (this.isHero() ? 0.7 : 0.55))
           : 0.42;
         this.vx = (dx / d) * sp;
         this.vy = (dy / d) * sp;
       }
-      if (this.state === 'attack' && d < 9 && this.attackCd === 0) {
+
+      // Attack (melee or ranged)
+      if (this.state === 'attack' && this.attackCd === 0 && d < this.range) {
         let baseDmg = this.dmg + Math.floor(Math.random() * 3);
-        // Mortal kingdom tech damage bonus
         if (this.kingdom) {
           const k = kingdoms.get(this.kingdom);
           if (k) baseDmg *= techDmgMul(k.tech || 0);
         }
         const dmg = Math.round(baseDmg);
-        this.target.hp -= dmg;
-        this.attackCd = this.race === RACE_BEAR ? 50 : this.race === RACE_WOLF ? 25 : 30;
-        effects.push({ type: 'hit', x: this.target.x, y: this.target.y, life: 10 });
-        if (this.target.hp <= 0) {
-          // Achievement: bear hunt
-          if (this.target.race === RACE_BEAR && this.race < MORTAL_RACES) unlockAch('a_bear_hunt');
-          this.target.die('combat');
+        if (this.isRanged()) {
+          // Spawn projectile (effect)
+          const isMagic = this.class === CLASS_MAGE;
+          effects.push({
+            type: isMagic ? 'magic' : 'arrow',
+            x: this.x, y: this.y - 2,
+            tx: this.target.x, ty: this.target.y,
+            target: this.target, dmg,
+            shooter: this,
+            life: 40
+          });
+          this.attackCd = this.atkCdMax;
+        } else {
+          this.target.hp -= dmg;
+          this.attackCd = this.atkCdMax;
+          effects.push({ type: 'hit', x: this.target.x, y: this.target.y, life: 10 });
+          this.checkKill(this.target);
         }
-      } else if (this.state === 'mate' && d < 9 && this.matingCd === 0 && units.length < 1200) {
+      }
+      // Heal action (healer)
+      else if (this.state === 'heal' && d < 60 && this.attackCd === 0) {
+        const amt = 6;
+        this.target.hp = Math.min(this.target.maxHp, this.target.hp + amt);
+        this.attackCd = this.atkCdMax;
+        effects.push({ type: 'healspark', x: this.target.x, y: this.target.y - 4, life: 18 });
+      }
+      // Mate
+      else if (this.state === 'mate' && d < 9 && this.matingCd === 0 && units.length < 1200) {
         const baby = new Unit(this.x + rand(-3, 3), this.y + rand(-3, 3), this.race);
         baby.matingCd = 1200;
         baby.kingdom = this.kingdom || this.target.kingdom;
@@ -450,74 +543,300 @@ class Unit {
     if (this.y > VIEW_H - 1) { this.y = VIEW_H - 1; this.vy *= -1; }
   }
 
+  // Called by attackers when they deal a killing blow — decides downed vs dead
+  checkKill(target) {
+    if (target.hp > 0 || target.dead) return;
+    // Combat deaths → downed (heroes, kings less likely to die)
+    if (target.race < MORTAL_RACES) {
+      // Heroes and kings have higher survival
+      let survive = 0.55;
+      if (target.isHero()) survive = 0.85;
+      if (target.isKing)   survive = 0.75;
+      if (Math.random() < survive) {
+        target.downed = 250 + Math.floor(Math.random() * 100);
+        target.hp = 1;
+        effects.push({ type: 'downed', x: target.x, y: target.y - 4, life: 22 });
+        return;
+      }
+    }
+    // Achievement: bear hunt
+    if (target.race === RACE_BEAR && this.race < MORTAL_RACES) unlockAch('a_bear_hunt');
+    target.die('combat');
+  }
+
   die(reason) {
     if (this.dead) return;
     this.dead = true;
     effects.push({ type: 'die', x: this.x, y: this.y, life: 18 });
     if (this.kingdom) {
       const k = kingdoms.get(this.kingdom);
-      if (k) k.pop = Math.max(0, k.pop - 1);
+      if (k) {
+        k.pop = Math.max(0, k.pop - 1);
+        if (this.isKing) {
+          k.needsNewKing = true;
+          log('👑✖ ' + (k.name || 'A kingdom') + ' — ' + (window.wbLang && window.wbLang.evtKingDied || 'the king has fallen'));
+        }
+      }
     }
   }
 
   draw(c) {
-    // Animals draw differently
+    const x = this.x, y = this.y, f = this.facing;
+    // ANIMALS
     if (this.race === RACE_SHEEP) {
+      const bob = Math.sin(this.animFrame * 0.05) * 0.5;
+      // Body fluff (3 dots cluster)
       c.fillStyle = '#f5f5f4';
-      c.fillRect(this.x - 3, this.y - 2, 6, 4);
+      c.beginPath();
+      c.arc(x - 1, y + bob, 2.4, 0, Math.PI * 2);
+      c.arc(x + 1, y - 1 + bob, 2.2, 0, Math.PI * 2);
+      c.arc(x + 3 * f, y + bob, 2, 0, Math.PI * 2);
+      c.fill();
+      // Head
       c.fillStyle = '#1f1d1b';
-      c.fillRect(this.x + 2, this.y - 2, 2, 2);  // head
+      c.fillRect(x + 3 * f - 1, y - 2 + bob, 2.5, 2.5);
+      // Eye
+      c.fillStyle = '#fff';
+      c.fillRect(x + 3 * f + 0.2 * f, y - 1.5 + bob, 0.6, 0.6);
       return;
     }
     if (this.race === RACE_WOLF) {
+      const trot = Math.sin(this.animFrame * 0.2) * 0.6;
+      // Body
       c.fillStyle = '#3f3f46';
-      c.fillRect(this.x - 3, this.y - 2, 6, 4);
-      c.fillStyle = '#71717a';
-      c.fillRect(this.x + 2, this.y - 3, 2, 2);  // head
-      // glowing eyes at night
-      if (dayPhase > 0.7 && dayPhase < 0.95) {
-        c.fillStyle = '#facc15';
-        c.fillRect(this.x + 3, this.y - 2, 1, 1);
-      }
+      c.fillRect(x - 4, y - 2 + trot * 0.3, 7, 4);
+      // Tail
+      c.fillStyle = '#52525b';
+      c.fillRect(x - 5 * f - (f > 0 ? 1 : 0), y - 2, 2, 2);
+      // Legs
+      c.fillStyle = '#27272a';
+      c.fillRect(x - 3, y + 2, 1.5, 2 + trot);
+      c.fillRect(x + 1, y + 2, 1.5, 2 - trot);
+      // Head
+      c.fillStyle = '#52525b';
+      c.fillRect(x + 2 * f, y - 3, 2.5, 2.5);
+      // Snout
+      c.fillStyle = '#3f3f46';
+      c.fillRect(x + 4 * f, y - 2, 1, 1);
+      // Eyes
+      const eyeColor = (dayPhase > 0.7 && dayPhase < 0.95) ? '#facc15' : '#fef3c7';
+      c.fillStyle = eyeColor;
+      c.fillRect(x + 3 * f, y - 2.5, 0.6, 0.6);
       return;
     }
     if (this.race === RACE_BEAR) {
+      const stomp = Math.sin(this.animFrame * 0.13) * 0.5;
+      // Body
       c.fillStyle = '#78350f';
-      c.fillRect(this.x - 4, this.y - 3, 8, 5);
+      c.fillRect(x - 5, y - 3, 9, 6);
+      // Belly
       c.fillStyle = '#92400e';
-      c.fillRect(this.x + 3, this.y - 3, 2, 2);
+      c.fillRect(x - 3, y - 1, 6, 3);
+      // Head
+      c.fillStyle = '#78350f';
+      c.beginPath();
+      c.arc(x + 3 * f, y - 3, 2.5, 0, Math.PI * 2);
+      c.fill();
+      // Ears
+      c.fillStyle = '#451a03';
+      c.fillRect(x + 2 * f, y - 5, 1.5, 1.5);
+      c.fillRect(x + 4 * f, y - 5, 1.5, 1.5);
+      // Snout
+      c.fillStyle = '#fed7aa';
+      c.fillRect(x + 4 * f, y - 3, 1.5, 1.5);
+      // Legs
+      c.fillStyle = '#451a03';
+      c.fillRect(x - 4, y + 3, 2, 2 + stomp);
+      c.fillRect(x + 2, y + 3, 2, 2 - stomp);
       return;
     }
-    // Kingdom flag (1px line on top)
+
+    // MORTAL: detailed sprite
+    const walking = (Math.abs(this.vx) + Math.abs(this.vy)) > 0.05;
+    const step = walking ? Math.sin(this.animFrame * 0.35) : 0;
+
+    // Cape (Hero) — drawn behind body
+    if (this.isHero()) {
+      c.fillStyle = '#facc15';
+      c.fillRect(x - 3 * f, y - 3, 3, 6);
+      c.fillStyle = '#ca8a04';
+      c.fillRect(x - 3 * f, y - 2, 1, 5);
+    }
+
+    // Shadow
+    c.fillStyle = 'rgba(0,0,0,0.30)';
+    c.beginPath();
+    c.ellipse(x, y + 4, 3.4, 1.2, 0, 0, Math.PI * 2);
+    c.fill();
+
+    // Downed state — lie flat
+    if (this.downed > 0) {
+      c.fillStyle = RACE_BODY[this.race];
+      c.fillRect(x - 3, y, 6, 2);
+      c.fillStyle = RACE_HEAD[this.race];
+      c.fillRect(x + 3, y, 2, 2);
+      // ZZZ
+      c.fillStyle = '#fde68a';
+      c.font = '6px sans-serif';
+      c.fillText('z', x - 4, y - 2 + Math.sin(this.animFrame * 0.2));
+      return;
+    }
+
+    // Legs (animated)
+    const legColor = '#1e293b';
+    c.fillStyle = legColor;
+    c.fillRect(x - 1.5, y + 2, 1.4, 2 + step);
+    c.fillRect(x + 0.1, y + 2, 1.4, 2 - step);
+
+    // Body (class-tinted)
+    const bodyColor = (this.class >= 0 && this.class < CLASS_DEFS.length)
+      ? CLASS_DEFS[this.class].color
+      : RACE_BODY[this.race];
+    c.fillStyle = bodyColor;
+    c.fillRect(x - 2, y - 2, 4, 4);
+    // Belt
+    c.fillStyle = '#1f2937';
+    c.fillRect(x - 2, y + 1, 4, 0.8);
+
+    // Head (skin)
+    c.fillStyle = RACE_HEAD[this.race];
+    c.fillRect(x - 1.5, y - 5, 3, 3);
+    // Hair
+    c.fillStyle = '#1e293b';
+    c.fillRect(x - 1.5, y - 5.5, 3, 1.2);
+    // Race-specific tweaks
+    if (this.race === RACE_ELF) {
+      c.fillStyle = '#86efac';
+      c.fillRect(x - 2, y - 4, 0.6, 0.6);  // pointed ear
+      c.fillRect(x + 1.4, y - 4, 0.6, 0.6);
+    } else if (this.race === RACE_DWARF) {
+      c.fillStyle = '#fde68a';
+      c.fillRect(x - 1.5, y - 3, 3, 1.4);  // beard
+    } else if (this.race === RACE_ORC) {
+      c.fillStyle = '#f5f5f4';
+      c.fillRect(x - 1.5, y - 2.5, 0.6, 0.8); // tusks
+      c.fillRect(x + 0.9, y - 2.5, 0.6, 0.8);
+    }
+    // Eyes
+    c.fillStyle = '#000';
+    c.fillRect(x - 1 + 0.2 * (f < 0 ? -1 : 0), y - 4, 0.6, 0.6);
+    c.fillRect(x + 0.4 + 0.2 * (f < 0 ? -1 : 0), y - 4, 0.6, 0.6);
+
+    // Weapon — class-specific
+    this._drawWeapon(c);
+
+    // Crown (King)
+    if (this.isKing) {
+      c.fillStyle = '#facc15';
+      // 3-spike crown
+      c.fillRect(x - 2, y - 7, 4, 1.2);
+      c.fillRect(x - 2, y - 8, 0.8, 1);
+      c.fillRect(x - 0.4, y - 8.5, 0.8, 1.4);
+      c.fillRect(x + 1.2, y - 8, 0.8, 1);
+      // Gem
+      c.fillStyle = '#ef4444';
+      c.fillRect(x - 0.2, y - 8, 0.6, 0.6);
+    }
+
+    // Kingdom flag (small banner above)
     if (this.kingdom) {
       const k = kingdoms.get(this.kingdom);
       if (k) {
+        // Banner pole
+        c.fillStyle = '#a3a3a3';
+        c.fillRect(x - 4, y - 6, 0.5, 4);
         c.fillStyle = k.color;
-        c.fillRect(this.x - 3, this.y - 4, 6, 1);
-        // Tech crown: bigger dot for higher tech
+        c.fillRect(x - 4, y - 6, 3, 1.6);
         if (k.tech >= 2) {
           c.fillStyle = '#facc15';
-          c.fillRect(this.x - 1, this.y - 5, 2, 1);
+          c.fillRect(x - 3.5, y - 5.5, 0.6, 0.6);
         }
       }
     }
-    // Body
-    c.fillStyle = RACE_BODY[this.race];
-    c.fillRect(this.x - 2, this.y - 2, 4, 4);
-    // Head
-    c.fillStyle = RACE_HEAD[this.race];
-    c.fillRect(this.x - 1, this.y - 3, 2, 2);
-    // HP bar if damaged
+
+    // HP bar (when damaged)
     if (this.hp < this.maxHp * 0.99) {
-      c.fillStyle = '#000';
-      c.fillRect(this.x - 3, this.y + 3, 6, 1);
-      c.fillStyle = this.hp < this.maxHp * 0.3 ? '#dc2626' : '#22c55e';
-      c.fillRect(this.x - 3, this.y + 3, Math.max(0, (this.hp / this.maxHp) * 6), 1);
+      c.fillStyle = 'rgba(0,0,0,0.7)';
+      c.fillRect(x - 4, y + 5, 8, 1.2);
+      const ratio = Math.max(0, this.hp / this.maxHp);
+      c.fillStyle = ratio < 0.3 ? '#dc2626' : ratio < 0.6 ? '#facc15' : '#22c55e';
+      c.fillRect(x - 4, y + 5, 8 * ratio, 1.2);
     }
     // Plague tint
     if (this.plague > 0) {
-      c.fillStyle = 'rgba(132, 204, 22, 0.45)';
-      c.fillRect(this.x - 2, this.y - 3, 4, 6);
+      c.fillStyle = 'rgba(132, 204, 22, 0.35)';
+      c.fillRect(x - 2.5, y - 5.5, 5, 8);
+    }
+    // Hero glow
+    if (this.isHero()) {
+      c.strokeStyle = 'rgba(250, 204, 21, ' + (0.4 + 0.25 * Math.sin(this.animFrame * 0.1)) + ')';
+      c.lineWidth = 0.5;
+      c.beginPath();
+      c.arc(x, y - 1, 6, 0, Math.PI * 2);
+      c.stroke();
+    }
+  }
+
+  _drawWeapon(c) {
+    const x = this.x, y = this.y, f = this.facing;
+    if (this.class === CLASS_WARRIOR) {
+      // Sword
+      c.fillStyle = '#cbd5e1';
+      c.fillRect(x + 1.5 * f, y - 4, 0.8, 5);
+      c.fillStyle = '#92400e';
+      c.fillRect(x + 1.2 * f, y - 1, 1.4, 0.6);
+    } else if (this.class === CLASS_ARCHER) {
+      // Bow (curve)
+      c.strokeStyle = '#78350f';
+      c.lineWidth = 0.8;
+      c.beginPath();
+      c.moveTo(x + 1.6 * f, y - 4);
+      c.quadraticCurveTo(x + 3.2 * f, y, x + 1.6 * f, y + 3);
+      c.stroke();
+      // String
+      c.strokeStyle = '#e5e7eb';
+      c.lineWidth = 0.4;
+      c.beginPath();
+      c.moveTo(x + 1.6 * f, y - 4);
+      c.lineTo(x + 1.6 * f, y + 3);
+      c.stroke();
+    } else if (this.class === CLASS_MAGE) {
+      // Staff with glowing orb
+      c.fillStyle = '#7c2d12';
+      c.fillRect(x + 1.4 * f, y - 5, 0.7, 7);
+      c.fillStyle = '#a855f7';
+      c.beginPath();
+      c.arc(x + 1.75 * f, y - 5.4, 1.4, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#f0abfc';
+      c.beginPath();
+      c.arc(x + 1.5 * f, y - 5.6, 0.5, 0, Math.PI * 2);
+      c.fill();
+    } else if (this.class === CLASS_KNIGHT) {
+      // Shield
+      c.fillStyle = '#94a3b8';
+      c.fillRect(x - 3 * f, y - 2.5, 1.4, 4.5);
+      c.fillStyle = '#facc15';
+      c.fillRect(x - 2.7 * f, y - 1.5, 0.8, 2);
+      // Sword
+      c.fillStyle = '#e5e7eb';
+      c.fillRect(x + 1.5 * f, y - 4, 0.8, 5);
+    } else if (this.class === CLASS_HEALER) {
+      // Staff
+      c.fillStyle = '#15803d';
+      c.fillRect(x + 1.4 * f, y - 5, 0.7, 7);
+      // Holy symbol
+      c.fillStyle = '#22d3ee';
+      c.fillRect(x + 1.1 * f, y - 6, 1.4, 0.6);
+      c.fillRect(x + 1.4 * f, y - 6.5, 0.6, 1.6);
+    } else if (this.class === CLASS_HERO) {
+      // Greatsword
+      c.fillStyle = '#fef3c7';
+      c.fillRect(x + 1.6 * f, y - 6, 1.0, 7);
+      c.fillStyle = '#facc15';
+      c.fillRect(x + 1.2 * f, y - 1, 1.8, 0.8);
+      c.fillStyle = '#92400e';
+      c.fillRect(x + 1.6 * f, y, 1.0, 1.4);
     }
   }
 }
@@ -537,6 +856,9 @@ class Kingdom {
     this.foundedYear = year;
     this.x = 0; this.y = 0;  // capital (centroid)
     this.tech = 0;            // 0=Stone, 1=Bronze, 2=Iron, 3=Medieval
+    this.needsNewKing = true;
+    this.kingId = null;        // unit reference (assigned via flag)
+    this.territorySize = 0;
   }
   ageOfKingdom() { return year - this.foundedYear; }
   updateTech() {
@@ -661,6 +983,35 @@ function updateKingdoms() {
         king.updateTech();
         if (king.cityKind() === 'city') unlockAch('a_city');
         stillAlive.add(king.id);
+        // King succession: ensure someone wears the crown
+        // Clear isKing from anyone not in this cluster anymore
+        let currentKing = null;
+        for (const m of cluster) {
+          if (m.isKing) {
+            if (currentKing) m.isKing = false;  // dedupe
+            else currentKing = m;
+          }
+        }
+        if (!currentKing || currentKing.downed > 0) {
+          if (currentKing) currentKing.isKing = false;
+          // Pick new king: prefer hero, then highest age (eldest)
+          let next = null;
+          for (const m of cluster) {
+            if (m.downed > 0 || m.dead) continue;
+            if (!next) { next = m; continue; }
+            // Prefer hero, then knight, then highest age
+            const score = (u) =>
+              (u.isHero() ? 1000 : 0) +
+              (u.class === CLASS_KNIGHT ? 200 : 0) +
+              u.age;
+            if (score(m) > score(next)) next = m;
+          }
+          if (next) {
+            next.isKing = true;
+            king.needsNewKing = false;
+            if (currentKing) log('👑 ' + king.name + ' — ' + (window.wbLang && window.wbLang.evtKingCrowned || 'a new king is crowned'));
+          }
+        }
       } else {
         // too small — leave kingdom-less
         for (const m of cluster) m.kingdom = null;
@@ -674,6 +1025,53 @@ function updateKingdoms() {
       kingdoms.delete(id);
       log(format(window.wbLang.evtFell, { a: k.name }));
     }
+  }
+
+  // V3: Expand territory — each unit claims its tile + a small radius for its kingdom
+  // Decay un-occupied territory slowly
+  const decay = 0.02;
+  for (let y = 0; y < WORLD_H; y++) {
+    for (let x = 0; x < WORLD_W; x++) {
+      const t = tiles[y][x];
+      if (!t.influence) continue;
+      // Decay influence
+      for (const id in t.influence) {
+        t.influence[id] -= decay;
+        if (t.influence[id] <= 0) delete t.influence[id];
+      }
+    }
+  }
+  // Add influence from each living mortal unit
+  for (const u of units) {
+    if (u.dead || u.downed > 0 || u.race >= MORTAL_RACES || !u.kingdom) continue;
+    const tx = Math.floor(u.x / TILE_PX), ty = Math.floor(u.y / TILE_PX);
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      if (dx*dx + dy*dy > 9) continue;
+      const t = tiles[ty + dy] && tiles[ty + dy][tx + dx];
+      if (!t) continue;
+      if (!t.influence) t.influence = {};
+      const id = u.kingdom;
+      t.influence[id] = Math.min(2, (t.influence[id] || 0) + 0.5);
+    }
+  }
+  // Assign owner = highest influence
+  for (let y = 0; y < WORLD_H; y++) {
+    for (let x = 0; x < WORLD_W; x++) {
+      const t = tiles[y][x];
+      t.owner = null;
+      if (!t.influence) continue;
+      let bestId = null, bestVal = 0.2;
+      for (const id in t.influence) {
+        if (t.influence[id] > bestVal) { bestVal = t.influence[id]; bestId = parseInt(id); }
+      }
+      t.owner = bestId;
+    }
+  }
+  // Count territory per kingdom
+  for (const [, k] of kingdoms) k.territorySize = 0;
+  for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
+    const t = tiles[y][x];
+    if (t.owner && kingdoms.has(t.owner)) kingdoms.get(t.owner).territorySize++;
   }
 
   // Decide wars: any two kingdoms whose capitals are within 200px and have
@@ -744,7 +1142,12 @@ const TOOL_DEFS = [
   { id: 'orc',   icon: '👹', cat: 'spawn', cost: 4 },
   { id: 'sheep', icon: '🐑', cat: 'wild',  cost: 2 },
   { id: 'wolf',  icon: '🐺', cat: 'wild',  cost: 3 },
-  { id: 'bear',  icon: '🐻', cat: 'wild',  cost: 5 }
+  { id: 'bear',  icon: '🐻', cat: 'wild',  cost: 5 },
+  // Heroes (one per race) — expensive
+  { id: 'hero_human', icon: '🦸', cat: 'hero', cost: 60 },
+  { id: 'hero_elf',   icon: '🧚', cat: 'hero', cost: 60 },
+  { id: 'hero_dwarf', icon: '🛡️', cat: 'hero', cost: 60 },
+  { id: 'hero_orc',   icon: '👺', cat: 'hero', cost: 60 }
 ];
 
 const TERRAIN_TYPE = {
@@ -784,7 +1187,20 @@ function applyTool(toolId, x, y) {
     case 'sheep':     return spawnAt(x, y, RACE_SHEEP);
     case 'wolf':      return spawnAt(x, y, RACE_WOLF);
     case 'bear':      return spawnAt(x, y, RACE_BEAR);
+    case 'hero_human': return spawnHero(x, y, RACE_HUMAN);
+    case 'hero_elf':   return spawnHero(x, y, RACE_ELF);
+    case 'hero_dwarf': return spawnHero(x, y, RACE_DWARF);
+    case 'hero_orc':   return spawnHero(x, y, RACE_ORC);
   }
+}
+
+function spawnHero(x, y, race) {
+  const tx = Math.floor(x / TILE_PX), ty = Math.floor(y / TILE_PX);
+  const t = tiles[ty] && tiles[ty][tx];
+  if (t && (t.type === T_WATER || t.type === T_MOUNTAIN || t.type === T_LAVA)) t.type = T_GRASS;
+  const h = new Unit(x, y, race, CLASS_HERO);
+  units.push(h);
+  effects.push({ type: 'achievement', text: '🦸 ' + (window.wbLang && window.wbLang.evtHeroBorn || 'A hero is born'), life: 180 });
 }
 
 // =================================================================
@@ -1038,7 +1454,6 @@ function updateEffects() {
     e.life--;
     if (e.type === 'tornado') {
       e.x += e.vx; e.y += e.vy;
-      // damage units inside
       for (const u of units) {
         if (u.dead) continue;
         const d = dist2(u.x, u.y, e.x, e.y);
@@ -1050,6 +1465,24 @@ function updateEffects() {
         }
       }
       if (e.x < 0 || e.x > VIEW_W || e.y < 0 || e.y > VIEW_H) e.life = 0;
+    } else if (e.type === 'arrow' || e.type === 'magic') {
+      // Travel toward target
+      const tgt = e.target;
+      if (!tgt || tgt.dead) { e.life = 0; }
+      else {
+        const dx = tgt.x - e.x, dy = tgt.y - e.y;
+        const d = Math.sqrt(dx*dx + dy*dy) || 1;
+        const sp = e.type === 'arrow' ? 4 : 3;
+        e.x += (dx / d) * sp;
+        e.y += (dy / d) * sp;
+        if (d < 5) {
+          // Impact
+          tgt.hp -= e.dmg;
+          effects.push({ type: 'hit', x: tgt.x, y: tgt.y, life: 10 });
+          if (e.shooter && tgt.hp <= 0 && !tgt.dead) e.shooter.checkKill(tgt);
+          e.life = 0;
+        }
+      }
     }
     if (e.life <= 0) effects.splice(i, 1);
   }
@@ -1199,6 +1632,51 @@ function drawEffects() {
       ctx.fillStyle = 'rgba(127, 29, 29, ' + (e.life / 14) + ')';
       ctx.font = 'bold 10px sans-serif';
       ctx.fillText('✖', e.x - 4, e.y + 4);
+    } else if (e.type === 'arrow') {
+      const dx = (e.tx - e.x), dy = (e.ty - e.y);
+      const ang = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(ang);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(-3, -0.5, 6, 1);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(-3, -1, 1.5, 2);  // fletching
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.moveTo(3, 0); ctx.lineTo(1.5, -1); ctx.lineTo(1.5, 1); ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else if (e.type === 'magic') {
+      const pulse = 1 + 0.2 * Math.sin(e.life * 0.4);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.85)';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 2.4 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(240, 171, 252, 0.9)';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 1.0 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      // sparkle trail
+      ctx.fillStyle = 'rgba(192, 132, 252, 0.5)';
+      for (let k = 1; k < 4; k++) {
+        const t = k * 2;
+        ctx.fillRect(e.x - t * 0.4, e.y - t * 0.2, 1, 1);
+      }
+    } else if (e.type === 'healspark') {
+      ctx.fillStyle = 'rgba(34, 197, 94, ' + (e.life / 18) + ')';
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 + e.life * 0.1;
+        const r = 4 + (18 - e.life) * 0.4;
+        ctx.fillRect(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, 1.2, 1.2);
+      }
+      ctx.fillStyle = '#bbf7d0';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.fillText('+', e.x - 2, e.y - 4);
+    } else if (e.type === 'downed') {
+      ctx.fillStyle = 'rgba(250, 204, 21, ' + (e.life / 22) + ')';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.fillText('💤', e.x - 4, e.y);
     }
   }
 }
@@ -1222,6 +1700,40 @@ function drawScreenEffects() {
 }
 
 // =================================================================
+// TERRITORY OVERLAY
+// =================================================================
+function drawTerritory() {
+  for (let y = 0; y < WORLD_H; y++) {
+    for (let x = 0; x < WORLD_W; x++) {
+      const t = tiles[y][x];
+      if (!t.owner) continue;
+      const k = kingdoms.get(t.owner);
+      if (!k) continue;
+      // Tinted overlay
+      ctx.fillStyle = k.color;
+      ctx.globalAlpha = 0.16;
+      ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX);
+      ctx.globalAlpha = 1;
+      // Border: if neighbor isn't same owner, draw a line
+      const top = tiles[y - 1] && tiles[y - 1][x];
+      const bot = tiles[y + 1] && tiles[y + 1][x];
+      const left = tiles[y] && tiles[y][x - 1];
+      const right = tiles[y] && tiles[y][x + 1];
+      ctx.strokeStyle = k.color;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      if (!top || top.owner !== t.owner) { ctx.moveTo(x * TILE_PX, y * TILE_PX); ctx.lineTo((x+1) * TILE_PX, y * TILE_PX); }
+      if (!bot || bot.owner !== t.owner) { ctx.moveTo(x * TILE_PX, (y+1) * TILE_PX); ctx.lineTo((x+1) * TILE_PX, (y+1) * TILE_PX); }
+      if (!left || left.owner !== t.owner) { ctx.moveTo(x * TILE_PX, y * TILE_PX); ctx.lineTo(x * TILE_PX, (y+1) * TILE_PX); }
+      if (!right || right.owner !== t.owner) { ctx.moveTo((x+1) * TILE_PX, y * TILE_PX); ctx.lineTo((x+1) * TILE_PX, (y+1) * TILE_PX); }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// =================================================================
 // BUILDINGS RENDER
 // =================================================================
 function drawBuildings() {
@@ -1233,18 +1745,44 @@ function drawBuildings() {
 }
 function drawCity(x, y, kind, color, tech) {
   ctx.save();
-  // Tech level affects size & detail
   const sz = kind === 'city' ? 14 : kind === 'town' ? 11 : kind === 'village' ? 9 : 7;
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + sz / 2 + 1, sz * 0.7, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
   // Banner pole
   ctx.fillStyle = '#a3a3a3';
-  ctx.fillRect(x - 1, y - sz - 8, 2, 8);
-  // Flag
+  ctx.fillRect(x - 0.6, y - sz - 8, 1.2, 8);
+  // Flag (waving)
+  const wave = Math.sin(frameCount * 0.08 + x * 0.1) * 0.6;
   ctx.fillStyle = color;
-  ctx.fillRect(x + 1, y - sz - 8, 5, 4);
-  // House body
-  ctx.fillStyle = tech >= 3 ? '#525252' : tech >= 2 ? '#78716c' : tech >= 1 ? '#a3a3a3' : '#a16207';
+  ctx.beginPath();
+  ctx.moveTo(x + 0.6, y - sz - 8);
+  ctx.lineTo(x + 5.5 + wave, y - sz - 7);
+  ctx.lineTo(x + 5.5 - wave, y - sz - 5);
+  ctx.lineTo(x + 0.6, y - sz - 4);
+  ctx.closePath();
+  ctx.fill();
+  // House body — stone-by-tech
+  const bodyColor = tech >= 3 ? '#525252' : tech >= 2 ? '#78716c' : tech >= 1 ? '#a16207' : '#92400e';
+  ctx.fillStyle = bodyColor;
   ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
-  // Roof (triangle)
+  // Stone block lines for higher tech
+  if (tech >= 1) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x - sz / 2, y - 1); ctx.lineTo(x + sz / 2, y - 1);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 0.5, y - sz / 2); ctx.lineTo(x - 0.5, y + sz / 2);
+    ctx.stroke();
+  }
+  // Door
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(x - 1.5, y + sz / 2 - 4, 3, 4);
+  // Roof
   ctx.fillStyle = tech >= 2 ? '#7f1d1d' : '#92400e';
   ctx.beginPath();
   ctx.moveTo(x - sz / 2 - 1, y - sz / 2);
@@ -1252,23 +1790,73 @@ function drawCity(x, y, kind, color, tech) {
   ctx.lineTo(x + sz / 2 + 1, y - sz / 2);
   ctx.closePath();
   ctx.fill();
+  // Roof shading
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.moveTo(x, y - sz - 1);
+  ctx.lineTo(x + sz / 2 + 1, y - sz / 2);
+  ctx.lineTo(x + 1, y - sz / 2);
+  ctx.closePath();
+  ctx.fill();
   // Window
   if (sz >= 9) {
     ctx.fillStyle = '#fde047';
     const ws = Math.floor(sz / 3);
     ctx.fillRect(x - ws / 2, y - 1, ws, ws);
+    ctx.strokeStyle = '#7f1d1d';
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 1); ctx.lineTo(x, y - 1 + ws);
+    ctx.moveTo(x - ws / 2, y - 1 + ws / 2); ctx.lineTo(x - ws / 2 + ws, y - 1 + ws / 2);
+    ctx.stroke();
+  }
+  // Chimney + smoke for towns and bigger
+  if (kind === 'town' || kind === 'city') {
+    ctx.fillStyle = '#525252';
+    ctx.fillRect(x + sz / 3, y - sz - 1, 1.4, 3);
+    // Smoke
+    for (let s = 0; s < 3; s++) {
+      const phase = (frameCount * 0.05 + s * 6) % 20;
+      const sy = y - sz - 3 - phase * 0.6;
+      const sx = x + sz / 3 + 0.5 + Math.sin(phase * 0.4) * 1;
+      ctx.fillStyle = `rgba(180, 180, 180, ${0.6 - phase * 0.03})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.2 + phase * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   // Surrounding small houses for towns/cities
   if (kind === 'town' || kind === 'city') {
     const count = kind === 'city' ? 4 : 2;
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
-      const ox = Math.cos(a) * (sz + 4);
-      const oy = Math.sin(a) * (sz + 4);
+      const ox = Math.cos(a) * (sz + 5);
+      const oy = Math.sin(a) * (sz + 5);
       ctx.fillStyle = tech >= 2 ? '#78716c' : '#92400e';
       ctx.fillRect(x + ox - 3, y + oy - 3, 6, 6);
       ctx.fillStyle = '#7f1d1d';
-      ctx.fillRect(x + ox - 4, y + oy - 4, 8, 2);
+      ctx.beginPath();
+      ctx.moveTo(x + ox - 4, y + oy - 3);
+      ctx.lineTo(x + ox, y + oy - 6);
+      ctx.lineTo(x + ox + 4, y + oy - 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(x + ox - 0.5, y + oy - 1, 1, 1.5);
+    }
+  }
+  // Castle walls for cities
+  if (kind === 'city' && tech >= 3) {
+    ctx.strokeStyle = '#525252';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(x, y, sz + 8, 0, Math.PI * 2);
+    ctx.stroke();
+    // Crenellations
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      ctx.fillStyle = '#525252';
+      ctx.fillRect(x + Math.cos(a) * (sz + 8) - 0.8, y + Math.sin(a) * (sz + 8) - 0.8, 1.6, 1.6);
     }
   }
   ctx.restore();
@@ -1312,38 +1900,129 @@ function render() {
   // World transform: screen = (worldPoint - pan) * zoom + shake
   ctx.setTransform(zoom, 0, 0, zoom, sx - panX * zoom, sy - panY * zoom);
   // Cull: only redraw tiles that are visible
-  // Tile pass — simple full redraw (96×64 = 6144 quads, well within budget)
+  // Tile pass — full redraw (96×64 = 6144 quads, well within budget)
+  const time = frameCount;
   for (let y = 0; y < WORLD_H; y++) {
     for (let x = 0; x < WORLD_W; x++) {
       const t = tiles[y][x];
+      const px = x * TILE_PX, py = y * TILE_PX;
+      // Base
       ctx.fillStyle = TILE_COLORS[t.type];
-      ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX);
-      // Subtle border
-      if (t.type === T_FOREST) {
+      ctx.fillRect(px, py, TILE_PX, TILE_PX);
+      // Per-tile detail (deterministic by coords for stability)
+      const seed = (x * 73856093 ^ y * 19349663) & 0xFFFF;
+      const rnd = (seed / 0xFFFF);
+      if (t.type === T_GRASS) {
+        // Random little flowers / tufts
+        if (rnd > 0.85) {
+          ctx.fillStyle = '#fde68a';  // yellow flower
+          ctx.fillRect(px + 2 + (seed % 4), py + 2 + ((seed >> 4) % 4), 1.2, 1.2);
+        } else if (rnd > 0.70) {
+          ctx.fillStyle = '#16a34a';  // grass tuft
+          ctx.fillRect(px + 3, py + 7, 1, 2);
+        }
+        // Wind shimmer
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.fillRect(px, py + ((time * 0.1 + x + y) % TILE_PX), TILE_PX, 1);
+      } else if (t.type === T_FOREST) {
+        // Trees — vary size by seed
+        const tx = px + 2 + (seed % 3);
+        const ty = py + 1 + ((seed >> 3) % 3);
+        // Trunk
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(tx + 1.5, ty + 4, 1, 3);
+        // Leaves
         ctx.fillStyle = '#166534';
-        ctx.fillRect(x * TILE_PX + 3, y * TILE_PX + 3, 4, 4);
+        ctx.beginPath();
+        ctx.arc(tx + 2, ty + 3, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(tx + 1.5, ty + 2.5, 1.4, 0, Math.PI * 2);
+        ctx.fill();
       } else if (t.type === T_MOUNTAIN) {
+        // Triangle peak with snow cap
         ctx.fillStyle = '#a1a1aa';
         ctx.beginPath();
-        ctx.moveTo(x * TILE_PX + 1, y * TILE_PX + TILE_PX - 1);
-        ctx.lineTo(x * TILE_PX + TILE_PX / 2, y * TILE_PX + 2);
-        ctx.lineTo(x * TILE_PX + TILE_PX - 1, y * TILE_PX + TILE_PX - 1);
+        ctx.moveTo(px + 1, py + TILE_PX - 1);
+        ctx.lineTo(px + TILE_PX / 2, py + 1);
+        ctx.lineTo(px + TILE_PX - 1, py + TILE_PX - 1);
+        ctx.closePath();
+        ctx.fill();
+        // Snow cap
+        ctx.fillStyle = '#f1f5f9';
+        ctx.beginPath();
+        ctx.moveTo(px + TILE_PX / 2 - 1.5, py + 3);
+        ctx.lineTo(px + TILE_PX / 2, py + 1);
+        ctx.lineTo(px + TILE_PX / 2 + 1.5, py + 3);
+        ctx.closePath();
+        ctx.fill();
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(px + TILE_PX / 2, py + 1);
+        ctx.lineTo(px + TILE_PX / 2 + 0.8, py + 1.5);
+        ctx.lineTo(px + TILE_PX - 1, py + TILE_PX - 1);
+        ctx.lineTo(px + TILE_PX / 2, py + TILE_PX - 1);
         ctx.closePath();
         ctx.fill();
       } else if (t.type === T_LAVA) {
+        // Bubbling pattern
+        const phase = (time * 0.06 + seed) % 20;
         ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(x * TILE_PX + 2, y * TILE_PX + 2, 2, 2);
-        ctx.fillRect(x * TILE_PX + 6, y * TILE_PX + 5, 2, 2);
+        ctx.beginPath();
+        ctx.arc(px + 3, py + 3, 1.4 + Math.sin(phase * 0.6) * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(px + 7, py + 6, 1.0 + Math.cos(phase * 0.7) * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (t.type === T_SNOW) {
+        // Sparkle dots
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.85)';
+        ctx.fillRect(px + 2 + (seed % 4), py + 2 + ((seed >> 4) % 4), 1, 1);
+        if (rnd > 0.8) {
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(px + 6, py + 6, 1.2, 1.2);
+        }
+      } else if (t.type === T_SAND) {
+        // dotted texture
+        ctx.fillStyle = 'rgba(217, 119, 6, 0.4)';
+        ctx.fillRect(px + 2 + (seed % 4), py + 2 + ((seed >> 4) % 4), 1, 1);
+      } else if (t.type === T_WATER) {
+        // ripples
+        ctx.fillStyle = 'rgba(96, 165, 250, 0.35)';
+        const yoff = (time * 0.05 + x * 0.5) % TILE_PX;
+        ctx.fillRect(px, py + yoff, TILE_PX, 1);
+      } else if (t.type === T_BURNT) {
+        ctx.fillStyle = '#3f3f46';
+        ctx.fillRect(px + (seed % 5), py + ((seed >> 4) % 5), 1, 1);
+        ctx.fillRect(px + 5 + (seed % 3), py + 6, 1, 1);
       }
+      // Fire overlay
       if (t.fire > 0) {
         const a = t.fire / 100;
         ctx.fillStyle = `rgba(239, 68, 68, ${0.45 * a})`;
-        ctx.fillRect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX);
-        ctx.fillStyle = `rgba(251, 191, 36, ${0.7 * a})`;
-        ctx.fillRect(x * TILE_PX + 3, y * TILE_PX + 3, 4, 4);
+        ctx.fillRect(px, py, TILE_PX, TILE_PX);
+        // Flickering flame shape
+        const fh = 4 + Math.sin(time * 0.5 + x + y) * 1.5;
+        ctx.fillStyle = `rgba(251, 146, 60, ${0.9 * a})`;
+        ctx.beginPath();
+        ctx.moveTo(px + 2, py + TILE_PX - 1);
+        ctx.lineTo(px + TILE_PX / 2, py + TILE_PX - 1 - fh);
+        ctx.lineTo(px + TILE_PX - 2, py + TILE_PX - 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(254, 240, 138, ${0.9 * a})`;
+        ctx.beginPath();
+        ctx.arc(px + TILE_PX / 2, py + TILE_PX - 2 - fh * 0.5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
   }
+
+  // Territory overlay (tinted tiles by kingdom)
+  drawTerritory();
 
   // Buildings (kingdom centers) — drawn between tiles and units
   drawBuildings();
@@ -1685,7 +2364,7 @@ function buildToolsUI() {
   const rows = [
     TOOL_DEFS.filter(t => t.cat === 'terrain'),
     TOOL_DEFS.filter(t => t.cat === 'disaster' || t.cat === 'bless'),
-    TOOL_DEFS.filter(t => t.cat === 'spawn' || t.cat === 'wild')
+    TOOL_DEFS.filter(t => t.cat === 'spawn' || t.cat === 'wild' || t.cat === 'hero')
   ];
   for (const row of rows) {
     const rowEl = document.createElement('div');
@@ -1695,7 +2374,9 @@ function buildToolsUI() {
       btn.className = 'wb-tool ' + t.cat;
       btn.dataset.id = t.id;
       btn.innerHTML = t.icon + '<span class="wb-tool-cost">' + t.cost + '</span>';
-      btn.title = ((window.wbLang && window.wbLang.toolNames && window.wbLang.toolNames[t.id]) || t.id) + ' · ✨' + t.cost;
+      const heroName = window.wbLang && window.wbLang.toolNamesHero && window.wbLang.toolNamesHero[t.id];
+      const baseName = (window.wbLang && window.wbLang.toolNames && window.wbLang.toolNames[t.id]) || heroName || t.id;
+      btn.title = baseName + ' · ✨' + t.cost;
       btn.addEventListener('click', () => selectTool(t.id));
       btn.addEventListener('touchstart', (e) => { e.preventDefault(); selectTool(t.id); });
       rowEl.appendChild(btn);
@@ -1737,7 +2418,8 @@ function refreshBrushUI() {
 // =================================================================
 // NEW WORLD
 // =================================================================
-function newWorld() {
+function newWorld(setup) {
+  setup = setup || { human: 8, elf: 8, dwarf: 8, orc: 8, heroes: 1 };
   units.length = 0;
   kingdoms.clear();
   effects.length = 0;
@@ -1748,12 +2430,13 @@ function newWorld() {
   generateWorld();
   // Seed each race in a different corner
   const seeds = [
-    { race: RACE_HUMAN, x: VIEW_W * 0.20, y: VIEW_H * 0.30, count: 8 },
-    { race: RACE_ELF,   x: VIEW_W * 0.78, y: VIEW_H * 0.25, count: 8 },
-    { race: RACE_DWARF, x: VIEW_W * 0.20, y: VIEW_H * 0.75, count: 8 },
-    { race: RACE_ORC,   x: VIEW_W * 0.78, y: VIEW_H * 0.78, count: 8 }
+    { race: RACE_HUMAN, x: VIEW_W * 0.20, y: VIEW_H * 0.30, count: setup.human },
+    { race: RACE_ELF,   x: VIEW_W * 0.78, y: VIEW_H * 0.25, count: setup.elf },
+    { race: RACE_DWARF, x: VIEW_W * 0.20, y: VIEW_H * 0.75, count: setup.dwarf },
+    { race: RACE_ORC,   x: VIEW_W * 0.78, y: VIEW_H * 0.78, count: setup.orc }
   ];
   for (const s of seeds) {
+    if (s.count <= 0) continue;
     // Clear water around seed
     const tx = Math.floor(s.x / TILE_PX), ty = Math.floor(s.y / TILE_PX);
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
@@ -1763,6 +2446,12 @@ function newWorld() {
     for (let i = 0; i < s.count; i++) {
       units.push(new Unit(s.x + rand(-20, 20), s.y + rand(-20, 20), s.race));
     }
+  }
+  // Spawn requested heroes (one per active race, up to N)
+  const heroSeeds = seeds.filter(s => s.count > 0);
+  for (let i = 0; i < (setup.heroes || 0) && i < heroSeeds.length; i++) {
+    const s = heroSeeds[i];
+    units.push(new Unit(s.x, s.y, s.race, CLASS_HERO));
   }
   // Seed wildlife: random sheep / wolves / a bear in safe biomes
   for (let i = 0; i < 12; i++) {
@@ -1798,7 +2487,7 @@ function clearAll() {
 // =================================================================
 // SAVE / LOAD
 // =================================================================
-const SAVE_KEY = 'wbSave_v2';
+const SAVE_KEY = 'wbSave_v3';
 function saveWorld() {
   const tilesFlat = new Array(WORLD_W * WORLD_H);
   for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
@@ -1806,7 +2495,8 @@ function saveWorld() {
   }
   const unitsData = units.filter(u => !u.dead).map(u => [
     Math.round(u.x), Math.round(u.y), u.race, Math.round(u.hp),
-    Math.round(u.age * 10), u.kingdom || 0, u.sex === 'F' ? 1 : 0
+    Math.round(u.age * 10), u.kingdom || 0, u.sex === 'F' ? 1 : 0,
+    u.class, u.isKing ? 1 : 0, u.downed
   ]);
   const kingsData = [];
   for (const [id, k] of kingdoms) {
@@ -1814,7 +2504,7 @@ function saveWorld() {
                     k.pop, k.maxPopEver, k.foundedYear, k.tech, Array.from(k.wars)]);
   }
   const save = {
-    v: 2, year, mana, frame: frameCount,
+    v: 3, year, mana, frame: frameCount,
     nextKingdomId, nextColorIdx,
     tiles: tilesFlat,
     units: unitsData,
@@ -1827,7 +2517,7 @@ function loadWorld() {
   let s;
   try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }
   catch { s = null; }
-  if (!s || s.v !== 2) return false;
+  if (!s || s.v !== 3) return false;
   year = s.year; mana = s.mana; frameCount = s.frame || 0;
   nextKingdomId = s.nextKingdomId; nextColorIdx = s.nextColorIdx;
   // Tiles
@@ -1842,10 +2532,12 @@ function loadWorld() {
   // Units
   units.length = 0;
   for (const d of s.units) {
-    const u = new Unit(d[0], d[1], d[2]);
+    const u = new Unit(d[0], d[1], d[2], d[7] != null ? d[7] : undefined);
     u.hp = d[3]; u.age = d[4] / 10;
     u.kingdom = d[5] || null;
     u.sex = d[6] ? 'F' : 'M';
+    u.isKing = !!d[8];
+    u.downed = d[9] || 0;
     units.push(u);
   }
   // Kingdoms
@@ -1861,6 +2553,10 @@ function loadWorld() {
   return true;
 }
 function deleteSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
+function openSetupModal() {
+  const m = document.getElementById('wb-setup-modal');
+  if (m) m.style.display = 'flex';
+}
 window.addEventListener('beforeunload', () => { saveWorld(); });
 window.addEventListener('blur', () => { saveWorld(); });
 
@@ -1874,9 +2570,10 @@ document.addEventListener('DOMContentLoaded', () => {
   canvas.height = VIEW_H;
   ctx.imageSmoothingEnabled = false;
 
-  // Try to restore a save; otherwise fresh world
+  // Try to restore a save; otherwise generate a fresh world (will be configured via setup modal)
   if (!loadWorld()) {
-    newWorld();
+    generateWorld();
+    // Empty world — defer seeding to user clicking "Begin World"
   } else {
     log('💾 World restored.');
   }
@@ -1907,16 +2604,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // Help/start
   document.getElementById('wb-start-btn').addEventListener('click', () => {
     document.getElementById('wb-help-modal').style.display = 'none';
+    if (units.length === 0) openSetupModal();
   });
   document.getElementById('wb-newworld-btn').addEventListener('click', () => {
     document.getElementById('wb-help-modal').style.display = 'none';
-    newWorld();
+    openSetupModal();
   });
   document.getElementById('wb-help-btn').addEventListener('click', () => {
     document.getElementById('wb-help-modal').style.display = 'flex';
   });
   document.getElementById('wb-reset-btn').addEventListener('click', () => {
-    newWorld();
+    openSetupModal();
+  });
+
+  // Setup modal
+  const setupModal = document.getElementById('wb-setup-modal');
+  const setupVals = ['human','elf','dwarf','orc','heroes'];
+  for (const k of setupVals) {
+    const r = document.getElementById('wb-setup-' + k);
+    const v = document.getElementById('wb-setup-' + k + '-val');
+    if (r && v) {
+      r.addEventListener('input', () => { v.textContent = r.value; });
+    }
+  }
+  document.getElementById('wb-setup-start').addEventListener('click', () => {
+    const setup = {
+      human: parseInt(document.getElementById('wb-setup-human').value, 10),
+      elf:   parseInt(document.getElementById('wb-setup-elf').value, 10),
+      dwarf: parseInt(document.getElementById('wb-setup-dwarf').value, 10),
+      orc:   parseInt(document.getElementById('wb-setup-orc').value, 10),
+      heroes:parseInt(document.getElementById('wb-setup-heroes').value, 10)
+    };
+    setupModal.style.display = 'none';
+    newWorld(setup);
+  });
+  document.getElementById('wb-setup-cancel').addEventListener('click', () => {
+    setupModal.style.display = 'none';
   });
   document.getElementById('wb-clear-btn').addEventListener('click', () => {
     clearAll();
@@ -1934,12 +2657,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('wb-zoom-reset').addEventListener('click', resetView);
   refreshZoomUI();
 
-  // Show help on first visit
+  // Show help on first visit, then setup modal (if no save)
+  const hasSave = units.length > 0 || kingdoms.size > 0;
   if (!localStorage.getItem('wbVisited')) {
     document.getElementById('wb-help-modal').style.display = 'flex';
     localStorage.setItem('wbVisited', '1');
   } else {
     document.getElementById('wb-help-modal').style.display = 'none';
+    if (!hasSave) openSetupModal();
   }
 
   requestAnimationFrame(loop);

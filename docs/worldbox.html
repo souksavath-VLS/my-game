@@ -163,6 +163,54 @@
     .wb-tool.bless { border-color: rgba(56, 189, 248, 0.4); }
     .wb-tool.spawn { border-color: rgba(192, 132, 252, 0.4); }
     .wb-tool.wild { border-color: rgba(132, 204, 22, 0.4); }
+    .wb-tool.hero { border-color: rgba(250, 204, 21, 0.6); box-shadow: 0 0 6px rgba(250, 204, 21, 0.3); }
+    .wb-tool.hero.active { box-shadow: 0 0 14px rgba(250, 204, 21, 0.8); }
+
+    /* Pre-game setup */
+    .wb-setup-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px 12px;
+      align-items: center;
+      margin: 12px 0;
+      text-align: left;
+    }
+    .wb-setup-grid label {
+      font-size: 0.85rem;
+      color: #fde047;
+      font-weight: bold;
+    }
+    .wb-setup-grid input[type=range] {
+      width: 100%;
+      accent-color: #22d3ee;
+    }
+    .wb-setup-grid .wb-setup-val {
+      color: #facc15;
+      font-weight: bold;
+      min-width: 28px;
+      text-align: right;
+      font-size: 0.85rem;
+    }
+    .wb-setup-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px;
+      margin: 6px 0;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .wb-class-mix {
+      display: flex; gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .wb-class-chip {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      color: #e2e8f0;
+    }
     .wb-tool .wb-tool-cost {
       position: absolute;
       bottom: -1px; right: -1px;
@@ -429,6 +477,45 @@
     </div>
   </div>
 
+  <!-- Pre-game setup modal -->
+  <div id="wb-setup-modal" class="wb-overlay" style="display:none;">
+    <div class="wb-card">
+      <h2 id="wb-setup-title">⚙️ Configure Your World</h2>
+      <p id="wb-setup-hint">Choose starting races, heroes, and class mix.</p>
+      <div class="wb-setup-grid" id="wb-setup-grid">
+        <label>🧑 <span data-i18n="raceHuman">Humans</span></label>
+        <input type="range" min="0" max="40" value="8" id="wb-setup-human">
+        <span class="wb-setup-val" id="wb-setup-human-val">8</span>
+
+        <label>🧝 <span data-i18n="raceElf">Elves</span></label>
+        <input type="range" min="0" max="40" value="8" id="wb-setup-elf">
+        <span class="wb-setup-val" id="wb-setup-elf-val">8</span>
+
+        <label>🧔 <span data-i18n="raceDwarf">Dwarves</span></label>
+        <input type="range" min="0" max="40" value="8" id="wb-setup-dwarf">
+        <span class="wb-setup-val" id="wb-setup-dwarf-val">8</span>
+
+        <label>👹 <span data-i18n="raceOrc">Orcs</span></label>
+        <input type="range" min="0" max="40" value="8" id="wb-setup-orc">
+        <span class="wb-setup-val" id="wb-setup-orc-val">8</span>
+
+        <label>🦸 <span data-i18n="heroes">Heroes</span></label>
+        <input type="range" min="0" max="4" value="1" id="wb-setup-heroes">
+        <span class="wb-setup-val" id="wb-setup-heroes-val">1</span>
+      </div>
+      <p style="font-size:0.78rem; color:#94a3b8;" data-i18n="classMixHint">Each kingdom auto-rolls a class mix:</p>
+      <div class="wb-class-mix" id="wb-setup-classmix">
+        <span class="wb-class-chip">🗡️ Warrior</span>
+        <span class="wb-class-chip">🏹 Archer</span>
+        <span class="wb-class-chip">🔮 Mage</span>
+        <span class="wb-class-chip">🛡️ Knight</span>
+        <span class="wb-class-chip">💚 Healer</span>
+      </div>
+      <button id="wb-setup-start" class="wb-btn">▶ <span data-i18n="enterWithSetup">Begin World</span></button>
+      <button id="wb-setup-cancel" class="wb-btn secondary" data-i18n="cancel">Cancel</button>
+    </div>
+  </div>
+
   <script src="js/tts.js"></script>
   <script src="js/worldbox.js"></script>
   <script>
@@ -459,6 +546,15 @@
           sheep: 'แกะ', wolf: 'หมาป่า', bear: 'หมี'
         },
         techNames: { stone: 'ยุคหิน', bronze: 'ยุคสำริด', iron: 'ยุคเหล็ก', medieval: 'ยุคกลาง' },
+        raceHuman: 'มนุษย์', raceElf: 'เอลฟ์', raceDwarf: 'คนแคระ', raceOrc: 'ออร์ค',
+        heroes: 'วีรบุรุษ',
+        classMixHint: 'แต่ละอาณาจักรจะสุ่มอาชีพ:',
+        enterWithSetup: 'เริ่มโลก', cancel: 'ยกเลิก',
+        evtKingDied: 'กษัตริย์ล้มแล้ว',
+        evtKingCrowned: 'กษัตริย์องค์ใหม่ขึ้นครองราชย์',
+        evtHeroBorn: 'วีรบุรุษได้ถือกำเนิด',
+        classNames: { warrior: 'นักรบ', archer: 'นักธนู', mage: 'จอมเวท', knight: 'อัศวิน', healer: 'หมอผี', hero: 'วีรบุรุษ' },
+        toolNamesHero: { hero_human: 'วีรบุรุษมนุษย์', hero_elf: 'วีรบุรุษเอลฟ์', hero_dwarf: 'วีรบุรุษคนแคระ', hero_orc: 'วีรบุรุษออร์ค' },
         achNames: {
           a_first_kingdom: 'อาณาจักรแรก', a_pop_100: 'ฝูงชน', a_world_war: 'สงครามโลก',
           a_apocalypse: 'วันสิ้นโลก', a_500_years: 'ห้าศตวรรษ', a_1000_years: 'พันปี',
@@ -510,6 +606,15 @@
           sheep: 'Sheep', wolf: 'Wolf', bear: 'Bear'
         },
         techNames: { stone: 'Stone Age', bronze: 'Bronze Age', iron: 'Iron Age', medieval: 'Medieval Age' },
+        raceHuman: 'Humans', raceElf: 'Elves', raceDwarf: 'Dwarves', raceOrc: 'Orcs',
+        heroes: 'Heroes',
+        classMixHint: 'Each kingdom auto-rolls a class mix:',
+        enterWithSetup: 'Begin World', cancel: 'Cancel',
+        evtKingDied: 'the king has fallen',
+        evtKingCrowned: 'a new king is crowned',
+        evtHeroBorn: 'A hero is born',
+        classNames: { warrior: 'Warrior', archer: 'Archer', mage: 'Mage', knight: 'Knight', healer: 'Healer', hero: 'Hero' },
+        toolNamesHero: { hero_human: 'Human Hero', hero_elf: 'Elf Hero', hero_dwarf: 'Dwarf Hero', hero_orc: 'Orc Hero' },
         achNames: {
           a_first_kingdom: 'First Kingdom', a_pop_100: 'Crowded World', a_world_war: 'World at War',
           a_apocalypse: 'Apocalypse', a_500_years: 'Five Centuries', a_1000_years: 'Eon Keeper',
@@ -562,6 +667,15 @@
           sheep: 'ແກະ', wolf: 'ໝາປ່າ', bear: 'ໝີ'
         },
         techNames: { stone: 'ຍຸກຫີນ', bronze: 'ຍຸກສຳລິດ', iron: 'ຍຸກເຫຼັກ', medieval: 'ຍຸກກາງ' },
+        raceHuman: 'ມະນຸດ', raceElf: 'ເອວຟ໌', raceDwarf: 'ຄົນແຄະ', raceOrc: 'ໂອກ',
+        heroes: 'ວີລະບຸລຸດ',
+        classMixHint: 'ແຕ່ລະອານາຈັກສຸ່ມວິຊາຊີບ:',
+        enterWithSetup: 'ເລີ່ມໂລກ', cancel: 'ຍົກເລີກ',
+        evtKingDied: 'ກະສັດໄດ້ລົ້ມແລ້ວ',
+        evtKingCrowned: 'ກະສັດອົງໃໝ່ຂຶ້ນປົກຄອງ',
+        evtHeroBorn: 'ວີລະບຸລຸດໄດ້ກຳເນີດ',
+        classNames: { warrior: 'ນັກຮົບ', archer: 'ນັກທະນູ', mage: 'ນັກເວດ', knight: 'ອັດສະວີນ', healer: 'ໝໍຜີ', hero: 'ວີລະບຸລຸດ' },
+        toolNamesHero: { hero_human: 'ວີລະບຸລຸດມະນຸດ', hero_elf: 'ວີລະບຸລຸດເອວຟ໌', hero_dwarf: 'ວີລະບຸລຸດແຄະ', hero_orc: 'ວີລະບຸລຸດໂອກ' },
         achNames: {
           a_first_kingdom: 'ອານາຈັກທຳອິດ', a_pop_100: 'ປະຊາກອນ', a_world_war: 'ສົງຄາມໂລກ',
           a_apocalypse: 'ມື້ສິ້ນໂລກ', a_500_years: 'ຫ້າສະຕະວັດ', a_1000_years: 'ພັນປີ',
