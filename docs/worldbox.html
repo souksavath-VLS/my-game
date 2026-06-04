@@ -171,6 +171,35 @@
     .wb-tool.hero { border-color: rgba(250, 204, 21, 0.6); box-shadow: 0 0 6px rgba(250, 204, 21, 0.3); }
     .wb-tool.hero.active { box-shadow: 0 0 14px rgba(250, 204, 21, 0.8); }
     .wb-tool.diplo { border-color: rgba(236, 72, 153, 0.5); }
+    .wb-tool.view { border-color: rgba(34, 211, 238, 0.5); }
+
+    /* Kingdom info modal */
+    .wb-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      margin: 8px 0;
+    }
+    .wb-info-row { display: flex; justify-content: space-between; gap: 4px; }
+    .wb-info-row b { color: #fde047; }
+    .wb-info-section {
+      margin: 6px 0;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      padding: 4px 6px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      border-left: 2px solid rgba(34, 211, 238, 0.4);
+    }
+    .wb-info-section b { color: #fde047; }
+    .wb-info-table {
+      width: 100%; border-collapse: collapse; margin-top: 4px;
+      font-size: 0.76rem;
+    }
+    .wb-info-table td { padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
     /* World Laws */
     .wb-laws-list {
@@ -447,7 +476,7 @@
         <div class="wb-race-stat" title="Wolves">🐺 <span id="wb-pop-wolf">0</span></div>
         <div class="wb-race-stat" title="Bears">🐻 <span id="wb-pop-bear">0</span></div>
       </div>
-      <div class="wb-stat" id="wb-ach-stat" title="Achievements">🏆 <span class="wb-num" id="wb-ach-count">0 / 14</span></div>
+      <div class="wb-stat" id="wb-ach-stat" title="Achievements">🏆 <span class="wb-num" id="wb-ach-count">0 / 0</span></div>
       <div class="wb-speed">
         <button class="wb-speed-btn" id="wb-zoom-out" title="Zoom Out (-)">🔍−</button>
         <button class="wb-speed-btn wb-zoom-label-btn" id="wb-zoom-reset" title="Reset View (0)"><span id="wb-zoom-label">1x</span></button>
@@ -506,9 +535,18 @@
   <div id="wb-ach-modal" class="wb-overlay" style="display:none;">
     <div class="wb-card">
       <h2 id="wb-ach-title">🏆 Achievements</h2>
-      <p id="wb-ach-hint">Unlocked: <strong id="wb-ach-progress">0 / 14</strong></p>
+      <p id="wb-ach-hint">Unlocked: <strong id="wb-ach-progress">0 / 0</strong></p>
       <div id="wb-ach-list" class="wb-ach-list"></div>
       <button id="wb-ach-close" class="wb-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Kingdom Info modal -->
+  <div id="wb-info-modal" class="wb-overlay" style="display:none;">
+    <div class="wb-card">
+      <h2 id="wb-info-title">🏛 Kingdom</h2>
+      <div id="wb-info-body" style="text-align:left;"></div>
+      <button id="wb-info-close" class="wb-btn">Close</button>
     </div>
   </div>
 
@@ -618,7 +656,7 @@
           plague: 'โรคระบาด', finger: 'นิ้วมรณะ',
           meteor: 'อุกกาบาต', acidstorm: 'พายุกรด', nuke: 'ระเบิดสวรรค์',
           rain: 'ฝน', heal: 'รักษา', peace: 'สันติ',
-          spite: 'ความริษยา', friendship: 'มิตรภาพ',
+          spite: 'ความริษยา', friendship: 'มิตรภาพ', inspect: 'ดูข้อมูลอาณาจักร',
           human: 'มนุษย์', elf: 'เอลฟ์', dwarf: 'คนแคระ', orc: 'ออร์ค',
           sheep: 'แกะ', wolf: 'หมาป่า', bear: 'หมี'
         },
@@ -706,7 +744,7 @@
           plague: 'Plague', finger: 'Finger of Death',
           meteor: 'Meteor', acidstorm: 'Acid Storm', nuke: 'Divine Nuke',
           rain: 'Rain', heal: 'Heal', peace: 'Peace',
-          spite: 'Spite', friendship: 'Friendship',
+          spite: 'Spite', friendship: 'Friendship', inspect: 'Inspect Kingdom',
           human: 'Human', elf: 'Elf', dwarf: 'Dwarf', orc: 'Orc',
           sheep: 'Sheep', wolf: 'Wolf', bear: 'Bear'
         },
@@ -793,7 +831,7 @@
           plague: 'ໂລກລະບາດ', finger: 'ນິ້ວມໍລະນະ',
           meteor: 'ດາວຕົກ', acidstorm: 'ພາຍຸກົດ', nuke: 'ລະເບີດສະຫວັນ',
           rain: 'ຝົນ', heal: 'ປິ່ນປົວ', peace: 'ສັນຕິພາບ',
-          spite: 'ຄວາມກຽດຊັງ', friendship: 'ມິດຕະພາບ',
+          spite: 'ຄວາມກຽດຊັງ', friendship: 'ມິດຕະພາບ', inspect: 'ເບິ່ງຂໍ້ມູນອານາຈັກ',
           human: 'ມະນຸດ', elf: 'ເອວຟ໌', dwarf: 'ຄົນແຄະ', orc: 'ໂອກ',
           sheep: 'ແກະ', wolf: 'ໝາປ່າ', bear: 'ໝີ'
         },

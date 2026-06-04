@@ -594,13 +594,21 @@ class Unit {
       else if (this.state === 'mate' && d < 9 && this.matingCd === 0 && units.length < 1200) {
         // Baby inherits kingdom + race; randomize sex 50/50
         const baby = new Unit(this.x + rand(-3, 3), this.y + rand(-3, 3), this.race);
-        baby.matingCd = 800;                  // grows up before it can mate (was 1200)
+        baby.matingCd = 800;
         baby.kingdom = this.kingdom || this.target.kingdom;
-        baby.age = 0;                          // pure newborn
+        baby.age = 0;
         units.push(baby);
-        // Adults rest a bit before the next baby (was 1500)
-        this.matingCd = 900;
-        this.target.matingCd = 900;
+        // Pacifist / Diplomat kings boost their kingdom's birth rate
+        let cd = 900;
+        const myK = this.kingdom && kingdoms.get(this.kingdom);
+        if (myK) {
+          if (myK.kingTraits.includes('pacifist')) cd = Math.floor(cd * 0.65);
+          else if (myK.kingTraits.includes('diplomat')) cd = Math.floor(cd * 0.80);
+          else if (myK.kingTraits.includes('honest')) cd = Math.floor(cd * 0.85);
+          else if (myK.kingTraits.includes('evil')) cd = Math.floor(cd * 1.25);
+        }
+        this.matingCd = cd;
+        this.target.matingCd = cd;
         // Big celebratory burst — multiple hearts + halo
         for (let h = 0; h < 4; h++) {
           effects.push({
@@ -1120,17 +1128,18 @@ class Building {
     // Watchtower combat
     if (this.type === B_TOWER) {
       if (this.attackCd > 0) { this.attackCd--; return; }
+      // Throttle: only scan every 3rd frame, with a phase offset so towers stagger
+      if (!this._scanOffset) this._scanOffset = Math.floor(Math.random() * 3);
+      if (((frameCount + this._scanOffset) % 3) !== 0) return;
       const s = this.stats();
       let target = null, td = s.range * s.range;
-      for (const u of units) {
+      // Use grid pattern: scan a subset of units each frame
+      const startIdx = frameCount % 2;
+      for (let i = startIdx; i < units.length; i += 2) {
+        const u = units[i];
         if (u.dead || u.downed > 0) continue;
-        // Don't shoot own kingdom or allies
         if (u.kingdom === this.kingdom) continue;
         if (u.kingdom && k.allies.has(u.kingdom)) continue;
-        // Hostile criteria:
-        //   - hostile animal (wolf/bear)
-        //   - mortal of enemy kingdom (war declared)
-        //   - kingdom-less mortal (raider)
         let hostile = false;
         if (u.isHostileAnimal()) hostile = true;
         else if (u.race < MORTAL_RACES) {
@@ -1179,23 +1188,35 @@ function attemptCapture(hall, attackerKingdomId) {
     log('🏛✖ ' + format(window.wbLang.evtKingdomCollapse || '{a} has collapsed', { a: losingKing.name }));
     return;
   }
-  // Transfer surviving units to captor
-  let captured = 0;
+  // Transfer only units within 150px of the fallen hall (defenders surrendered)
+  // Far-flung units stay loyal to the old kingdom (which will collapse if no hall remains)
+  const CAPTURE_R2 = 150 * 150;
+  let captured = 0, escaped = 0;
   for (const u of units) {
     if (u.dead) continue;
     if (u.kingdom !== losingKing.id) continue;
-    u.kingdom = captor.id;
-    u.isKing = false;
-    captured++;
+    const inRange = dist2(u.x, u.y, hall.x, hall.y) < CAPTURE_R2;
+    if (inRange) {
+      u.kingdom = captor.id;
+      u.isKing = false;
+      captured++;
+    } else {
+      // Refugees / hold-outs — become kingdom-less wanderers
+      u.kingdom = null;
+      u.isKing = false;
+      escaped++;
+    }
   }
-  // Transfer surviving buildings
+  // Transfer surviving buildings within capture radius; others become rubble
   for (const b of buildings) {
-    if (b.kingdom === losingKing.id && !b.dead) b.kingdom = captor.id;
+    if (b.kingdom !== losingKing.id || b.dead) continue;
+    if (dist2(b.x, b.y, hall.x, hall.y) < CAPTURE_R2) b.kingdom = captor.id;
+    else { b.dead = true; b.hp = 0; effects.push({ type: 'rubble', x: b.x, y: b.y, life: 60 }); }
   }
   captor.pop += captured;
-  log('🏛⇨ ' + format(window.wbLang.evtCapture || '{b} captures {a}!', { a: losingKing.name, b: captor.name }));
+  log('🏛⇨ ' + format(window.wbLang.evtCapture || '{b} captures {a}!', { a: losingKing.name, b: captor.name })
+      + (escaped > 0 ? ` (+${escaped} ${window.wbLang.refugees || 'refugees'})` : ''));
   unlockAch('a_capture');
-  // Old kingdom is dissolved next year by normal pruning
   losingKing.pop = 0;
 }
 
@@ -1340,11 +1361,23 @@ function updateKingdoms() {
     }
   }
 
-  // Prune dead kingdoms
+  // Prune dead kingdoms — and remove dangling references in other kingdoms
   for (const [id, k] of kingdoms) {
     if (!stillAlive.has(id)) {
       kingdoms.delete(id);
       log(format(window.wbLang.evtFell, { a: k.name }));
+      // Cleanup: strip orphan id from every other kingdom's diplomacy state
+      for (const [, other] of kingdoms) {
+        other.wars.delete(id);
+        other.allies.delete(id);
+        other.relations.delete(id);
+        other.warPlots.delete(id);
+        other.peacePlots.delete(id);
+      }
+      // Buildings of that dead kingdom become rubble
+      for (const b of buildings) {
+        if (b.kingdom === id && !b.dead) { b.dead = true; b.hp = 0; }
+      }
     }
   }
 
@@ -1689,6 +1722,7 @@ const TOOL_DEFS = [
   { id: 'peace',     icon: '🛐', cat: 'bless',    cost: 35 },
   { id: 'spite',     icon: '💢', cat: 'diplo',   cost: 25 },
   { id: 'friendship',icon: '💞', cat: 'diplo',   cost: 25 },
+  { id: 'inspect',   icon: '🔍', cat: 'view',    cost: 0  },
   // row 3: spawns (mortals + wildlife)
   { id: 'human', icon: '🧑', cat: 'spawn', cost: 4 },
   { id: 'elf',   icon: '🧝', cat: 'spawn', cost: 4 },
@@ -1712,12 +1746,14 @@ const TERRAIN_TYPE = {
 function applyTool(toolId, x, y) {
   const def = TOOL_DEFS.find(t => t.id === toolId);
   if (!def) return;
-  if (mana < def.cost) {
-    // Flash low-mana visual
-    effects.push({ type: 'nomana', x, y, life: 14 });
-    return;
+  // Free tools (view) skip the cost check entirely
+  if (def.cost > 0) {
+    if (mana < def.cost) {
+      effects.push({ type: 'nomana', x, y, life: 14 });
+      return;
+    }
+    mana -= def.cost;
   }
-  mana -= def.cost;
   if (TERRAIN_TYPE[toolId] !== undefined) {
     paintTile(x, y, brushSize, TERRAIN_TYPE[toolId]);
     return;
@@ -1736,6 +1772,7 @@ function applyTool(toolId, x, y) {
     case 'peace':     return doPeace();
     case 'spite':     return doSpite(x, y);
     case 'friendship':return doFriendship(x, y);
+    case 'inspect':   return doInspect(x, y);
     case 'human':     return spawnAt(x, y, RACE_HUMAN);
     case 'elf':       return spawnAt(x, y, RACE_ELF);
     case 'dwarf':     return spawnAt(x, y, RACE_DWARF);
@@ -1890,6 +1927,82 @@ function doSpite(x, y) {
   log('💢 ' + format(window.wbLang.evtSpite || '{a} is despised by all kingdoms!', { a: k.name }));
   effects.push({ type: 'spite', x: k.x, y: k.y, life: 60 });
 }
+function doInspect(x, y) {
+  const k = pickKingdomAt(x, y);
+  if (!k) { effects.push({ type: 'nomana', x, y, life: 14 }); return; }
+  showKingdomInfo(k);
+}
+
+function showKingdomInfo(k) {
+  const m = document.getElementById('wb-info-modal');
+  if (!m) return;
+  const t = window.wbLang || {};
+  // Title
+  const titleEl = document.getElementById('wb-info-title');
+  if (titleEl) {
+    const traits = k.kingTraits.map(tr => KING_TRAITS[tr].icon).join(' ');
+    titleEl.innerHTML = `<span style="color:${k.color};">⬛</span> ${k.name} ${traits}`;
+  }
+  // Body
+  const body = document.getElementById('wb-info-body');
+  if (!body) { m.style.display = 'flex'; return; }
+  const techName = (t.techNames && t.techNames[TECH_NAMES[k.tech]]) || TECH_NAMES[k.tech];
+  const raceName = raceLabel(k.race);
+  const ageK = year - k.foundedYear;
+  // Wars
+  const warList = Array.from(k.wars).map(id => {
+    const o = kingdoms.get(id); return o ? `<span style="color:${o.color}">⬛</span> ${o.name}` : '?';
+  }).join(', ') || '—';
+  // Allies
+  const allyList = Array.from(k.allies).map(id => {
+    const o = kingdoms.get(id); return o ? `<span style="color:${o.color}">⬛</span> ${o.name}` : '?';
+  }).join(', ') || '—';
+  // Plots
+  const warPlots = Array.from(k.warPlots.keys()).map(id => {
+    const o = kingdoms.get(id); return o ? `${o.name} (${k.warPlots.get(id).countdown}y)` : '?';
+  }).join(', ') || '—';
+  const peacePlots = Array.from(k.peacePlots.keys()).map(id => {
+    const o = kingdoms.get(id); return o ? `${o.name} (${k.peacePlots.get(id).countdown}y)` : '?';
+  }).join(', ') || '—';
+  // Top relations (≥3 strongest by |value|)
+  const rels = Array.from(k.relations.entries())
+    .filter(([id]) => kingdoms.has(id))
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 6);
+  const relRows = rels.map(([id, v]) => {
+    const o = kingdoms.get(id);
+    const color = v > 30 ? '#86efac' : v < -30 ? '#fca5a5' : '#cbd5e1';
+    return `<tr><td><span style="color:${o.color}">⬛</span> ${o.name}</td><td style="color:${color};text-align:right;">${Math.round(v)}</td></tr>`;
+  }).join('') || '<tr><td colspan="2">—</td></tr>';
+  // Buildings count
+  const towerCount = buildings.filter(b => b.kingdom === k.id && b.type === B_TOWER && !b.dead).length;
+  const hallStatus = buildings.find(b => b.kingdom === k.id && b.type === B_HALL && !b.dead);
+  const hallHpStr = hallStatus ? `${Math.round(hallStatus.hp)}/${hallStatus.maxHp}` : '✖';
+
+  body.innerHTML = `
+    <div class="wb-info-grid">
+      <div class="wb-info-row"><b>${t.race || 'Race'}:</b> <span>${raceName}</span></div>
+      <div class="wb-info-row"><b>${t.tech || 'Tech'}:</b> <span>${TECH_LABELS_EMOJI[k.tech]} ${techName}</span></div>
+      <div class="wb-info-row"><b>${t.kingdomAge || 'Age'}:</b> <span>${ageK}y</span></div>
+      <div class="wb-info-row"><b>👥 ${t.population || 'Pop'}:</b> <span>${k.pop} (max ever ${k.maxPopEver})</span></div>
+      <div class="wb-info-row"><b>🗺 ${t.territory || 'Territory'}:</b> <span>${k.territorySize} ${t.tiles || 'tiles'}</span></div>
+      <div class="wb-info-row"><b>🏛 ${t.townhall || 'Town Hall'}:</b> <span>${hallHpStr}</span></div>
+      <div class="wb-info-row"><b>🗼 ${t.towers || 'Towers'}:</b> <span>${towerCount}</span></div>
+      <div class="wb-info-row"><b>❤️ ${t.loyalty || 'Loyalty'}:</b> <span>${Math.round(k.loyalty)}%</span></div>
+    </div>
+    <div class="wb-info-section"><b>⚔ ${t.atWar || 'At war with'}:</b> ${warList}</div>
+    <div class="wb-info-section"><b>🤝 ${t.alliedWith || 'Allied with'}:</b> ${allyList}</div>
+    <div class="wb-info-section"><b>📜 ${t.warPlots || 'Plotting war on'}:</b> ${warPlots}</div>
+    <div class="wb-info-section"><b>🕊 ${t.peacePlots || 'Negotiating peace'}:</b> ${peacePlots}</div>
+    <div class="wb-info-section"><b>📊 ${t.relations || 'Relations'}:</b>
+      <table class="wb-info-table">${relRows}</table>
+    </div>
+  `;
+  m.style.display = 'flex';
+  // Highlight on map
+  window._inspectedKingdomId = k.id;
+}
+
 function doFriendship(x, y) {
   const k = pickKingdomAt(x, y);
   if (!k) { effects.push({ type: 'nomana', x, y, life: 14 }); return; }
@@ -2464,6 +2577,18 @@ function drawDiplomacy() {
       ctx.fillStyle = def.color;
       ctx.fillText(def.icon, k.x + dx, k.y - off);
       dx += 7;
+    }
+  }
+  // Highlight inspected kingdom
+  if (window._inspectedKingdomId) {
+    const k = kingdoms.get(window._inspectedKingdomId);
+    if (k) {
+      const pulse = 0.5 + 0.4 * Math.sin(frameCount * 0.1);
+      ctx.strokeStyle = `rgba(34, 211, 238, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(k.x, k.y, 28, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 }
@@ -3068,7 +3193,7 @@ function updateHUD() {
     document.querySelectorAll('.wb-tool').forEach(btn => {
       const id = btn.dataset.id;
       const def = TOOL_DEFS.find(t => t.id === id);
-      if (def) btn.classList.toggle('locked', mana < def.cost);
+      if (def) btn.classList.toggle('locked', def.cost > 0 && mana < def.cost);
     });
   }
 }
@@ -3281,7 +3406,7 @@ function buildToolsUI() {
   // 3 rows
   const rows = [
     TOOL_DEFS.filter(t => t.cat === 'terrain'),
-    TOOL_DEFS.filter(t => t.cat === 'disaster' || t.cat === 'bless' || t.cat === 'diplo'),
+    TOOL_DEFS.filter(t => t.cat === 'disaster' || t.cat === 'bless' || t.cat === 'diplo' || t.cat === 'view'),
     TOOL_DEFS.filter(t => t.cat === 'spawn' || t.cat === 'wild' || t.cat === 'hero')
   ];
   for (const row of rows) {
@@ -3291,10 +3416,10 @@ function buildToolsUI() {
       const btn = document.createElement('button');
       btn.className = 'wb-tool ' + t.cat;
       btn.dataset.id = t.id;
-      btn.innerHTML = t.icon + '<span class="wb-tool-cost">' + t.cost + '</span>';
+      btn.innerHTML = t.icon + (t.cost > 0 ? ('<span class="wb-tool-cost">' + t.cost + '</span>') : '');
       const heroName = window.wbLang && window.wbLang.toolNamesHero && window.wbLang.toolNamesHero[t.id];
       const baseName = (window.wbLang && window.wbLang.toolNames && window.wbLang.toolNames[t.id]) || heroName || t.id;
-      btn.title = baseName + ' · ✨' + t.cost;
+      btn.title = baseName + (t.cost > 0 ? (' · ✨' + t.cost) : '');
       btn.addEventListener('click', () => selectTool(t.id));
       btn.addEventListener('touchstart', (e) => { e.preventDefault(); selectTool(t.id); });
       rowEl.appendChild(btn);
@@ -3611,6 +3736,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lawD) lawD.addEventListener('change', e => { worldLaws.diplomacy = e.target.checked; });
   if (lawR) lawR.addEventListener('change', e => { worldLaws.rebellions = e.target.checked; });
   if (lawW) lawW.addEventListener('change', e => { worldLaws.autoWar = e.target.checked; });
+
+  // Kingdom info modal
+  const infoClose = document.getElementById('wb-info-close');
+  if (infoClose) infoClose.addEventListener('click', () => {
+    document.getElementById('wb-info-modal').style.display = 'none';
+    window._inspectedKingdomId = null;
+  });
 
   // Victory modal
   const victoryNew = document.getElementById('wb-victory-new');
