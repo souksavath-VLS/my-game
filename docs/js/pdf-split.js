@@ -120,9 +120,10 @@
     showProgress(true, 0);
     try {
       const bytes = await file.arrayBuffer();
-      // Validate via pdf-lib
-      const doc = await PDFLib.PDFDocument.load(bytes);
+      // Validate via pdf-lib (use a copy — pdf-lib doesn't detach but be defensive)
+      const doc = await PDFLib.PDFDocument.load(bytes.slice(0));
       const pageCount = doc.getPageCount();
+      // Keep the original buffer for later split operations.
       currentFile = { name: file.name, size: file.size, bytes, pageCount };
       selected = new Set();
       renderInfo();
@@ -130,8 +131,11 @@
       setMode('select');
       $('btn-clear').disabled = false;
       $('btn-gen').disabled = false;
-      await renderThumbs(bytes, pageCount);
+      // pdf.js's worker transfers (detaches) the ArrayBuffer it's given,
+      // so pass it a COPY — otherwise currentFile.bytes becomes unusable for splitting.
+      await renderThumbs(bytes.slice(0), pageCount);
     } catch (err) {
+      console.error(err);
       toast(I18N[lang].invalid);
       currentFile = null;
     }
@@ -349,7 +353,8 @@
 
   // ===== Generate split =====
   async function buildSplitPdf(pageIndices) {
-    const src = await PDFLib.PDFDocument.load(currentFile.bytes);
+    // Always pass a fresh copy — repeated loads + any library quirks won't detach our source.
+    const src = await PDFLib.PDFDocument.load(currentFile.bytes.slice(0));
     const out = await PDFLib.PDFDocument.create();
     const pages = await out.copyPages(src, pageIndices);
     pages.forEach(p => out.addPage(p));
