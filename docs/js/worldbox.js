@@ -68,6 +68,34 @@ function rollClass() {
   return CLASS_WARRIOR;
 }
 
+// V4: King traits — affect war/peace bias
+const KING_TRAITS = {
+  militaristic: { icon: '⚔️', warBias:  40, color: '#dc2626' },
+  bloodlust:    { icon: '🩸', warBias:  60, color: '#b91c1c' },
+  evil:         { icon: '😈', warBias:  30, color: '#7c2d12' },
+  pacifist:     { icon: '🕊', warBias: -50, color: '#86efac' },
+  diplomat:     { icon: '🤝', warBias: -30, color: '#06b6d4' },
+  honest:       { icon: '💎', warBias: -20, color: '#22d3ee' }
+};
+const TRAIT_KEYS = Object.keys(KING_TRAITS);
+function rollKingTraits() {
+  // 1-2 traits, weighted slightly toward neutral / common ones
+  const n = Math.random() < 0.4 ? 2 : 1;
+  const out = [];
+  while (out.length < n) {
+    const t = TRAIT_KEYS[Math.floor(Math.random() * TRAIT_KEYS.length)];
+    if (!out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+// V4: World Laws (player-toggleable)
+const worldLaws = {
+  diplomacy: true,
+  rebellions: true,
+  autoWar: true
+};
+
 // =================================================================
 // STATE
 // =================================================================
@@ -77,6 +105,7 @@ const units = [];         // active units
 const kingdoms = new Map(); // id -> kingdom
 const effects = [];       // visual effects
 const eventLog = [];      // string lines
+const buildings = [];     // V5: defensive structures (towers, town halls)
 let year = 0;
 let frameCount = 0;
 let paused = false;
@@ -139,7 +168,8 @@ const ACH_DEFS = [
   { id: 'a_bear_hunt',     icon: '🐻' },
   { id: 'a_peacemaker',    icon: '🕊️' },
   { id: 'a_inferno',       icon: '🔥' },
-  { id: 'a_meteor',        icon: '☄️' }
+  { id: 'a_meteor',        icon: '☄️' },
+  { id: 'a_capture',       icon: '🏛⇨' }
 ];
 let achievements = (() => {
   try { return JSON.parse(localStorage.getItem('wbAch') || '{}'); }
@@ -359,11 +389,13 @@ class Unit {
 
     // Decide action: find nearest enemy or mate
     let nearestEnemy = null, eDist = 80 * 80;
-    let nearestMate = null,  mDist = 50 * 50;
+    let nearestMate = null,  mDist = 65 * 65;  // wider range (was 50)
     const isNight = dayPhase > 0.7 && dayPhase < 0.95;
+    const isChild = this.age < 10 && this.race < MORTAL_RACES;
     const huntRange = (this.race === RACE_WOLF && isNight) ? 120*120 :
                       (this.race === RACE_BEAR) ? 100*100 :
-                      (this.isHostileAnimal()) ? 70*70 : 80*80;
+                      (this.isHostileAnimal()) ? 70*70 :
+                      isChild ? 50*50 : 80*80;
     eDist = huntRange;
     // Scan a subset for perf (every 4th frame)
     const startIdx = frameCount % 4;
@@ -410,6 +442,11 @@ class Unit {
           eDist = d; nearestEnemy = u;
         } else if (u.race < MORTAL_RACES) {
           if (d < eDist) {
+            // Don't attack allies
+            if (this.kingdom && u.kingdom) {
+              const myK = kingdoms.get(this.kingdom);
+              if (myK && myK.allies.has(u.kingdom)) continue;
+            }
             if (!this.kingdom || !u.kingdom || isAtWar(this.kingdom, u.kingdom)) {
               eDist = d; nearestEnemy = u;
             } else if (d < 25 * 25) {
@@ -422,17 +459,18 @@ class Unit {
           eDist = d; nearestEnemy = u;
         }
       } else if (
+        u.race === this.race &&
         u.sex !== this.sex &&
         u.matingCd === 0 && this.matingCd === 0 &&
         this.age > 10 && u.age > 10 &&
-        this.age < this.maxAge * 0.8 && u.age < u.maxAge * 0.8
+        this.age < this.maxAge * 0.85 && u.age < u.maxAge * 0.85
       ) {
         if (d < mDist) { mDist = d; nearestMate = u; }
       }
     }
 
-    // Sheep flee from predators instead of attacking
-    if (this.race === RACE_SHEEP && nearestEnemy) {
+    // Sheep + children flee from predators instead of attacking
+    if ((this.race === RACE_SHEEP || isChild) && nearestEnemy) {
       this.state = 'flee';
       this.target = nearestEnemy;
     } else if (nearestEnemy) {
@@ -444,6 +482,44 @@ class Unit {
     } else {
       this.state = 'wander';
       this.target = null;
+    }
+
+    // V5: When at war, target hostile buildings (priority over chasing units)
+    if (this.race < MORTAL_RACES && this.kingdom && !isChild) {
+      const myK = kingdoms.get(this.kingdom);
+      if (myK && myK.wars.size > 0) {
+        let bestBld = null, bd = 110 * 110;  // detection range
+        for (const b of buildings) {
+          if (b.dead || b.kingdom === this.kingdom) continue;
+          if (!myK.wars.has(b.kingdom)) continue;
+          // Prefer towers slightly (priority targets)
+          const dd = dist2(this.x, this.y, b.x, b.y) * (b.type === B_TOWER ? 0.7 : 1.0);
+          if (dd < bd) { bd = dd; bestBld = b; }
+        }
+        if (bestBld) {
+          // Override target — move toward and attack the building
+          this.target = bestBld;
+          this.state = 'siege';
+          const dx = bestBld.x - this.x, dy = bestBld.y - this.y;
+          const d = Math.sqrt(dx*dx + dy*dy) || 1;
+          if (Math.abs(dx) > 0.2) this.facing = dx > 0 ? 1 : -1;
+          const sp = 0.55;
+          this.vx = (dx / d) * sp;
+          this.vy = (dy / d) * sp;
+          if (d < 14 && this.attackCd === 0) {
+            const dmg = Math.round((this.dmg + Math.floor(Math.random() * 3)) * techDmgMul(myK.tech || 0));
+            bestBld.takeDamage(dmg, this.kingdom);
+            this.attackCd = this.atkCdMax;
+            effects.push({ type: 'hit', x: bestBld.x + rand(-4, 4), y: bestBld.y + rand(-4, 4), life: 10 });
+          }
+          this.x += this.vx; this.y += this.vy;
+          if (this.x < 1) { this.x = 1; this.vx *= -1; }
+          if (this.y < 1) { this.y = 1; this.vy *= -1; }
+          if (this.x > VIEW_W - 1) { this.x = VIEW_W - 1; this.vx *= -1; }
+          if (this.y > VIEW_H - 1) { this.y = VIEW_H - 1; this.vy *= -1; }
+          return;  // skip normal AI this frame
+        }
+      }
     }
 
     // Healer: find a wounded ally instead of an enemy if no enemy nearby
@@ -516,13 +592,25 @@ class Unit {
       }
       // Mate
       else if (this.state === 'mate' && d < 9 && this.matingCd === 0 && units.length < 1200) {
+        // Baby inherits kingdom + race; randomize sex 50/50
         const baby = new Unit(this.x + rand(-3, 3), this.y + rand(-3, 3), this.race);
-        baby.matingCd = 1200;
+        baby.matingCd = 800;                  // grows up before it can mate (was 1200)
         baby.kingdom = this.kingdom || this.target.kingdom;
+        baby.age = 0;                          // pure newborn
         units.push(baby);
-        this.matingCd = 1500;
-        this.target.matingCd = 1500;
-        effects.push({ type: 'heart', x: this.x, y: this.y - 6, life: 22 });
+        // Adults rest a bit before the next baby (was 1500)
+        this.matingCd = 900;
+        this.target.matingCd = 900;
+        // Big celebratory burst — multiple hearts + halo
+        for (let h = 0; h < 4; h++) {
+          effects.push({
+            type: 'heart',
+            x: this.x + rand(-3, 3),
+            y: this.y - 4 + rand(-2, 2),
+            life: 28 + h * 4
+          });
+        }
+        effects.push({ type: 'matehalo', x: (this.x + this.target.x) / 2, y: (this.y + this.target.y) / 2, life: 30 });
       }
     } else {
       // wander
@@ -572,6 +660,7 @@ class Unit {
       const k = kingdoms.get(this.kingdom);
       if (k) {
         k.pop = Math.max(0, k.pop - 1);
+        if (reason === 'combat') k.warLosses += 1;
         if (this.isKing) {
           k.needsNewKing = true;
           log('👑✖ ' + (k.name || 'A kingdom') + ' — ' + (window.wbLang && window.wbLang.evtKingDied || 'the king has fallen'));
@@ -654,9 +743,21 @@ class Unit {
     // MORTAL: detailed sprite
     const walking = (Math.abs(this.vx) + Math.abs(this.vy)) > 0.05;
     const step = walking ? Math.sin(this.animFrame * 0.35) : 0;
+    const isChild = this.age < 10;
+    const isFemale = this.sex === 'F';
+    // Sex-specific colors
+    const hairColor = isFemale
+      ? (this.race === RACE_HUMAN ? '#fbbf24'
+        : this.race === RACE_ELF ? '#fbcfe8'
+        : this.race === RACE_DWARF ? '#fb923c'
+        : '#d8b4fe')
+      : '#1e293b';
+    const lipColor = isFemale ? '#ec4899' : null;
+    // Child scale (smaller proportional sprite)
+    const sc = isChild ? 0.6 : 1.0;
 
     // Cape (Hero) — drawn behind body
-    if (this.isHero()) {
+    if (this.isHero() && !isChild) {
       c.fillStyle = '#facc15';
       c.fillRect(x - 3 * f, y - 3, 3, 6);
       c.fillStyle = '#ca8a04';
@@ -666,7 +767,7 @@ class Unit {
     // Shadow
     c.fillStyle = 'rgba(0,0,0,0.30)';
     c.beginPath();
-    c.ellipse(x, y + 4, 3.4, 1.2, 0, 0, Math.PI * 2);
+    c.ellipse(x, y + 4 * sc, 3.4 * sc, 1.2 * sc, 0, 0, Math.PI * 2);
     c.fill();
 
     // Downed state — lie flat
@@ -685,48 +786,92 @@ class Unit {
     // Legs (animated)
     const legColor = '#1e293b';
     c.fillStyle = legColor;
-    c.fillRect(x - 1.5, y + 2, 1.4, 2 + step);
-    c.fillRect(x + 0.1, y + 2, 1.4, 2 - step);
+    c.fillRect(x - 1.5 * sc, y + 2 * sc, 1.4 * sc, (2 + step) * sc);
+    c.fillRect(x + 0.1 * sc, y + 2 * sc, 1.4 * sc, (2 - step) * sc);
 
-    // Body (class-tinted)
-    const bodyColor = (this.class >= 0 && this.class < CLASS_DEFS.length)
+    // Body — narrower for females
+    const bodyColor = (this.class >= 0 && this.class < CLASS_DEFS.length && !isChild)
       ? CLASS_DEFS[this.class].color
       : RACE_BODY[this.race];
     c.fillStyle = bodyColor;
-    c.fillRect(x - 2, y - 2, 4, 4);
+    if (isFemale && !isChild) {
+      // Slightly tapered body (dress/tunic shape)
+      c.fillRect(x - 1.7, y - 2, 3.4, 3);
+      c.fillStyle = bodyColor;
+      // Hem flare
+      c.beginPath();
+      c.moveTo(x - 1.9, y + 1);
+      c.lineTo(x + 1.9, y + 1);
+      c.lineTo(x + 2.3, y + 2);
+      c.lineTo(x - 2.3, y + 2);
+      c.closePath();
+      c.fill();
+    } else {
+      c.fillRect(x - 2 * sc, y - 2 * sc, 4 * sc, 4 * sc);
+    }
     // Belt
-    c.fillStyle = '#1f2937';
-    c.fillRect(x - 2, y + 1, 4, 0.8);
+    if (!isChild) {
+      c.fillStyle = '#1f2937';
+      c.fillRect(x - 2, y + 1, 4, 0.8);
+    }
 
     // Head (skin)
     c.fillStyle = RACE_HEAD[this.race];
-    c.fillRect(x - 1.5, y - 5, 3, 3);
-    // Hair
-    c.fillStyle = '#1e293b';
-    c.fillRect(x - 1.5, y - 5.5, 3, 1.2);
-    // Race-specific tweaks
-    if (this.race === RACE_ELF) {
-      c.fillStyle = '#86efac';
-      c.fillRect(x - 2, y - 4, 0.6, 0.6);  // pointed ear
-      c.fillRect(x + 1.4, y - 4, 0.6, 0.6);
-    } else if (this.race === RACE_DWARF) {
-      c.fillStyle = '#fde68a';
-      c.fillRect(x - 1.5, y - 3, 3, 1.4);  // beard
-    } else if (this.race === RACE_ORC) {
-      c.fillStyle = '#f5f5f4';
-      c.fillRect(x - 1.5, y - 2.5, 0.6, 0.8); // tusks
-      c.fillRect(x + 0.9, y - 2.5, 0.6, 0.8);
-    }
-    // Eyes
-    c.fillStyle = '#000';
-    c.fillRect(x - 1 + 0.2 * (f < 0 ? -1 : 0), y - 4, 0.6, 0.6);
-    c.fillRect(x + 0.4 + 0.2 * (f < 0 ? -1 : 0), y - 4, 0.6, 0.6);
+    c.fillRect(x - 1.5 * sc, y - 5 * sc, 3 * sc, 3 * sc);
 
-    // Weapon — class-specific
-    this._drawWeapon(c);
+    // Hair — sex-distinct styles
+    c.fillStyle = hairColor;
+    if (isFemale) {
+      // Top hair
+      c.fillRect(x - 1.7, y - 5.6, 3.4, 1.4);
+      // Long hair flowing down behind shoulders
+      c.fillRect(x - 2.2, y - 4.5, 0.8, 4.5 * sc);
+      c.fillRect(x + 1.4, y - 4.5, 0.8, 4.5 * sc);
+      // Fringe
+      c.fillRect(x - 1.4, y - 4.5, 2.8, 0.6);
+    } else {
+      // Short male hair cap
+      c.fillRect(x - 1.5 * sc, y - 5.5 * sc, 3 * sc, 1.2 * sc);
+    }
+
+    // Race-specific tweaks (skip for children for cleanliness)
+    if (!isChild) {
+      if (this.race === RACE_ELF) {
+        c.fillStyle = '#86efac';
+        c.fillRect(x - 2, y - 4, 0.6, 0.6);  // pointed ear
+        c.fillRect(x + 1.4, y - 4, 0.6, 0.6);
+      } else if (this.race === RACE_DWARF && !isFemale) {
+        c.fillStyle = '#fde68a';
+        c.fillRect(x - 1.5, y - 3, 3, 1.4);  // beard (males only)
+      } else if (this.race === RACE_ORC) {
+        c.fillStyle = '#f5f5f4';
+        c.fillRect(x - 1.5, y - 2.5, 0.6, 0.8); // tusks
+        c.fillRect(x + 0.9, y - 2.5, 0.6, 0.8);
+      }
+    }
+    // Eyes — slightly larger for females
+    const eyeSize = isFemale ? 0.7 : 0.6;
+    c.fillStyle = '#000';
+    c.fillRect(x - 1, y - 4 * sc, eyeSize, eyeSize);
+    c.fillRect(x + 0.4, y - 4 * sc, eyeSize, eyeSize);
+    // Female lips
+    if (isFemale && !isChild && lipColor) {
+      c.fillStyle = lipColor;
+      c.fillRect(x - 0.4, y - 3, 0.9, 0.4);
+    }
+
+    // Weapon — class-specific (no weapon for children)
+    if (!isChild) this._drawWeapon(c);
+
+    // Baby/child indicator
+    if (isChild) {
+      c.fillStyle = 'rgba(244, 114, 182, 0.8)';
+      c.font = '5px sans-serif';
+      c.fillText('👶', x - 3, y - 6);
+    }
 
     // Crown (King)
-    if (this.isKing) {
+    if (this.isKing && !isChild) {
       c.fillStyle = '#facc15';
       // 3-spike crown
       c.fillRect(x - 2, y - 7, 4, 1.2);
@@ -859,7 +1004,25 @@ class Kingdom {
     this.needsNewKing = true;
     this.kingId = null;        // unit reference (assigned via flag)
     this.territorySize = 0;
+    // V4: Diplomacy
+    this.kingTraits = [];      // assigned when first king crowned
+    this.relations = new Map(); // kingdom_id -> -100..+100
+    this.warPlots   = new Map(); // kingdom_id -> { countdown }
+    this.peacePlots = new Map(); // kingdom_id -> { countdown }
+    this.allies = new Set();
+    this.warLosses = 0;         // counter; decays
+    this.loyalty = 100;         // for rebellion check (decreased by evil king / overcrowding)
   }
+  // Sum of war biases from king traits (positive = warlike, negative = peaceful)
+  warBias() {
+    let s = 0;
+    for (const t of this.kingTraits) {
+      const def = KING_TRAITS[t];
+      if (def) s += def.warBias;
+    }
+    return s;
+  }
+  isWarlike() { return this.warBias() > 0; }
   ageOfKingdom() { return year - this.foundedYear; }
   updateTech() {
     const a = this.ageOfKingdom();
@@ -883,6 +1046,159 @@ class Kingdom {
     return null;
   }
 }
+// =================================================================
+// V5: BUILDINGS — Watchtowers + Town Halls (capturable centers)
+// =================================================================
+const B_TOWER = 'tower', B_HALL = 'hall';
+const TOWER_STATS_BY_TECH = [
+  { range:  78, dmg:  6,  cd: 60, maxHp:  60, maxPerPop: 18 },  // Stone
+  { range:  96, dmg:  9,  cd: 50, maxHp:  90, maxPerPop: 14 },  // Bronze
+  { range: 118, dmg: 12,  cd: 42, maxHp: 130, maxPerPop: 11 },  // Iron
+  { range: 140, dmg: 16,  cd: 34, maxHp: 180, maxPerPop:  9 }   // Medieval
+];
+const HALL_HP_BY_TECH = [240, 380, 540, 720];
+
+class Building {
+  constructor(type, x, y, kingdomId) {
+    this.type = type;          // 'tower' or 'hall'
+    this.x = x; this.y = y;
+    this.kingdom = kingdomId;
+    this.dead = false;
+    this.attackCd = 0;
+    this.repairCd = 0;
+    this.constructProg = type === B_TOWER ? 0 : 100;  // towers build over time
+    const k = kingdoms.get(kingdomId);
+    const tech = k ? k.tech : 0;
+    this.maxHp = type === B_TOWER ? TOWER_STATS_BY_TECH[tech].maxHp : HALL_HP_BY_TECH[tech];
+    this.hp = type === B_TOWER ? Math.floor(this.maxHp * 0.3) : this.maxHp;
+  }
+  stats() {
+    const k = kingdoms.get(this.kingdom);
+    const tech = k ? k.tech : 0;
+    return TOWER_STATS_BY_TECH[tech];
+  }
+  isDamaged() { return !this.dead && this.hp < this.maxHp; }
+  isComplete() { return this.constructProg >= 100; }
+  takeDamage(amount, attackerKingdom) {
+    if (this.dead) return;
+    this.hp -= amount;
+    effects.push({ type: 'hit', x: this.x, y: this.y, life: 10 });
+    if (this.hp <= 0) {
+      this.dead = true;
+      this.hp = 0;
+      effects.push({ type: 'rubble', x: this.x, y: this.y, life: 90 });
+      const k = kingdoms.get(this.kingdom);
+      if (k) {
+        log('💥 ' + format(window.wbLang.evtBuildingDestroyed || '{a}\'s {b} destroyed', {
+          a: k.name, b: this.type === B_TOWER ? '🗼' : '🏛'
+        }));
+        // Hall destroyed → capture chance
+        if (this.type === B_HALL) attemptCapture(this, attackerKingdom);
+      }
+    }
+  }
+  update() {
+    if (this.dead) return;
+    // Construction progress for new towers
+    if (!this.isComplete()) {
+      this.constructProg += 0.4;
+      this.hp = Math.min(this.maxHp, this.hp + 0.5);
+      return;
+    }
+    const k = kingdoms.get(this.kingdom);
+    if (!k) { this.dead = true; return; }
+
+    // Auto-repair (slow)
+    if (this.isDamaged()) {
+      this.repairCd++;
+      if (this.repairCd >= 60) {
+        this.repairCd = 0;
+        this.hp = Math.min(this.maxHp, this.hp + (this.type === B_TOWER ? 2 : 3));
+      }
+    }
+
+    // Watchtower combat
+    if (this.type === B_TOWER) {
+      if (this.attackCd > 0) { this.attackCd--; return; }
+      const s = this.stats();
+      let target = null, td = s.range * s.range;
+      for (const u of units) {
+        if (u.dead || u.downed > 0) continue;
+        // Don't shoot own kingdom or allies
+        if (u.kingdom === this.kingdom) continue;
+        if (u.kingdom && k.allies.has(u.kingdom)) continue;
+        // Hostile criteria:
+        //   - hostile animal (wolf/bear)
+        //   - mortal of enemy kingdom (war declared)
+        //   - kingdom-less mortal (raider)
+        let hostile = false;
+        if (u.isHostileAnimal()) hostile = true;
+        else if (u.race < MORTAL_RACES) {
+          if (!u.kingdom) hostile = true;
+          else if (k.wars.has(u.kingdom)) hostile = true;
+        }
+        if (!hostile) continue;
+        const d = dist2(u.x, u.y, this.x, this.y);
+        if (d < td) { td = d; target = u; }
+      }
+      if (target) {
+        effects.push({
+          type: 'arrow', x: this.x, y: this.y - 8,
+          tx: target.x, ty: target.y,
+          target, dmg: s.dmg, shooter: null,
+          life: 60
+        });
+        this.attackCd = s.cd;
+      }
+    }
+  }
+}
+
+// Try to capture the kingdom whose town hall just fell
+function attemptCapture(hall, attackerKingdomId) {
+  const losingKing = kingdoms.get(hall.kingdom);
+  if (!losingKing) return;
+  // Find an aggressor: any kingdom at war with the loser whose units are nearby
+  let captor = attackerKingdomId ? kingdoms.get(attackerKingdomId) : null;
+  if (!captor) {
+    let best = null, bestCount = 0;
+    for (const [id, k] of kingdoms) {
+      if (id === losingKing.id) continue;
+      if (!k.wars.has(losingKing.id)) continue;
+      // Count this kingdom's soldiers near the fallen hall
+      let near = 0;
+      for (const u of units) {
+        if (!u.dead && u.kingdom === id && dist2(u.x, u.y, hall.x, hall.y) < 120 * 120) near++;
+      }
+      if (near > bestCount) { bestCount = near; best = k; }
+    }
+    captor = best;
+  }
+  if (!captor) {
+    // No captor — kingdom just collapses
+    log('🏛✖ ' + format(window.wbLang.evtKingdomCollapse || '{a} has collapsed', { a: losingKing.name }));
+    return;
+  }
+  // Transfer surviving units to captor
+  let captured = 0;
+  for (const u of units) {
+    if (u.dead) continue;
+    if (u.kingdom !== losingKing.id) continue;
+    u.kingdom = captor.id;
+    u.isKing = false;
+    captured++;
+  }
+  // Transfer surviving buildings
+  for (const b of buildings) {
+    if (b.kingdom === losingKing.id && !b.dead) b.kingdom = captor.id;
+  }
+  captor.pop += captured;
+  log('🏛⇨ ' + format(window.wbLang.evtCapture || '{b} captures {a}!', { a: losingKing.name, b: captor.name }));
+  unlockAch('a_capture');
+  // Old kingdom is dissolved next year by normal pruning
+  losingKing.pop = 0;
+}
+
 const KINGDOM_PALETTE = [
   '#fbbf24', '#22d3ee', '#a855f7', '#ec4899', '#84cc16', '#f97316',
   '#06b6d4', '#f43f5e', '#facc15', '#10b981', '#8b5cf6', '#0ea5e9'
@@ -983,6 +1299,8 @@ function updateKingdoms() {
         king.updateTech();
         if (king.cityKind() === 'city') unlockAch('a_city');
         stillAlive.add(king.id);
+        // V5: auto-build watchtowers and town hall
+        manageBuildings(king);
         // King succession: ensure someone wears the crown
         // Clear isKing from anyone not in this cluster anymore
         let currentKing = null;
@@ -1009,7 +1327,10 @@ function updateKingdoms() {
           if (next) {
             next.isKing = true;
             king.needsNewKing = false;
-            if (currentKing) log('👑 ' + king.name + ' — ' + (window.wbLang && window.wbLang.evtKingCrowned || 'a new king is crowned'));
+            // Roll fresh personality on every coronation (new + succession)
+            king.kingTraits = rollKingTraits();
+            const traitStr = king.kingTraits.map(t => KING_TRAITS[t].icon).join('');
+            log('👑 ' + king.name + ' ' + traitStr + ' — ' + (window.wbLang && window.wbLang.evtKingCrowned || 'a new king is crowned'));
           }
         }
       } else {
@@ -1074,20 +1395,251 @@ function updateKingdoms() {
     if (t.owner && kingdoms.has(t.owner)) kingdoms.get(t.owner).territorySize++;
   }
 
-  // Decide wars: any two kingdoms whose capitals are within 200px and have
-  // had no war declared yet AND different race AND not at peace right after.
+  // V4: Replace simple war declaration with diplomacy/plot system
+  if (worldLaws.diplomacy) updateDiplomacy();
+
+  // V4: Rebellion check — overcrowded/evil-king kingdoms can splinter
+  if (worldLaws.rebellions) checkRebellions();
+
+  // V4: Victory check — only 1 kingdom alive ⇒ win
+  checkVictory();
+}
+
+// =================================================================
+// V5: BUILDING MANAGEMENT
+// =================================================================
+function manageBuildings(k) {
+  const tech = k.tech || 0;
+  // Town hall — ensure exactly one per kingdom
+  let hall = buildings.find(b => b.kingdom === k.id && b.type === B_HALL && !b.dead);
+  if (!hall) {
+    buildings.push(new Building(B_HALL, k.x, k.y, k.id));
+  } else {
+    // Slide the hall toward the new centroid (gentle pursuit)
+    hall.x = hall.x * 0.9 + k.x * 0.1;
+    hall.y = hall.y * 0.9 + k.y * 0.1;
+    // Upgrade max HP if tech advanced
+    const desired = HALL_HP_BY_TECH[tech];
+    if (hall.maxHp < desired) {
+      const gain = desired - hall.maxHp;
+      hall.maxHp = desired; hall.hp += gain;
+    }
+  }
+  // Watchtowers — number scales with pop and tech
+  const popPerTower = TOWER_STATS_BY_TECH[tech].maxPerPop;
+  const maxTowers = Math.min(2 + tech * 2, Math.floor(k.pop / popPerTower));
+  const myTowers = buildings.filter(b => b.kingdom === k.id && b.type === B_TOWER && !b.dead);
+  if (myTowers.length < maxTowers) {
+    // Try to place a new tower in territory
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const ang = Math.random() * Math.PI * 2;
+      const radius = 30 + Math.random() * 90;
+      const tx = k.x + Math.cos(ang) * radius;
+      const ty = k.y + Math.sin(ang) * radius;
+      if (tx < 12 || ty < 12 || tx > VIEW_W - 12 || ty > VIEW_H - 12) continue;
+      // Tile must be land
+      const tile = tiles[Math.floor(ty / TILE_PX)] && tiles[Math.floor(ty / TILE_PX)][Math.floor(tx / TILE_PX)];
+      if (!tile || tile.type === T_WATER || tile.type === T_LAVA) continue;
+      // Tile should be claimed by this kingdom (or at least no other)
+      if (tile.owner && tile.owner !== k.id) continue;
+      // Not too close to existing buildings
+      let tooClose = false;
+      for (const b of buildings) {
+        if (b.dead) continue;
+        if (dist2(b.x, b.y, tx, ty) < 50 * 50) { tooClose = true; break; }
+      }
+      if (tooClose) continue;
+      buildings.push(new Building(B_TOWER, tx, ty, k.id));
+      log('🏗 ' + format(window.wbLang.evtTowerBuilt || '{a} built a watchtower', { a: k.name }));
+      break;
+    }
+  }
+}
+
+// =================================================================
+// V4: DIPLOMACY (relations, plots, alliances)
+// =================================================================
+function updateDiplomacy() {
   const ks = Array.from(kingdoms.values());
+  if (ks.length < 2) return;
   for (let i = 0; i < ks.length; i++) {
     for (let j = i + 1; j < ks.length; j++) {
       const a = ks[i], b = ks[j];
-      if (a.race === b.race) continue;
-      if (a.wars.has(b.id)) continue;
-      if (dist2(a.x, a.y, b.x, b.y) < 220 * 220 && Math.random() < 0.10) {
-        a.wars.add(b.id); b.wars.add(a.id);
-        log(format(window.wbLang.evtWar, { a: a.name, b: b.name }));
+      let rel = a.relations.get(b.id) || 0;
+      let delta = 0;
+      // Race baseline
+      delta += (a.race === b.race) ? 0.6 : -0.3;
+      // Capital proximity (territory pressure)
+      const d = Math.sqrt(dist2(a.x, a.y, b.x, b.y));
+      if (d < 180) delta -= 0.8;
+      else if (d > 400) delta += 0.3;
+      // King trait war-bias drags relations down (warlike) or up (peaceful)
+      delta -= a.warBias() * 0.012;
+      delta -= b.warBias() * 0.012;
+      // Common enemy bonus
+      for (const c of ks) {
+        if (c === a || c === b) continue;
+        if (a.wars.has(c.id) && b.wars.has(c.id)) delta += 0.4;
+      }
+      // Alliance maintains positive
+      if (a.allies.has(b.id)) delta += 0.6;
+      // At war: relations pull toward hatred
+      if (a.wars.has(b.id)) delta -= 0.8;
+      // Power asymmetry — strong picks on weak
+      const sizeRatio = (a.pop + 1) / (b.pop + 1);
+      if (sizeRatio > 2.5 && a.isWarlike()) delta -= 0.4;
+      if (sizeRatio < 0.4 && b.isWarlike()) delta -= 0.4;
+
+      rel = clamp(rel + delta, -100, 100);
+      a.relations.set(b.id, rel);
+      b.relations.set(a.id, rel);
+
+      // Decay war losses
+      a.warLosses = Math.max(0, a.warLosses - 0.3);
+      b.warLosses = Math.max(0, b.warLosses - 0.3);
+
+      // -- WAR PLOT --
+      if (!a.wars.has(b.id) && !a.allies.has(b.id) && worldLaws.autoWar) {
+        if (rel < -45 && !a.warPlots.has(b.id) && !a.peacePlots.has(b.id)) {
+          const cd = 4 + Math.floor(Math.random() * 6);
+          a.warPlots.set(b.id, { countdown: cd });
+          b.warPlots.set(a.id, { countdown: cd });
+          log('⚔ ' + format(window.wbLang.evtPlotWar || '{a} begins plotting war on {b}', { a: a.name, b: b.name }));
+        }
+        if (a.warPlots.has(b.id)) {
+          const plot = a.warPlots.get(b.id);
+          plot.countdown--;
+          if (plot.countdown <= 0) {
+            // Declare war
+            a.wars.add(b.id); b.wars.add(a.id);
+            a.warPlots.delete(b.id); b.warPlots.delete(a.id);
+            log('⚔ ' + format(window.wbLang.evtWar, { a: a.name, b: b.name }));
+            // Allies join
+            for (const allyId of a.allies) {
+              const al = kingdoms.get(allyId);
+              if (al && al.id !== b.id && !al.wars.has(b.id) && !al.allies.has(b.id)) {
+                al.wars.add(b.id); b.wars.add(al.id);
+                log('🛡 ' + format(window.wbLang.evtAllyJoin || '{a} joins the war (ally of {b})', { a: al.name, b: a.name }));
+              }
+            }
+            for (const allyId of b.allies) {
+              const al = kingdoms.get(allyId);
+              if (al && al.id !== a.id && !al.wars.has(a.id) && !al.allies.has(a.id)) {
+                al.wars.add(a.id); a.wars.add(al.id);
+                log('🛡 ' + format(window.wbLang.evtAllyJoin || '{a} joins the war (ally of {b})', { a: al.name, b: b.name }));
+              }
+            }
+          }
+        }
+      }
+
+      // -- ALLIANCE FORMATION --
+      if (!a.wars.has(b.id) && !a.allies.has(b.id) && !a.warPlots.has(b.id)) {
+        if (rel > 55 && Math.random() < 0.08) {
+          a.allies.add(b.id); b.allies.add(a.id);
+          log('🤝 ' + format(window.wbLang.evtAlliance || '{a} forms an alliance with {b}', { a: a.name, b: b.name }));
+        }
+      }
+
+      // -- PEACE PLOT --
+      if (a.wars.has(b.id) && !a.peacePlots.has(b.id)) {
+        // Heavy losses or relations improving — start peace negotiations
+        const losses = a.warLosses + b.warLosses;
+        const trigger = (losses > 8 && Math.random() < 0.12) || rel > -10;
+        if (trigger) {
+          const cd = 3 + Math.floor(Math.random() * 4);
+          a.peacePlots.set(b.id, { countdown: cd });
+          b.peacePlots.set(a.id, { countdown: cd });
+          log('🕊 ' + format(window.wbLang.evtPlotPeace || '{a} and {b} begin peace negotiations', { a: a.name, b: b.name }));
+        }
+      }
+      if (a.peacePlots.has(b.id)) {
+        a.peacePlots.get(b.id).countdown--;
+        if (a.peacePlots.get(b.id).countdown <= 0) {
+          a.wars.delete(b.id); b.wars.delete(a.id);
+          a.peacePlots.delete(b.id); b.peacePlots.delete(a.id);
+          a.warLosses = 0; b.warLosses = 0;
+          // Reset relations a bit toward neutral
+          a.relations.set(b.id, Math.max(rel, 0));
+          b.relations.set(a.id, Math.max(rel, 0));
+          log('🕊 ' + format(window.wbLang.evtPeaceTreaty || '{a} and {b} sign a peace treaty', { a: a.name, b: b.name }));
+          unlockAch('a_peacemaker');
+        }
       }
     }
   }
+}
+
+// =================================================================
+// V4: REBELLION
+// =================================================================
+function checkRebellions() {
+  for (const k of Array.from(kingdoms.values())) {
+    // Loyalty drops if king is evil or kingdom is too big
+    if (k.kingTraits.includes('evil')) k.loyalty -= 1;
+    if (k.kingTraits.includes('bloodlust')) k.loyalty -= 0.5;
+    if (k.kingTraits.includes('honest') || k.kingTraits.includes('diplomat')) k.loyalty = Math.min(100, k.loyalty + 0.4);
+    if (k.pop > 60) k.loyalty -= 0.3;
+    // Recover slowly
+    if (!k.kingTraits.includes('evil') && !k.kingTraits.includes('bloodlust')) k.loyalty = Math.min(100, k.loyalty + 0.2);
+    k.loyalty = clamp(k.loyalty, 0, 100);
+
+    if (k.loyalty < 30 && k.pop > 12 && Math.random() < 0.08) {
+      // Splinter a faction: half the members defect & form a new kingdom
+      const members = units.filter(u => !u.dead && u.kingdom === k.id && !u.isKing);
+      if (members.length < 6) continue;
+      const splinters = members.slice(0, Math.floor(members.length / 2));
+      const splinterKing = new Kingdom(k.race);
+      splinterKing.name = randomKingdomName() + ' (Rebel)';
+      splinterKing.kingTraits = ['militaristic'];  // rebels are militant by default
+      kingdoms.set(splinterKing.id, splinterKing);
+      let sx = 0, sy = 0;
+      for (const m of splinters) { m.kingdom = splinterKing.id; m.isKing = false; sx += m.x; sy += m.y; }
+      splinterKing.pop = splinters.length;
+      splinterKing.x = sx / splinters.length;
+      splinterKing.y = sy / splinters.length;
+      splinters[0].isKing = true;
+      // Immediate hostility
+      splinterKing.relations.set(k.id, -100);
+      k.relations.set(splinterKing.id, -100);
+      k.loyalty = 60;  // remaining people feel relieved
+      log('🔥 ' + format(window.wbLang.evtRebellion || '{a} rebels and breaks away from {b}!', { a: splinterKing.name, b: k.name }));
+    }
+  }
+}
+
+// =================================================================
+// V4: VICTORY CHECK
+// =================================================================
+let victoryFired = false;
+function checkVictory() {
+  if (victoryFired) return;
+  // Count surviving kingdoms with population > 0
+  const alive = Array.from(kingdoms.values()).filter(k => k.pop > 0);
+  if (kingdoms.size === 0 || alive.length === 0) return;
+  if (alive.length === 1 && year > 5) {
+    victoryFired = true;
+    const winner = alive[0];
+    showVictory(winner);
+  }
+}
+function showVictory(winner) {
+  const m = document.getElementById('wb-victory-modal');
+  if (!m) return;
+  const nameEl = document.getElementById('wb-victory-name');
+  if (nameEl) {
+    const traitStr = winner.kingTraits.map(t => KING_TRAITS[t].icon).join(' ');
+    nameEl.textContent = winner.name + ' ' + traitStr;
+    nameEl.style.color = winner.color;
+  }
+  const detailEl = document.getElementById('wb-victory-detail');
+  if (detailEl) {
+    const raceName = raceLabel(winner.race);
+    detailEl.textContent = `${raceName} · ${winner.pop} pop · ${winner.territorySize} tiles · ${TECH_NAMES[winner.tech]}`;
+  }
+  m.style.display = 'flex';
+  paused = true;
+  refreshSpeedUI();
 }
 function raceLabel(r) {
   const n = window.wbLang && window.wbLang.toolNames;
@@ -1135,6 +1687,8 @@ const TOOL_DEFS = [
   { id: 'rain',      icon: '🌧️', cat: 'bless',    cost: 8 },
   { id: 'heal',      icon: '💚', cat: 'bless',    cost: 10 },
   { id: 'peace',     icon: '🛐', cat: 'bless',    cost: 35 },
+  { id: 'spite',     icon: '💢', cat: 'diplo',   cost: 25 },
+  { id: 'friendship',icon: '💞', cat: 'diplo',   cost: 25 },
   // row 3: spawns (mortals + wildlife)
   { id: 'human', icon: '🧑', cat: 'spawn', cost: 4 },
   { id: 'elf',   icon: '🧝', cat: 'spawn', cost: 4 },
@@ -1180,6 +1734,8 @@ function applyTool(toolId, x, y) {
     case 'rain':      return doRain(x, y, brushSize);
     case 'heal':      return doHeal(x, y, brushSize);
     case 'peace':     return doPeace();
+    case 'spite':     return doSpite(x, y);
+    case 'friendship':return doFriendship(x, y);
     case 'human':     return spawnAt(x, y, RACE_HUMAN);
     case 'elf':       return spawnAt(x, y, RACE_ELF);
     case 'dwarf':     return spawnAt(x, y, RACE_DWARF);
@@ -1298,6 +1854,58 @@ function doRain(x, y, brush) {
 
 let cameraShakeAmt = 0;
 function cameraShake(amt) { cameraShakeAmt = Math.max(cameraShakeAmt, amt); }
+
+// V4: Pick the kingdom whose tile/unit is under (x, y)
+function pickKingdomAt(x, y) {
+  // Prefer tile ownership
+  const tx = Math.floor(x / TILE_PX), ty = Math.floor(y / TILE_PX);
+  const t = tiles[ty] && tiles[ty][tx];
+  if (t && t.owner && kingdoms.has(t.owner)) return kingdoms.get(t.owner);
+  // Fallback: nearest unit's kingdom
+  let best = null, bd = 50 * 50;
+  for (const u of units) {
+    if (u.dead || !u.kingdom) continue;
+    const d = dist2(u.x, u.y, x, y);
+    if (d < bd) { bd = d; best = u; }
+  }
+  return best && best.kingdom ? kingdoms.get(best.kingdom) : null;
+}
+function doSpite(x, y) {
+  const k = pickKingdomAt(x, y);
+  if (!k) { effects.push({ type: 'nomana', x, y, life: 14 }); return; }
+  // This kingdom becomes hated by all
+  for (const [, other] of kingdoms) {
+    if (other === k) continue;
+    other.relations.set(k.id, -100);
+    k.relations.set(other.id, -100);
+    other.allies.delete(k.id); k.allies.delete(other.id);
+    // Immediately declare war
+    if (!other.wars.has(k.id)) {
+      other.wars.add(k.id); k.wars.add(other.id);
+    }
+    // Cancel any peace plots
+    other.peacePlots.delete(k.id); k.peacePlots.delete(other.id);
+    other.warPlots.delete(k.id); k.warPlots.delete(other.id);
+  }
+  log('💢 ' + format(window.wbLang.evtSpite || '{a} is despised by all kingdoms!', { a: k.name }));
+  effects.push({ type: 'spite', x: k.x, y: k.y, life: 60 });
+}
+function doFriendship(x, y) {
+  const k = pickKingdomAt(x, y);
+  if (!k) { effects.push({ type: 'nomana', x, y, life: 14 }); return; }
+  // This kingdom becomes loved by all — clear wars, form alliances
+  for (const [, other] of kingdoms) {
+    if (other === k) continue;
+    other.relations.set(k.id, 100);
+    k.relations.set(other.id, 100);
+    other.wars.delete(k.id); k.wars.delete(other.id);
+    other.warPlots.delete(k.id); k.warPlots.delete(other.id);
+    other.peacePlots.delete(k.id); k.peacePlots.delete(other.id);
+    other.allies.add(k.id); k.allies.add(other.id);
+  }
+  log('💞 ' + format(window.wbLang.evtFriendship || '{a} is loved by all kingdoms', { a: k.name }));
+  effects.push({ type: 'friendship', x: k.x, y: k.y, life: 60 });
+}
 
 function paintTile(px, py, brush, type) {
   const r = brush;
@@ -1499,9 +2107,24 @@ function drawEffects() {
       ctx.arc(e.x, e.y, (18 - e.life) * 0.6, 0, Math.PI * 2);
       ctx.fill();
     } else if (e.type === 'heart') {
-      ctx.fillStyle = '#f9a8d4';
+      const t = e.life / 28;
+      ctx.fillStyle = 'rgba(244, 114, 182, ' + t + ')';
       ctx.font = '10px serif';
-      ctx.fillText('♥', e.x - 3, e.y - (22 - e.life) * 0.4);
+      const rise = (28 - e.life) * 0.5;
+      ctx.fillText('♥', e.x - 3, e.y - rise);
+    } else if (e.type === 'matehalo') {
+      const t = (30 - e.life) / 30;
+      ctx.strokeStyle = 'rgba(244, 114, 182, ' + (1 - t) + ')';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 4 + t * 14, 0, Math.PI * 2);
+      ctx.stroke();
+      // Pink particles
+      for (let k = 0; k < 4; k++) {
+        const a = (k / 4) * Math.PI * 2 + e.life * 0.1;
+        ctx.fillStyle = '#fbcfe8';
+        ctx.fillRect(e.x + Math.cos(a) * (4 + t * 12), e.y + Math.sin(a) * (4 + t * 12), 1.4, 1.4);
+      }
     } else if (e.type === 'lightning') {
       // jagged line
       ctx.strokeStyle = 'rgba(254, 240, 138, ' + (e.life / 22) + ')';
@@ -1677,6 +2300,49 @@ function drawEffects() {
       ctx.fillStyle = 'rgba(250, 204, 21, ' + (e.life / 22) + ')';
       ctx.font = 'bold 8px sans-serif';
       ctx.fillText('💤', e.x - 4, e.y);
+    } else if (e.type === 'rubble') {
+      // Dust burst on building destruction
+      const t = (90 - e.life) / 90;
+      ctx.fillStyle = 'rgba(120, 113, 108, ' + (1 - t) + ')';
+      for (let k = 0; k < 10; k++) {
+        const a = (k / 10) * Math.PI * 2;
+        const r = 4 + t * 24;
+        ctx.beginPath();
+        ctx.arc(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r - t * 6, 2 - t * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Debris
+      if (e.life > 60) {
+        ctx.fillStyle = '#52525b';
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2;
+          ctx.fillRect(e.x + Math.cos(a) * (e.life - 60) * 0.6, e.y + Math.sin(a) * (e.life - 60) * 0.4, 1.5, 1.5);
+        }
+      }
+    } else if (e.type === 'spite') {
+      const t = (60 - e.life) / 60;
+      ctx.strokeStyle = 'rgba(220, 38, 38, ' + (1 - t) + ')';
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 12 + t * 60 + k * 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('💢', e.x - 5, e.y + 3);
+    } else if (e.type === 'friendship') {
+      const t = (60 - e.life) / 60;
+      ctx.strokeStyle = 'rgba(236, 72, 153, ' + (1 - t) + ')';
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 12 + t * 60 + k * 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#ec4899';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('💞', e.x - 5, e.y + 3);
     }
   }
 }
@@ -1734,13 +2400,241 @@ function drawTerritory() {
 }
 
 // =================================================================
+// DIPLOMACY VISUALIZATION
+// =================================================================
+function drawDiplomacy() {
+  const ks = Array.from(kingdoms.values());
+  if (ks.length < 2) return;
+  const t = frameCount;
+  for (let i = 0; i < ks.length; i++) {
+    for (let j = i + 1; j < ks.length; j++) {
+      const a = ks[i], b = ks[j];
+      if (a.allies.has(b.id)) {
+        // Alliance line — pulsing blue
+        ctx.strokeStyle = 'rgba(56, 189, 248, ' + (0.5 + 0.2 * Math.sin(t * 0.04)) + ')';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (a.wars.has(b.id)) {
+        // War line — solid red with skull midpoint
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        ctx.arc((a.x + b.x) / 2, (a.y + b.y) / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 6px sans-serif';
+        ctx.fillStyle = '#fef3c7';
+        ctx.fillText('⚔', (a.x + b.x) / 2 - 3, (a.y + b.y) / 2 + 2);
+      } else if (a.warPlots.has(b.id)) {
+        // Plotting war — dashed amber
+        ctx.strokeStyle = 'rgba(249, 115, 22, 0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 6]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (a.peacePlots.has(b.id)) {
+        // Peace negotiation — dashed green
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+  // Draw king trait icons above each capital
+  for (const k of ks) {
+    if (!k.kingTraits.length) continue;
+    ctx.font = 'bold 6px sans-serif';
+    const off = k.cityKind() === 'city' ? 22 : k.cityKind() === 'town' ? 18 : 14;
+    let dx = -k.kingTraits.length * 3.5;
+    for (const tr of k.kingTraits) {
+      const def = KING_TRAITS[tr];
+      ctx.fillStyle = def.color;
+      ctx.fillText(def.icon, k.x + dx, k.y - off);
+      dx += 7;
+    }
+  }
+}
+
+// =================================================================
 // BUILDINGS RENDER
 // =================================================================
 function drawBuildings() {
-  for (const [, k] of kingdoms) {
-    const kind = k.cityKind();
-    if (!kind) continue;
-    drawCity(k.x, k.y, kind, k.color, k.tech);
+  // Sort by y for depth
+  const sorted = buildings.slice().sort((a, b) => a.y - b.y);
+  for (const b of sorted) {
+    if (b.type === B_HALL) drawTownHall(b);
+    else if (b.type === B_TOWER) drawTower(b);
+  }
+}
+
+function drawTownHall(b) {
+  const k = kingdoms.get(b.kingdom);
+  if (!k) return;
+  if (b.dead) { drawRubble(b.x, b.y, 14); return; }
+  // Forward to existing drawCity, sized by kingdom population for backward compatibility
+  const kind = k.cityKind() || 'tent';
+  drawCity(b.x, b.y, kind, k.color, k.tech || 0);
+  // Damage cracks overlay
+  if (b.isDamaged()) drawDamageOverlay(b.x, b.y, 16, b.hp / b.maxHp);
+  // HP bar
+  if (b.hp < b.maxHp * 0.99 || !b.isComplete()) drawBuildingHpBar(b, 18);
+}
+
+function drawTower(b) {
+  const k = kingdoms.get(b.kingdom);
+  const color = k ? k.color : '#a3a3a3';
+  const tech = k ? k.tech : 0;
+  const x = b.x, y = b.y;
+  if (b.dead) { drawRubble(x, y, 8); return; }
+  // Construction stage
+  const prog = Math.max(0, Math.min(100, b.constructProg));
+  if (prog < 100) {
+    // Scaffolding / partial tower
+    const heightPct = prog / 100;
+    ctx.fillStyle = 'rgba(120, 113, 108, ' + (0.5 + heightPct * 0.5) + ')';
+    ctx.fillRect(x - 4, y + 4 - (16 * heightPct), 8, 16 * heightPct);
+    // Scaffold lines
+    ctx.strokeStyle = '#92400e';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y + 4); ctx.lineTo(x + 5, y + 4);
+    ctx.stroke();
+    return;
+  }
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 5, 6, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Stone color by tech
+  const stone = tech >= 3 ? '#52525b' : tech >= 2 ? '#71717a' : tech >= 1 ? '#a3a3a3' : '#a16207';
+  // Tower base
+  ctx.fillStyle = stone;
+  ctx.fillRect(x - 4, y - 4, 8, 10);
+  // Stone block lines
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y);
+  ctx.moveTo(x, y - 4); ctx.lineTo(x, y);
+  ctx.moveTo(x - 2, y); ctx.lineTo(x - 2, y + 6);
+  ctx.moveTo(x + 2, y); ctx.lineTo(x + 2, y + 6);
+  ctx.stroke();
+  // Arrow slits
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(x - 1, y - 3, 0.8, 2.4);
+  ctx.fillRect(x + 0.2, y - 3, 0.8, 2.4);
+  // Battlements (top)
+  ctx.fillStyle = stone;
+  ctx.fillRect(x - 5, y - 6, 2, 2);
+  ctx.fillRect(x - 1, y - 6, 2, 2);
+  ctx.fillRect(x + 3, y - 6, 2, 2);
+  // Conical roof (Iron+)
+  if (tech >= 2) {
+    ctx.fillStyle = '#7f1d1d';
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 5);
+    ctx.lineTo(x, y - 11);
+    ctx.lineTo(x + 4, y - 5);
+    ctx.closePath();
+    ctx.fill();
+    // Flag pole on roof
+    ctx.fillStyle = '#a3a3a3';
+    ctx.fillRect(x - 0.4, y - 14, 0.8, 4);
+    // Flag
+    const wave = Math.sin(frameCount * 0.1 + x * 0.1) * 0.5;
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 0.4, y - 14, 3 + wave, 2);
+  } else {
+    // Simple flag for Stone/Bronze
+    ctx.fillStyle = '#a3a3a3';
+    ctx.fillRect(x - 0.4, y - 9, 0.8, 4);
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 0.4, y - 9, 2.5, 1.6);
+  }
+  // Damaged overlay
+  if (b.isDamaged()) drawDamageOverlay(x, y, 7, b.hp / b.maxHp);
+  // HP bar
+  if (b.hp < b.maxHp * 0.99) drawBuildingHpBar(b, 10);
+  // Range ring while shooting (subtle pulse)
+  if (b.attackCd > 0 && b.attackCd > 40) {
+    const s = b.stats();
+    const pulse = 0.3 + 0.2 * Math.sin(frameCount * 0.4);
+    ctx.strokeStyle = 'rgba(254, 240, 138, ' + pulse + ')';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.arc(x, y, s.range, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawDamageOverlay(x, y, sz, ratio) {
+  // Cracks proportional to damage
+  const dmg = 1 - ratio;
+  ctx.strokeStyle = 'rgba(0, 0, 0, ' + (0.3 + 0.5 * dmg) + ')';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(x - sz * 0.4, y - sz * 0.3);
+  ctx.lineTo(x - sz * 0.1, y);
+  ctx.lineTo(x - sz * 0.2, y + sz * 0.3);
+  ctx.stroke();
+  if (dmg > 0.5) {
+    ctx.beginPath();
+    ctx.moveTo(x + sz * 0.3, y - sz * 0.2);
+    ctx.lineTo(x + sz * 0.1, y + sz * 0.1);
+    ctx.lineTo(x + sz * 0.3, y + sz * 0.4);
+    ctx.stroke();
+  }
+  if (dmg > 0.7) {
+    // Smoke
+    ctx.fillStyle = 'rgba(115, 115, 115, 0.6)';
+    const sp = (frameCount * 0.1) % 8;
+    ctx.beginPath();
+    ctx.arc(x + sz * 0.2, y - sz * 0.8 - sp, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+function drawRubble(x, y, sz) {
+  ctx.fillStyle = '#52525b';
+  ctx.fillRect(x - sz * 0.5, y, sz, sz * 0.4);
+  ctx.fillStyle = '#3f3f46';
+  ctx.fillRect(x - sz * 0.3, y - 2, sz * 0.4, sz * 0.3);
+  ctx.fillRect(x + sz * 0.1, y - 1, sz * 0.3, sz * 0.4);
+  // Smoke
+  for (let i = 0; i < 3; i++) {
+    const off = (frameCount * 0.1 + i * 4) % 10;
+    ctx.fillStyle = 'rgba(120, 113, 108, ' + (0.5 - off * 0.04) + ')';
+    ctx.beginPath();
+    ctx.arc(x + Math.sin(off * 0.5) * 2, y - 2 - off, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+function drawBuildingHpBar(b, w) {
+  const ratio = Math.max(0, b.hp / b.maxHp);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(b.x - w / 2, b.y - (b.type === B_TOWER ? 18 : 22), w, 1.6);
+  ctx.fillStyle = ratio < 0.3 ? '#dc2626' : ratio < 0.6 ? '#facc15' : '#22c55e';
+  ctx.fillRect(b.x - w / 2, b.y - (b.type === B_TOWER ? 18 : 22), w * ratio, 1.6);
+  if (!b.isComplete()) {
+    // Construction progress bar (yellow)
+    const prog = b.constructProg / 100;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(b.x - w / 2, b.y + 8, w, 1.4);
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(b.x - w / 2, b.y + 8, w * prog, 1.4);
   }
 }
 function drawCity(x, y, kind, color, tech) {
@@ -2024,6 +2918,9 @@ function render() {
   // Territory overlay (tinted tiles by kingdom)
   drawTerritory();
 
+  // Diplomacy lines (war / peace plots / alliances)
+  drawDiplomacy();
+
   // Buildings (kingdom centers) — drawn between tiles and units
   drawBuildings();
 
@@ -2078,8 +2975,18 @@ function tickWorld() {
   }
   // Units
   for (const u of units) if (!u.dead) u.update();
+  // V5: Buildings
+  for (const b of buildings) if (!b.dead) b.update();
   // GC dead
   for (let i = units.length - 1; i >= 0; i--) if (units[i].dead) units.splice(i, 1);
+  // Keep dead buildings briefly (rubble visual), then remove
+  for (let i = buildings.length - 1; i >= 0; i--) {
+    const b = buildings[i];
+    if (b.dead) {
+      b.deadTimer = (b.deadTimer || 0) + 1;
+      if (b.deadTimer > 600) buildings.splice(i, 1);  // ~10 sec at x1
+    }
+  }
   updateEffects();
   // Camera shake decays
   if (cameraShakeAmt > 0) cameraShakeAmt = Math.max(0, cameraShakeAmt - 1);
@@ -2119,11 +3026,22 @@ function updateHUD() {
   document.getElementById('wb-pop').textContent = units.length;
   document.getElementById('wb-kingdoms').textContent = kingdoms.size;
   const counts = [0, 0, 0, 0, 0, 0, 0];
-  for (const u of units) if (!u.dead) counts[u.race]++;
+  let males = 0, females = 0, children = 0;
+  for (const u of units) {
+    if (u.dead) continue;
+    counts[u.race]++;
+    if (u.race < MORTAL_RACES) {
+      if (u.age < 10) children++;
+      if (u.sex === 'M') males++; else females++;
+    }
+  }
   document.getElementById('wb-pop-human').textContent = counts[0];
   document.getElementById('wb-pop-elf').textContent   = counts[1];
   document.getElementById('wb-pop-dwarf').textContent = counts[2];
   document.getElementById('wb-pop-orc').textContent   = counts[3];
+  const maleEl = document.getElementById('wb-pop-male');   if (maleEl)   maleEl.textContent   = males;
+  const femaleEl = document.getElementById('wb-pop-female'); if (femaleEl) femaleEl.textContent = females;
+  const childEl = document.getElementById('wb-pop-child'); if (childEl) childEl.textContent = children;
   const sheepEl = document.getElementById('wb-pop-sheep'); if (sheepEl) sheepEl.textContent = counts[4];
   const wolfEl  = document.getElementById('wb-pop-wolf');  if (wolfEl)  wolfEl.textContent  = counts[5];
   const bearEl  = document.getElementById('wb-pop-bear');  if (bearEl)  bearEl.textContent  = counts[6];
@@ -2363,7 +3281,7 @@ function buildToolsUI() {
   // 3 rows
   const rows = [
     TOOL_DEFS.filter(t => t.cat === 'terrain'),
-    TOOL_DEFS.filter(t => t.cat === 'disaster' || t.cat === 'bless'),
+    TOOL_DEFS.filter(t => t.cat === 'disaster' || t.cat === 'bless' || t.cat === 'diplo'),
     TOOL_DEFS.filter(t => t.cat === 'spawn' || t.cat === 'wild' || t.cat === 'hero')
   ];
   for (const row of rows) {
@@ -2422,10 +3340,12 @@ function newWorld(setup) {
   setup = setup || { human: 8, elf: 8, dwarf: 8, orc: 8, heroes: 1 };
   units.length = 0;
   kingdoms.clear();
+  buildings.length = 0;
   effects.length = 0;
   eventLog.length = 0;
   year = 0; frameCount = 0; nextKingdomId = 1; nextColorIdx = 0;
   mana = MAX_MANA;
+  victoryFired = false;
   deleteSave();
   generateWorld();
   // Seed each race in a different corner
@@ -2487,7 +3407,7 @@ function clearAll() {
 // =================================================================
 // SAVE / LOAD
 // =================================================================
-const SAVE_KEY = 'wbSave_v3';
+const SAVE_KEY = 'wbSave_v5';
 function saveWorld() {
   const tilesFlat = new Array(WORLD_W * WORLD_H);
   for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
@@ -2500,15 +3420,26 @@ function saveWorld() {
   ]);
   const kingsData = [];
   for (const [id, k] of kingdoms) {
-    kingsData.push([id, k.race, k.name, k.color, Math.round(k.x), Math.round(k.y),
-                    k.pop, k.maxPopEver, k.foundedYear, k.tech, Array.from(k.wars)]);
+    kingsData.push([
+      id, k.race, k.name, k.color, Math.round(k.x), Math.round(k.y),
+      k.pop, k.maxPopEver, k.foundedYear, k.tech,
+      Array.from(k.wars), k.kingTraits || [],
+      Array.from(k.relations.entries()), Array.from(k.allies),
+      Math.round(k.loyalty), Math.round(k.warLosses)
+    ]);
   }
+  const bldsData = buildings.filter(b => !b.dead).map(b => [
+    b.type, Math.round(b.x), Math.round(b.y), b.kingdom,
+    Math.round(b.hp), Math.round(b.maxHp), Math.round(b.constructProg)
+  ]);
   const save = {
-    v: 3, year, mana, frame: frameCount,
+    v: 5, year, mana, frame: frameCount,
     nextKingdomId, nextColorIdx,
     tiles: tilesFlat,
     units: unitsData,
-    kingdoms: kingsData
+    kingdoms: kingsData,
+    buildings: bldsData,
+    worldLaws
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
   catch (e) { console.warn('Save failed', e); }
@@ -2517,9 +3448,10 @@ function loadWorld() {
   let s;
   try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }
   catch { s = null; }
-  if (!s || s.v !== 3) return false;
+  if (!s || s.v !== 5) return false;
   year = s.year; mana = s.mana; frameCount = s.frame || 0;
   nextKingdomId = s.nextKingdomId; nextColorIdx = s.nextColorIdx;
+  if (s.worldLaws) Object.assign(worldLaws, s.worldLaws);
   // Tiles
   tiles = [];
   for (let y = 0; y < WORLD_H; y++) {
@@ -2548,8 +3480,23 @@ function loadWorld() {
     k.x = d[4]; k.y = d[5]; k.pop = d[6]; k.maxPopEver = d[7];
     k.foundedYear = d[8]; k.tech = d[9];
     k.wars = new Set(d[10] || []);
+    k.kingTraits = d[11] || [];
+    k.relations = new Map(d[12] || []);
+    k.allies = new Set(d[13] || []);
+    k.loyalty = d[14] != null ? d[14] : 100;
+    k.warLosses = d[15] || 0;
     kingdoms.set(k.id, k);
   }
+  // V5: Buildings
+  buildings.length = 0;
+  if (s.buildings) {
+    for (const d of s.buildings) {
+      const b = new Building(d[0], d[1], d[2], d[3]);
+      b.hp = d[4]; b.maxHp = d[5]; b.constructProg = d[6];
+      buildings.push(b);
+    }
+  }
+  victoryFired = false;
   return true;
 }
 function deleteSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
@@ -2640,6 +3587,42 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('wb-setup-cancel').addEventListener('click', () => {
     setupModal.style.display = 'none';
+  });
+
+  // World Laws modal
+  const lawsModal = document.getElementById('wb-laws-modal');
+  const lawsBtn = document.getElementById('wb-laws-btn');
+  if (lawsBtn) lawsBtn.addEventListener('click', () => { lawsModal.style.display = 'flex'; });
+  const lawsClose = document.getElementById('wb-laws-close');
+  if (lawsClose) lawsClose.addEventListener('click', () => { lawsModal.style.display = 'none'; });
+  // Sync checkboxes with worldLaws state
+  function syncLaws() {
+    const d = document.getElementById('wb-law-diplo');
+    const r = document.getElementById('wb-law-rebel');
+    const w = document.getElementById('wb-law-war');
+    if (d) d.checked = worldLaws.diplomacy;
+    if (r) r.checked = worldLaws.rebellions;
+    if (w) w.checked = worldLaws.autoWar;
+  }
+  syncLaws();
+  const lawD = document.getElementById('wb-law-diplo');
+  const lawR = document.getElementById('wb-law-rebel');
+  const lawW = document.getElementById('wb-law-war');
+  if (lawD) lawD.addEventListener('change', e => { worldLaws.diplomacy = e.target.checked; });
+  if (lawR) lawR.addEventListener('change', e => { worldLaws.rebellions = e.target.checked; });
+  if (lawW) lawW.addEventListener('change', e => { worldLaws.autoWar = e.target.checked; });
+
+  // Victory modal
+  const victoryNew = document.getElementById('wb-victory-new');
+  const victoryWatch = document.getElementById('wb-victory-watch');
+  if (victoryNew) victoryNew.addEventListener('click', () => {
+    document.getElementById('wb-victory-modal').style.display = 'none';
+    openSetupModal();
+  });
+  if (victoryWatch) victoryWatch.addEventListener('click', () => {
+    document.getElementById('wb-victory-modal').style.display = 'none';
+    paused = false;
+    refreshSpeedUI();
   });
   document.getElementById('wb-clear-btn').addEventListener('click', () => {
     clearAll();

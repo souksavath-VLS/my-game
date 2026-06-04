@@ -61,6 +61,11 @@
       font-size: 0.7rem;
       border: 1px solid rgba(192, 132, 252, 0.3);
     }
+    .wb-race-stat.wb-sex {
+      border-color: rgba(244, 114, 182, 0.4);
+      gap: 4px;
+    }
+    .wb-race-stat.wb-sex span { color: #facc15; font-weight: bold; }
     .wb-speed {
       display: inline-flex; gap: 3px;
       margin-left: auto;
@@ -165,6 +170,33 @@
     .wb-tool.wild { border-color: rgba(132, 204, 22, 0.4); }
     .wb-tool.hero { border-color: rgba(250, 204, 21, 0.6); box-shadow: 0 0 6px rgba(250, 204, 21, 0.3); }
     .wb-tool.hero.active { box-shadow: 0 0 14px rgba(250, 204, 21, 0.8); }
+    .wb-tool.diplo { border-color: rgba(236, 72, 153, 0.5); }
+
+    /* World Laws */
+    .wb-laws-list {
+      display: flex; flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      margin: 12px 0;
+    }
+    .wb-law-row {
+      display: flex; align-items: flex-start;
+      gap: 10px;
+      background: rgba(0,0,0,0.4);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      cursor: pointer;
+    }
+    .wb-law-row input { transform: scale(1.4); margin-top: 4px; accent-color: #22d3ee; }
+    .wb-law-row small { color: #94a3b8; font-size: 0.72rem; }
+
+    /* Victory modal */
+    #wb-victory-title {
+      font-size: 1.8em !important;
+      background: linear-gradient(90deg, #facc15, #f97316, #ec4899);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
 
     /* Pre-game setup */
     .wb-setup-grid {
@@ -405,19 +437,22 @@
       <div class="wb-stat">👥 <span class="wb-num" id="wb-pop">0</span></div>
       <div class="wb-stat">🏰 <span class="wb-num" id="wb-kingdoms">0</span></div>
       <div class="wb-races">
-        <div class="wb-race-stat">🧑 <span id="wb-pop-human">0</span></div>
-        <div class="wb-race-stat">🧝 <span id="wb-pop-elf">0</span></div>
-        <div class="wb-race-stat">🧔 <span id="wb-pop-dwarf">0</span></div>
-        <div class="wb-race-stat">👹 <span id="wb-pop-orc">0</span></div>
-        <div class="wb-race-stat">🐑 <span id="wb-pop-sheep">0</span></div>
-        <div class="wb-race-stat">🐺 <span id="wb-pop-wolf">0</span></div>
-        <div class="wb-race-stat">🐻 <span id="wb-pop-bear">0</span></div>
+        <div class="wb-race-stat" title="Humans">🧑 <span id="wb-pop-human">0</span></div>
+        <div class="wb-race-stat" title="Elves">🧝 <span id="wb-pop-elf">0</span></div>
+        <div class="wb-race-stat" title="Dwarves">🧔 <span id="wb-pop-dwarf">0</span></div>
+        <div class="wb-race-stat" title="Orcs">👹 <span id="wb-pop-orc">0</span></div>
+        <div class="wb-race-stat wb-sex" title="Males / Females">♂<span id="wb-pop-male">0</span> · ♀<span id="wb-pop-female">0</span></div>
+        <div class="wb-race-stat" title="Babies & Children">👶 <span id="wb-pop-child">0</span></div>
+        <div class="wb-race-stat" title="Sheep">🐑 <span id="wb-pop-sheep">0</span></div>
+        <div class="wb-race-stat" title="Wolves">🐺 <span id="wb-pop-wolf">0</span></div>
+        <div class="wb-race-stat" title="Bears">🐻 <span id="wb-pop-bear">0</span></div>
       </div>
       <div class="wb-stat" id="wb-ach-stat" title="Achievements">🏆 <span class="wb-num" id="wb-ach-count">0 / 14</span></div>
       <div class="wb-speed">
         <button class="wb-speed-btn" id="wb-zoom-out" title="Zoom Out (-)">🔍−</button>
         <button class="wb-speed-btn wb-zoom-label-btn" id="wb-zoom-reset" title="Reset View (0)"><span id="wb-zoom-label">1x</span></button>
         <button class="wb-speed-btn" id="wb-zoom-in" title="Zoom In (+)">🔍+</button>
+        <button class="wb-speed-btn" id="wb-laws-btn" title="World Laws">⚖️</button>
         <button class="wb-speed-btn" id="wb-help-btn" title="Help">❓</button>
         <button class="wb-speed-btn" id="wb-reset-btn" title="New World">🔄</button>
         <button class="wb-speed-btn" data-speed="0" title="Pause">⏸</button>
@@ -474,6 +509,47 @@
       <p id="wb-ach-hint">Unlocked: <strong id="wb-ach-progress">0 / 14</strong></p>
       <div id="wb-ach-list" class="wb-ach-list"></div>
       <button id="wb-ach-close" class="wb-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Victory modal -->
+  <div id="wb-victory-modal" class="wb-overlay" style="display:none;">
+    <div class="wb-card" style="text-align:center;">
+      <h2 id="wb-victory-title">👑 Victory!</h2>
+      <p id="wb-victory-sub" data-i18n="victorySub">One kingdom rules them all</p>
+      <div style="font-size:1.4rem; font-weight:bold; margin: 10px 0;" id="wb-victory-name">—</div>
+      <p id="wb-victory-detail" style="color:#94a3b8;"></p>
+      <button id="wb-victory-new" class="wb-btn">⟳ <span data-i18n="newWorld">New World</span></button>
+      <button id="wb-victory-watch" class="wb-btn secondary" data-i18n="keepWatching">Keep Watching</button>
+    </div>
+  </div>
+
+  <!-- World Laws modal -->
+  <div id="wb-laws-modal" class="wb-overlay" style="display:none;">
+    <div class="wb-card">
+      <h2 id="wb-laws-title">⚖️ World Laws</h2>
+      <p data-i18n="lawsHint">Toggle universal rules</p>
+      <div class="wb-laws-list">
+        <label class="wb-law-row">
+          <input type="checkbox" id="wb-law-diplo" checked>
+          <span><b>🤝 <span data-i18n="lawDiplomacy">Diplomacy</span></b><br>
+            <small data-i18n="lawDiplomacyDesc">Relations, war plots, alliances</small>
+          </span>
+        </label>
+        <label class="wb-law-row">
+          <input type="checkbox" id="wb-law-rebel" checked>
+          <span><b>🔥 <span data-i18n="lawRebellions">Rebellions</span></b><br>
+            <small data-i18n="lawRebellionsDesc">Unhappy citizens may secede</small>
+          </span>
+        </label>
+        <label class="wb-law-row">
+          <input type="checkbox" id="wb-law-war" checked>
+          <span><b>⚔ <span data-i18n="lawAutoWar">Auto-War</span></b><br>
+            <small data-i18n="lawAutoWarDesc">Kingdoms can declare war on their own</small>
+          </span>
+        </label>
+      </div>
+      <button id="wb-laws-close" class="wb-btn">Close</button>
     </div>
   </div>
 
@@ -542,6 +618,7 @@
           plague: 'โรคระบาด', finger: 'นิ้วมรณะ',
           meteor: 'อุกกาบาต', acidstorm: 'พายุกรด', nuke: 'ระเบิดสวรรค์',
           rain: 'ฝน', heal: 'รักษา', peace: 'สันติ',
+          spite: 'ความริษยา', friendship: 'มิตรภาพ',
           human: 'มนุษย์', elf: 'เอลฟ์', dwarf: 'คนแคระ', orc: 'ออร์ค',
           sheep: 'แกะ', wolf: 'หมาป่า', bear: 'หมี'
         },
@@ -555,12 +632,38 @@
         evtHeroBorn: 'วีรบุรุษได้ถือกำเนิด',
         classNames: { warrior: 'นักรบ', archer: 'นักธนู', mage: 'จอมเวท', knight: 'อัศวิน', healer: 'หมอผี', hero: 'วีรบุรุษ' },
         toolNamesHero: { hero_human: 'วีรบุรุษมนุษย์', hero_elf: 'วีรบุรุษเอลฟ์', hero_dwarf: 'วีรบุรุษคนแคระ', hero_orc: 'วีรบุรุษออร์ค' },
+        // V4: Diplomacy strings
+        evtPlotWar: '{a} เริ่มวางแผนทำสงครามกับ {b}',
+        evtPlotPeace: '{a} กับ {b} เริ่มเจรจาสงบศึก',
+        evtPeaceTreaty: '{a} กับ {b} ลงนามสนธิสัญญาสันติภาพ',
+        evtAlliance: '{a} ผูกพันธมิตรกับ {b}',
+        evtAllyJoin: '{a} เข้าร่วมสงคราม (พันธมิตรของ {b})',
+        evtRebellion: '{a} ก่อกบฏแยกตัวจาก {b}!',
+        evtSpite: '{a} ถูกชิงชังโดยทุกอาณาจักร!',
+        evtFriendship: '{a} เป็นที่รักของทุกอาณาจักร',
+        // Powers
+        victorySub: 'หนึ่งอาณาจักรปกครองทุกผืนแผ่นดิน',
+        keepWatching: 'ดูต่อ',
+        lawsHint: 'เปิด/ปิดกฎสากล',
+        lawDiplomacy: 'การทูต', lawDiplomacyDesc: 'ความสัมพันธ์ แผนสงคราม พันธมิตร',
+        lawRebellions: 'การกบฏ', lawRebellionsDesc: 'ประชาชนไม่พอใจสามารถแยกตัว',
+        lawAutoWar: 'สงครามอัตโนมัติ', lawAutoWarDesc: 'อาณาจักรประกาศสงครามเอง',
+        traitNames: {
+          militaristic: 'นิยมทหาร', bloodlust: 'กระหายเลือด', evil: 'ชั่วร้าย',
+          pacifist: 'รักสงบ', diplomat: 'นักการทูต', honest: 'ซื่อสัตย์'
+        },
+        // V5: Buildings
+        evtTowerBuilt: '{a} สร้างหอคอยธนู',
+        evtBuildingDestroyed: 'สิ่งก่อสร้าง {b} ของ {a} ถูกทำลาย',
+        evtCapture: '{b} ยึดครอง {a}!',
+        evtKingdomCollapse: '{a} ล่มสลาย',
         achNames: {
           a_first_kingdom: 'อาณาจักรแรก', a_pop_100: 'ฝูงชน', a_world_war: 'สงครามโลก',
           a_apocalypse: 'วันสิ้นโลก', a_500_years: 'ห้าศตวรรษ', a_1000_years: 'พันปี',
           a_diversity: 'หลากเผ่าพันธุ์', a_city: 'นครหลวง', a_iron_age: 'ยุคเหล็ก',
           a_medieval: 'ยุคกลาง', a_bear_hunt: 'นักล่าหมี', a_peacemaker: 'ผู้สร้างสันติ',
-          a_inferno: 'เพลิงนรก', a_meteor: 'อุกกาบาตศักดิ์สิทธิ์'
+          a_inferno: 'เพลิงนรก', a_meteor: 'อุกกาบาตศักดิ์สิทธิ์',
+          a_capture: 'ผู้พิชิตเมือง'
         },
         achDescs: {
           a_first_kingdom: 'อาณาจักรแรกถือกำเนิด', a_pop_100: 'ประชากร 100',
@@ -569,7 +672,8 @@
           a_diversity: '4 เผ่าพันธุ์ยังมีชีวิต', a_city: 'อาณาจักรกลายเป็นนคร',
           a_iron_age: 'อาณาจักรเข้าสู่ยุคเหล็ก', a_medieval: 'อาณาจักรเข้าสู่ยุคกลาง',
           a_bear_hunt: 'ล้มหมีด้วยมือมนุษย์', a_peacemaker: 'ใช้พลังสันติภาพ',
-          a_inferno: 'จุดไฟไหม้ 50+ ช่อง', a_meteor: 'ปล่อยอุกกาบาต'
+          a_inferno: 'จุดไฟไหม้ 50+ ช่อง', a_meteor: 'ปล่อยอุกกาบาต',
+          a_capture: 'ยึดเมืองจากศัตรู'
         },
         evtWar: 'อาณาจักร {a} ประกาศสงครามกับ {b}!',
         evtFound: 'อาณาจักร {a} ของ {race} ถือกำเนิด!',
@@ -602,6 +706,7 @@
           plague: 'Plague', finger: 'Finger of Death',
           meteor: 'Meteor', acidstorm: 'Acid Storm', nuke: 'Divine Nuke',
           rain: 'Rain', heal: 'Heal', peace: 'Peace',
+          spite: 'Spite', friendship: 'Friendship',
           human: 'Human', elf: 'Elf', dwarf: 'Dwarf', orc: 'Orc',
           sheep: 'Sheep', wolf: 'Wolf', bear: 'Bear'
         },
@@ -615,12 +720,36 @@
         evtHeroBorn: 'A hero is born',
         classNames: { warrior: 'Warrior', archer: 'Archer', mage: 'Mage', knight: 'Knight', healer: 'Healer', hero: 'Hero' },
         toolNamesHero: { hero_human: 'Human Hero', hero_elf: 'Elf Hero', hero_dwarf: 'Dwarf Hero', hero_orc: 'Orc Hero' },
+        // V4
+        evtPlotWar: '{a} begins plotting war on {b}',
+        evtPlotPeace: '{a} and {b} begin peace negotiations',
+        evtPeaceTreaty: '{a} and {b} sign a peace treaty',
+        evtAlliance: '{a} forms an alliance with {b}',
+        evtAllyJoin: '{a} joins the war (ally of {b})',
+        evtRebellion: '{a} rebels and breaks away from {b}!',
+        evtSpite: '{a} is despised by all kingdoms!',
+        evtFriendship: '{a} is loved by all kingdoms',
+        victorySub: 'One kingdom rules them all',
+        keepWatching: 'Keep Watching',
+        lawsHint: 'Toggle universal rules',
+        lawDiplomacy: 'Diplomacy', lawDiplomacyDesc: 'Relations, war plots, alliances',
+        lawRebellions: 'Rebellions', lawRebellionsDesc: 'Unhappy citizens may secede',
+        lawAutoWar: 'Auto-War', lawAutoWarDesc: 'Kingdoms can declare war on their own',
+        traitNames: {
+          militaristic: 'Militaristic', bloodlust: 'Bloodlust', evil: 'Evil',
+          pacifist: 'Pacifist', diplomat: 'Diplomat', honest: 'Honest'
+        },
+        evtTowerBuilt: '{a} built a watchtower',
+        evtBuildingDestroyed: '{a}\'s {b} destroyed',
+        evtCapture: '{b} captures {a}!',
+        evtKingdomCollapse: '{a} has collapsed',
         achNames: {
           a_first_kingdom: 'First Kingdom', a_pop_100: 'Crowded World', a_world_war: 'World at War',
           a_apocalypse: 'Apocalypse', a_500_years: 'Five Centuries', a_1000_years: 'Eon Keeper',
           a_diversity: 'Many Peoples', a_city: 'Metropolis', a_iron_age: 'Iron Age',
           a_medieval: 'Medieval Age', a_bear_hunt: 'Bear Hunter', a_peacemaker: 'Peacemaker',
-          a_inferno: 'Inferno', a_meteor: 'Sky-Sundered'
+          a_inferno: 'Inferno', a_meteor: 'Sky-Sundered',
+          a_capture: 'Conqueror'
         },
         achDescs: {
           a_first_kingdom: 'See a kingdom form', a_pop_100: 'Reach 100 population',
@@ -629,7 +758,8 @@
           a_diversity: 'All 4 races alive at once', a_city: 'A kingdom becomes a city',
           a_iron_age: 'A kingdom reaches Iron Age', a_medieval: 'A kingdom reaches Medieval Age',
           a_bear_hunt: 'A mortal kills a bear', a_peacemaker: 'Use the Peace power',
-          a_inferno: 'Set 50+ tiles on fire', a_meteor: 'Summon a meteor'
+          a_inferno: 'Set 50+ tiles on fire', a_meteor: 'Summon a meteor',
+          a_capture: 'Capture a city from another kingdom'
         },
         evtWar: '{a} declared war on {b}!',
         evtFound: 'The {race} kingdom of {a} was founded!',
@@ -663,6 +793,7 @@
           plague: 'ໂລກລະບາດ', finger: 'ນິ້ວມໍລະນະ',
           meteor: 'ດາວຕົກ', acidstorm: 'ພາຍຸກົດ', nuke: 'ລະເບີດສະຫວັນ',
           rain: 'ຝົນ', heal: 'ປິ່ນປົວ', peace: 'ສັນຕິພາບ',
+          spite: 'ຄວາມກຽດຊັງ', friendship: 'ມິດຕະພາບ',
           human: 'ມະນຸດ', elf: 'ເອວຟ໌', dwarf: 'ຄົນແຄະ', orc: 'ໂອກ',
           sheep: 'ແກະ', wolf: 'ໝາປ່າ', bear: 'ໝີ'
         },
@@ -676,12 +807,35 @@
         evtHeroBorn: 'ວີລະບຸລຸດໄດ້ກຳເນີດ',
         classNames: { warrior: 'ນັກຮົບ', archer: 'ນັກທະນູ', mage: 'ນັກເວດ', knight: 'ອັດສະວີນ', healer: 'ໝໍຜີ', hero: 'ວີລະບຸລຸດ' },
         toolNamesHero: { hero_human: 'ວີລະບຸລຸດມະນຸດ', hero_elf: 'ວີລະບຸລຸດເອວຟ໌', hero_dwarf: 'ວີລະບຸລຸດແຄະ', hero_orc: 'ວີລະບຸລຸດໂອກ' },
+        evtPlotWar: '{a} ເລີ່ມວາງແຜນສົງຄາມຕໍ່ {b}',
+        evtPlotPeace: '{a} ກັບ {b} ເລີ່ມເຈລະຈາສັນຕິພາບ',
+        evtPeaceTreaty: '{a} ກັບ {b} ລົງນາມສົນທິສັນຍາສັນຕິພາບ',
+        evtAlliance: '{a} ຜູກພັນທະມິດກັບ {b}',
+        evtAllyJoin: '{a} ເຂົ້າຮ່ວມສົງຄາມ (ພັນທະມິດຂອງ {b})',
+        evtRebellion: '{a} ກໍ່ກະບົດແຍກຕົວຈາກ {b}!',
+        evtSpite: '{a} ຖືກກຽດຊັງໂດຍທຸກອານາຈັກ!',
+        evtFriendship: '{a} ເປັນທີ່ຮັກຂອງທຸກອານາຈັກ',
+        victorySub: 'ໜຶ່ງອານາຈັກປົກຄອງທຸກແຜ່ນດິນ',
+        keepWatching: 'ເບິ່ງຕໍ່',
+        lawsHint: 'ເປີດ/ປິດກົດສາກົນ',
+        lawDiplomacy: 'ການທູດ', lawDiplomacyDesc: 'ຄວາມສຳພັນ ແຜນສົງຄາມ ພັນທະມິດ',
+        lawRebellions: 'ການກະບົດ', lawRebellionsDesc: 'ປະຊາຊົນບໍ່ພໍໃຈສາມາດແຍກຕົວ',
+        lawAutoWar: 'ສົງຄາມອັດຕະໂນມັດ', lawAutoWarDesc: 'ອານາຈັກປະກາດສົງຄາມເອງ',
+        traitNames: {
+          militaristic: 'ນິຍົມທະຫານ', bloodlust: 'ກະຫາຍເລືອດ', evil: 'ຊົ່ວຮ້າຍ',
+          pacifist: 'ຮັກສັນຕິ', diplomat: 'ນັກການທູດ', honest: 'ຊື່ສັດ'
+        },
+        evtTowerBuilt: '{a} ສ້າງຫໍຄອຍທະນູ',
+        evtBuildingDestroyed: 'ສິ່ງກໍ່ສ້າງ {b} ຂອງ {a} ຖືກທຳລາຍ',
+        evtCapture: '{b} ຍຶດຄອງ {a}!',
+        evtKingdomCollapse: '{a} ໄດ້ລົ້ມສະຫຼາຍ',
         achNames: {
           a_first_kingdom: 'ອານາຈັກທຳອິດ', a_pop_100: 'ປະຊາກອນ', a_world_war: 'ສົງຄາມໂລກ',
           a_apocalypse: 'ມື້ສິ້ນໂລກ', a_500_years: 'ຫ້າສະຕະວັດ', a_1000_years: 'ພັນປີ',
           a_diversity: 'ຫຼາຍເຜົ່າພັນ', a_city: 'ນະຄອນຫຼວງ', a_iron_age: 'ຍຸກເຫຼັກ',
           a_medieval: 'ຍຸກກາງ', a_bear_hunt: 'ນັກລ່າໝີ', a_peacemaker: 'ຜູ້ສ້າງສັນຕິ',
-          a_inferno: 'ໄຟນະລົກ', a_meteor: 'ດາວຕົກສະຫວັນ'
+          a_inferno: 'ໄຟນະລົກ', a_meteor: 'ດາວຕົກສະຫວັນ',
+          a_capture: 'ຜູ້ພິຊິດເມືອງ'
         },
         achDescs: {
           a_first_kingdom: 'ອານາຈັກທຳອິດກຳເນີດ', a_pop_100: 'ປະຊາກອນເຖິງ 100',
@@ -690,7 +844,8 @@
           a_diversity: '4 ເຜົ່າຍັງມີຊີວິດ', a_city: 'ອານາຈັກກາຍເປັນນະຄອນ',
           a_iron_age: 'ອານາຈັກເຂົ້າສູ່ຍຸກເຫຼັກ', a_medieval: 'ອານາຈັກເຂົ້າສູ່ຍຸກກາງ',
           a_bear_hunt: 'ຄົນລົ້ມໝີ', a_peacemaker: 'ໃຊ້ພະລັງສັນຕິ',
-          a_inferno: 'ຈູດໄຟ 50+ ຊ່ອງ', a_meteor: 'ປ່ອຍດາວຕົກ'
+          a_inferno: 'ຈູດໄຟ 50+ ຊ່ອງ', a_meteor: 'ປ່ອຍດາວຕົກ',
+          a_capture: 'ຍຶດເມືອງຈາກສັດຕູ'
         },
         evtWar: 'ອານາຈັກ {a} ປະກາດສົງຄາມກັບ {b}!',
         evtFound: 'ອານາຈັກ {a} ຂອງ {race} ໄດ້ກຳເນີດ!',
