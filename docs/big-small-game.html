@@ -37,12 +37,20 @@
 
     /* Question */
     .bs-question {
-      background: #fff; border-radius: 14px; padding: 14px;
+      background: #fff; border-radius: 14px; padding: 14px 40px 14px 14px;
       box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 10px;
       text-align: center;
       font-weight: 800; font-size: 1.15rem; color: #1e293b;
       font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      cursor: pointer; position: relative;
+      -webkit-tap-highlight-color: transparent;
     }
+    .bs-question::after {
+      content: '🔊'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); font-size: 1.1rem; opacity: 0.7;
+      transition: transform 0.15s;
+    }
+    .bs-question:active::after { transform: translateY(-50%) scale(1.25); }
     .bs-question .em { font-size: 1.4rem; margin-right: 6px; }
 
     /* Display area — 2 emojis with custom layout per concept */
@@ -174,6 +182,7 @@
     </div>
   </div>
 
+  <script src="js/tts.js"></script>
   <script src="js/big-small-game.js"></script>
 </body>
 </html>

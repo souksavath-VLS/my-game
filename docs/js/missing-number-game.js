@@ -97,6 +97,14 @@
   const elBest = $('ui-best');
   const elFlash = $('flash');
   const elModalOver = $('modal-over');
+  // Tap the hint to hear it again
+  const elHint = $('seq-hint');
+  if (elHint) {
+    elHint.style.cursor = 'pointer';
+    elHint.addEventListener('click', () => {
+      if (elHint.textContent) speak(elHint.textContent);
+    });
+  }
 
   // ===== TTS =====
   function speak(text) {
@@ -160,6 +168,9 @@
     renderSequence();
     renderOptions();
     elLevel.textContent = level;
+    // Speak the question hint each round
+    const hintEl = $('seq-hint');
+    if (hintEl && hintEl.textContent) speak(hintEl.textContent);
   }
 
   function shuffleArray(arr) {

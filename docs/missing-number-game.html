@@ -44,7 +44,11 @@
       text-align: center; font-size: .9rem; color: #475569;
       font-weight: 700; margin-bottom: 10px;
       font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s;
     }
+    .mn-seq-hint::before { content: '🔊 '; }
+    .mn-seq-hint:active { transform: scale(1.06); }
     .mn-seq {
       display: flex; justify-content: center; align-items: center;
       gap: 8px; flex-wrap: wrap;

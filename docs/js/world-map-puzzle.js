@@ -220,14 +220,37 @@ function startRound() {
   renderRound();
 }
 
+function speakTarget() {
+  if (!target) return;
+  const text = target.label[lang] || target.label.en;
+  const v = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    try { window.AndroidTTS.speak(text, v); return; } catch {}
+  }
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = v; u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch {}
+  }
+}
+
 function renderRound() {
   const promptEl = document.getElementById('wm-prompt');
   promptEl.textContent = target.label[lang];
   promptEl.style.color = target.color;
+  // Make the country name tappable to hear again
+  promptEl.style.cursor = 'pointer';
+  promptEl.onclick = speakTarget;
 
   const subtitle = document.getElementById('wm-prompt-sub');
   const t = window.worldMapLang || {};
   subtitle.textContent = t.findFlag || 'Find the flag of:';
+
+  // Speak the target country name so kids hear the pronunciation
+  speakTarget();
 
   document.getElementById('wm-capital').textContent = '';
   document.getElementById('wm-round').textContent = `${roundIndex + 1} / ${ROUNDS_PER_GAME}`;

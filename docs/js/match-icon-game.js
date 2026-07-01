@@ -139,11 +139,35 @@
   const elBest = $('ui-best');
   const elFlash = $('flash');
   const elModalOver = $('modal-over');
+  // Tap target to hear it again
+  const elTargetName = $('target-name');
+  const elTargetEm = $('target-em');
+  [elTargetName, elTargetEm].forEach(el => {
+    if (!el) return;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { if (target) speak(target); });
+  });
 
   function nameFor(it, l) {
     if (l === 'th') return it.th;
     if (l === 'lao') return it.lo;
     return it.en;
+  }
+  // ===== TTS =====
+  function speak(it) {
+    const v = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    const text = nameFor(it, lang);
+    if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+      try { window.AndroidTTS.speak(text, v); return; } catch {}
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = v; u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
   }
   function shuffle(arr) {
     const a = arr.slice();
@@ -194,6 +218,8 @@
     $('target-name').textContent = nameFor(target, lang);
     $('target-found').textContent = 0;
     $('target-total').textContent = targetTotal;
+    // Speak the target so kids hear what to find
+    speak(target);
     elBoard.style.gridTemplateColumns = `repeat(${cfg.cols}, minmax(0, 1fr))`;
     // Constrain board width based on cols
     elBoard.style.maxWidth = (cfg.cols * 90) + 'px';

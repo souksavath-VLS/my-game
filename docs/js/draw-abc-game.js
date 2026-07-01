@@ -121,8 +121,8 @@
     const w = wrap.clientWidth;
     const h = wrap.clientHeight;
     sCtx.clearRect(0, 0, w, h);
-    const size = Math.floor(Math.min(w, h) * 0.82);
-    sCtx.font = `900 ${size}px Arial, sans-serif`;
+    const size = Math.floor(Math.min(w, h) * 0.70);
+    sCtx.font = `700 ${size}px Arial, sans-serif`;
     sCtx.fillStyle = '#4338ca';
     sCtx.textAlign = 'center';
     sCtx.textBaseline = 'middle';
@@ -144,7 +144,7 @@
     uCtx.lineCap = 'round';
     uCtx.lineJoin = 'round';
     uCtx.strokeStyle = '#6366f1';
-    uCtx.lineWidth = Math.max(10, wrap.clientWidth * 0.045);
+    uCtx.lineWidth = Math.max(18, wrap.clientWidth * 0.095);
     uCtx.beginPath();
     uCtx.arc(p.x, p.y, uCtx.lineWidth / 2, 0, Math.PI * 2);
     uCtx.fillStyle = uCtx.strokeStyle;
@@ -191,7 +191,7 @@
     if (shadowCount === 0) return { pct: 0 };
     const coverage = overlap / shadowCount;
     const waste = userCount > 0 ? wasteCount / userCount : 0;
-    const pct = Math.max(0, Math.min(100, Math.round(coverage * 100 - waste * 30)));
+    const pct = Math.max(0, Math.min(100, Math.round(coverage * 100 - waste * 15)));
     return { pct };
   }
 

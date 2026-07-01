@@ -74,6 +74,24 @@ function countryName(c) {
   return c.name_en;
 }
 
+// ---------- TTS ----------
+function speakCountry(c) {
+  if (!c) return;
+  const text = countryName(c);
+  const v = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+  if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+    try { window.AndroidTTS.speak(text, v); return; } catch {}
+  }
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = v; u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch {}
+  }
+}
+
 // ---------- Helpers ----------
 function shuffle(arr) {
   const a = arr.slice();
@@ -161,6 +179,7 @@ function onFlagTap(tile, country) {
     selectedFlag = tile;
     tile.classList.add('selected');
     sndSelect();
+    speakCountry(country);   // speak the country name so kids learn its sound
   }
 }
 
@@ -179,6 +198,7 @@ function onNameTap(btn, country) {
     selectedName = btn;
     btn.classList.add('selected');
     sndSelect();
+    speakCountry(country);   // speak the country name when tapped
   }
 }
 

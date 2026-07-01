@@ -2882,24 +2882,22 @@ function drawCity(x, y, kind, color, tech) {
 }
 
 // =================================================================
-// DAY/NIGHT TINT
+// DAY/NIGHT TINT — visual tint disabled per user request.
+// Day/night PHASE logic (wolf hunting, HUD icon) still works.
 // =================================================================
 function drawDayNightTint() {
-  // dayPhase: 0..1 within each year
-  // 0..0.55 day, 0.55..0.65 dusk, 0.65..0.95 night, 0.95..1 dawn
-  let alpha = 0, color = '#000';
-  if (dayPhase >= 0.55 && dayPhase < 0.65) {
-    const t = (dayPhase - 0.55) / 0.10;
-    alpha = t * 0.45; color = '#f97316'; // orange dusk
-  } else if (dayPhase >= 0.65 && dayPhase < 0.95) {
-    alpha = 0.45; color = '#1e293b'; // night blue
-  } else if (dayPhase >= 0.95 && dayPhase < 1.0) {
-    const t = (1.0 - dayPhase) / 0.05;
-    alpha = t * 0.30; color = '#fb923c'; // dawn orange
-  }
-  if (alpha > 0) {
-    ctx.fillStyle = color;
-    ctx.globalAlpha = alpha;
+  // No-op: night no longer darkens the map.
+  // Only a very subtle dusk/dawn warmth remains (barely visible)
+  if (dayPhase >= 0.60 && dayPhase < 0.70) {
+    const t = (dayPhase - 0.60) / 0.10;
+    ctx.fillStyle = '#fb923c';
+    ctx.globalAlpha = t * 0.08;   // was 0.45 — now 0.08 tint at peak dusk
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.globalAlpha = 1;
+  } else if (dayPhase >= 0.90 && dayPhase < 1.0) {
+    const t = (1.0 - dayPhase) / 0.10;
+    ctx.fillStyle = '#fb923c';
+    ctx.globalAlpha = t * 0.06;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     ctx.globalAlpha = 1;
   }

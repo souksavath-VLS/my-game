@@ -168,6 +168,22 @@
     if (kind === 'gameover'){ beep(330, 0.2, 'sawtooth', 0.1); setTimeout(() => beep(220, 0.3, 'sawtooth', 0.1), 200); setTimeout(() => beep(165, 0.5, 'sawtooth', 0.1), 480); }
   }
 
+  // ===== TTS: speak the question =====
+  function speak(text) {
+    const v = lang === 'th' ? 'th-TH' : lang === 'lao' ? 'lo-LA' : 'en-US';
+    if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+      try { window.AndroidTTS.speak(text, v); return; } catch {}
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = v; u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+  }
+
   // ===== State =====
   let lang = (() => {
     const v = localStorage.getItem('lang');
@@ -183,6 +199,14 @@
   const $ = id => document.getElementById(id);
   const elStage = $('stage');
   const elQuestion = $('question');
+  // Tap the question to hear it again
+  if (elQuestion) {
+    elQuestion.style.cursor = 'pointer';
+    elQuestion.addEventListener('click', () => {
+      ensureAudio();
+      if (elQuestion.textContent) speak(elQuestion.textContent);
+    });
+  }
   const elLevel = $('ui-level');
   const elScore = $('ui-score');
   const elLives = $('ui-lives');
@@ -208,7 +232,9 @@
   function startRound() {
     answering = false;
     currentConcept = randomChoice(CONCEPTS);
-    elQuestion.textContent = I18N[lang].qPick(conceptLabel(currentConcept, lang));
+    const qText = I18N[lang].qPick(conceptLabel(currentConcept, lang));
+    elQuestion.textContent = qText;
+    speak(qText);
 
     const emoji = randomChoice(POOL);
     // Build 2 objects

@@ -140,6 +140,12 @@
   const elBest = $('ui-best');
   const elFlash = $('flash');
   const elModalOver = $('modal-over');
+  // Tap target name to hear it again
+  const elTargetName = $('target-name');
+  if (elTargetName) {
+    elTargetName.style.cursor = 'pointer';
+    elTargetName.addEventListener('click', () => { if (target) speak(target); });
+  }
 
   function nameFor(it, l) {
     if (l === 'th') return it.th;
@@ -208,6 +214,8 @@
     $('target-name').textContent = nameFor(target, lang);
     const others = ['en','th','lao'].filter(k => k !== lang).map(k => nameFor(target, k)).join(' · ');
     $('target-sub').textContent = others;
+    // Speak the target so kids hear what to find
+    speak(target);
 
     elOptions.classList.toggle('three-col', cfg.nOptions === 6);
     elOptions.innerHTML = '';

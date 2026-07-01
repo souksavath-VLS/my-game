@@ -109,6 +109,14 @@
   const elBest = $('ui-best');
   const elFlash = $('flash');
   const elModalOver = $('modal-over');
+  // Tap the question card to hear it again
+  const elQText = $('q-text');
+  if (elQText) {
+    elQText.style.cursor = 'pointer';
+    elQText.addEventListener('click', () => {
+      if (elQText.textContent) speak(elQText.textContent);
+    });
+  }
 
   function nameFor(it, l) {
     if (l === 'th') return it.th;
@@ -171,9 +179,11 @@
     }
     const options = shuffle([currentCount, ...wrongs]);
 
-    // Render question
-    $('q-text').textContent = I18N[lang].qText(nameFor(currentFruit, lang));
+    // Render question + speak it
+    const qText = I18N[lang].qText(nameFor(currentFruit, lang));
+    $('q-text').textContent = qText;
     $('q-sub').textContent = I18N[lang].qSub;
+    speak(qText);
 
     // Render fruit grid (with staggered drop animation)
     elDisplay.innerHTML = '';
