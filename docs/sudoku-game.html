@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Sudoku</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    overflow: hidden; overscroll-behavior: none; position: fixed; inset: 0;
+    background: #f1f5f9;
+    font-family: 'Nunito', 'Noto Sans Lao', system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    color: #0f172a;
+  }
+  * { box-sizing: border-box; }
+
+  /* ---------- Board ---------- */
+  #board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    width: min(94vw, 60vh, 460px);
+    height: min(94vw, 60vh, 460px);
+    background: #0f172a;
+    border: 3px solid #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 14px 40px rgba(15,23,42,.16);
+    touch-action: manipulation;
+  }
+  .cell {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff;
+    font-weight: 700;
+    font-size: clamp(16px, 4.4vh, 30px);
+    cursor: pointer;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    color: #2563eb;                 /* player numbers = blue */
+    transition: background .12s;
+  }
+  .cell.given { color: #0f172a; font-weight: 800; }      /* clues = dark */
+  .cell.err   { color: #ef4444 !important; }
+  /* thick 3x3 separators */
+  .cell[data-c="2"], .cell[data-c="5"] { border-right: 2.5px solid #0f172a; }
+  .cell[data-r="2"], .cell[data-r="5"] { border-bottom: 2.5px solid #0f172a; }
+  .cell[data-c="0"] { border-left: none; }
+  .cell[data-r="0"] { border-top: none; }
+
+  .cell.sel  { background: #dbeafe; }                    /* selected */
+  .cell.peer { background: #eff6ff; }                    /* same row/col/box */
+  .cell.same { background: #bfdbfe; }                    /* same number */
+  .cell.err.sel { background: #fee2e2; }
+  @keyframes flash { 0%,100%{background:#fff} 50%{background:#fecaca} }
+  .cell.badflash { animation: flash .5s ease; }
+  @keyframes okpop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  .cell .num.pop { animation: okpop .25s ease; display:inline-block; }
+
+  /* notes */
+  .notes { position:absolute; inset:0; display:grid;
+           grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+           font-size: clamp(7px, 1.5vh, 11px); color:#64748b; font-weight:700; pointer-events:none; }
+  .notes span { display:flex; align-items:center; justify-content:center; }
+
+  .btn { transition: transform .07s, background .15s, box-shadow .15s; }
+  .btn:active { transform: scale(.93); }
+  .pad {
+    aspect-ratio: 1; display:flex; align-items:center; justify-content:center;
+    background:#fff; border-radius:14px; font-weight:800;
+    font-size: clamp(18px, 4.6vh, 26px); color:#1e293b;
+    box-shadow: 0 2px 6px rgba(15,23,42,.08); cursor:pointer;
+  }
+  .pad:active { transform: scale(.93); }
+  .pad.done { color:#cbd5e1; box-shadow:none; background:#f8fafc; }
+  .pad .cnt { position:absolute; }
+
+  .toolbtn { display:flex; flex-direction:column; align-items:center; gap:2px;
+             color:#475569; font-weight:700; font-size:11px; }
+  .toolbtn .ic { width:46px; height:46px; border-radius:14px; background:#fff;
+                 display:flex; align-items:center; justify-content:center; font-size:20px;
+                 box-shadow:0 2px 6px rgba(15,23,42,.08); position:relative; }
+  .toolbtn:disabled { opacity:.35; }
+  .toolbtn.on .ic { background:#2563eb; color:#fff; }
+  .badge { position:absolute; top:-5px; right:-5px; background:#2563eb; color:#fff;
+           font-size:10px; min-width:17px; height:17px; padding:0 3px; border-radius:9px;
+           display:flex; align-items:center; justify-content:center; font-weight:800; }
+
+  .modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+           padding:24px; background:rgba(15,23,42,.5); backdrop-filter:blur(4px); }
+  @keyframes rise { from{transform:translateY(18px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card { animation: rise .28s ease; }
+</style>
+</head>
+<body class="flex flex-col">
+
+  <!-- Top bar -->
+  <div class="w-full px-3 pt-3 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top))">
+    <a href="index.html" class="btn w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-slate-500 text-lg shrink-0">✕</a>
+    <div class="flex-1 flex items-center justify-center gap-2">
+      <div class="bg-white shadow rounded-full px-3 h-9 flex items-center gap-1.5 text-sm font-extrabold">
+        <span>🔢</span><span id="statDiff" class="text-blue-600">Easy</span>
+      </div>
+      <div class="bg-white shadow rounded-full px-3 h-9 flex items-center gap-1 text-sm font-bold">
+        <span class="text-rose-500">✖</span>
+        <span id="statMistakes" class="tabular-nums">0</span><span class="text-slate-400">/3</span>
+      </div>
+      <div class="bg-white shadow rounded-full px-3 h-9 flex items-center gap-1 text-sm font-bold tabular-nums">
+        <span>⏱️</span><span id="statTime">00:00</span>
+      </div>
+    </div>
+    <button id="btnSound" class="btn w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-lg shrink-0">🔊</button>
+  </div>
+
+  <!-- Board -->
+  <div class="flex-1 flex items-center justify-center px-2">
+    <div id="board"></div>
+  </div>
+
+  <!-- Tools row: undo / redo / erase / notes / hint -->
+  <div class="w-full px-4 flex items-center justify-between max-w-md mx-auto mb-1">
+    <button class="toolbtn btn" id="btnUndo"><span class="ic">↩️</span><span id="lblUndo">Undo</span></button>
+    <button class="toolbtn btn" id="btnRedo"><span class="ic">↪️</span><span id="lblRedo">Redo</span></button>
+    <button class="toolbtn btn" id="btnErase"><span class="ic">🧽</span><span id="lblErase">Erase</span></button>
+    <button class="toolbtn btn" id="btnNotes"><span class="ic" id="notesIc">✏️</span><span id="lblNotes">Notes</span></button>
+    <button class="toolbtn btn" id="btnHint"><span class="ic">💡<span class="badge" id="hintBadge">3</span></span><span id="lblHint">Hint</span></button>
+  </div>
+
+  <!-- Number pad -->
+  <div class="w-full px-3 pb-3 max-w-md mx-auto" style="padding-bottom:max(0.75rem,env(safe-area-inset-bottom))">
+    <div id="pad" class="grid grid-cols-9 gap-1.5"></div>
+    <button id="btnNew" class="btn w-full mt-3 rounded-2xl py-3 text-white font-extrabold text-base"
+            style="background:linear-gradient(135deg,#3b82f6,#6366f1)">
+      <span id="lblNewGame">＋ New Game</span>
+    </button>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader" class="modal" style="display:none;background:rgba(241,245,249,.9)">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-12 h-12 border-4 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
+      <div class="text-slate-500 font-bold" id="lblGen">Generating…</div>
+    </div>
+  </div>
+
+  <!-- Difficulty / start modal -->
+  <div id="startModal" class="modal">
+    <div class="card bg-white rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl">
+      <div class="text-5xl mb-2">🔢</div>
+      <div id="startTitle" class="text-xl font-extrabold mb-1">Sudoku</div>
+      <div id="startSub" class="text-slate-400 text-sm mb-5">Choose a difficulty</div>
+      <div class="flex flex-col gap-2.5">
+        <button class="diffbtn btn rounded-2xl py-3 font-extrabold text-white" data-d="easy"   style="background:linear-gradient(135deg,#22c55e,#16a34a)"><span data-lbl="easy">Easy</span></button>
+        <button class="diffbtn btn rounded-2xl py-3 font-extrabold text-white" data-d="medium" style="background:linear-gradient(135deg,#f59e0b,#f97316)"><span data-lbl="medium">Medium</span></button>
+        <button class="diffbtn btn rounded-2xl py-3 font-extrabold text-white" data-d="hard"   style="background:linear-gradient(135deg,#ef4444,#dc2626)"><span data-lbl="hard">Hard</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win / Lose modal -->
+  <div id="endModal" class="modal" style="display:none">
+    <div class="card bg-white rounded-3xl p-7 w-full max-w-xs text-center shadow-2xl">
+      <div id="endEmoji" class="text-6xl mb-2">🏆</div>
+      <div id="endTitle" class="text-2xl font-extrabold mb-1">You Win!</div>
+      <div id="endSub" class="text-slate-400 text-sm mb-5">Well done</div>
+      <div class="flex gap-3 mb-5">
+        <div class="flex-1 bg-slate-50 rounded-2xl py-3">
+          <div class="text-slate-400 text-xs font-bold" id="endTimeLbl">Time</div>
+          <div class="text-blue-600 text-xl font-extrabold tabular-nums" id="endTime">00:00</div>
+        </div>
+        <div class="flex-1 bg-slate-50 rounded-2xl py-3">
+          <div class="text-slate-400 text-xs font-bold" id="endMistLbl">Mistakes</div>
+          <div class="text-rose-500 text-xl font-extrabold tabular-nums" id="endMist">0</div>
+        </div>
+      </div>
+      <button id="btnAgain" class="btn w-full rounded-2xl py-3 text-white font-extrabold"
+              style="background:linear-gradient(135deg,#3b82f6,#6366f1)"><span id="lblAgain">Play Again</span></button>
+    </div>
+  </div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N = {
+  en:{ title:'Sudoku', choose:'Choose a difficulty', easy:'Easy', medium:'Medium', hard:'Hard',
+       undo:'Undo', redo:'Redo', erase:'Erase', notes:'Notes', hint:'Hint', newGame:'＋ New Game',
+       win:'You Win!', lose:'Game Over', winSub:'Puzzle solved!', loseSub:'3 mistakes reached',
+       time:'Time', mistakes:'Mistakes', again:'Play Again', gen:'Generating…' },
+  th:{ title:'ซูโดกุ', choose:'เลือกระดับความยาก', easy:'ง่าย', medium:'ปานกลาง', hard:'ยาก',
+       undo:'ย้อนกลับ', redo:'ทำซ้ำ', erase:'ลบ', notes:'จดโน้ต', hint:'คำใบ้', newGame:'＋ เกมใหม่',
+       win:'ชนะแล้ว!', lose:'จบเกม', winSub:'ไขปริศนาสำเร็จ!', loseSub:'ผิดครบ 3 ครั้งแล้ว',
+       time:'เวลา', mistakes:'ผิด', again:'เล่นอีกครั้ง', gen:'กำลังสร้างโจทย์…' },
+  lao:{ title:'ຊູໂດກຸ', choose:'ເລືອກລະດັບຄວາມຫຍຸ້ງຍາກ', easy:'ງ່າຍ', medium:'ປານກາງ', hard:'ຍາກ',
+       undo:'ຍ້ອນກັບ', redo:'ເຮັດຄືນ', erase:'ລຶບ', notes:'ຈົດໂນດ', hint:'ຄຳໃບ້', newGame:'＋ ເກມໃໝ່',
+       win:'ຊະນະ!', lose:'ຈົບເກມ', winSub:'ໄຂປິດສະໜາສຳເລັດ!', loseSub:'ຜິດຄົບ 3 ຄັ້ງແລ້ວ',
+       time:'ເວລາ', mistakes:'ຜິດ', again:'ຫຼິ້ນອີກຄັ້ງ', gen:'ກຳລັງສ້າງໂຈດ…' },
+};
+let lang = localStorage.getItem('lang') || 'en';
+if (!I18N[lang]) lang = 'en';
+const T = () => I18N[lang];
+function applyLang() {
+  const t = T();
+  document.getElementById('startTitle').textContent = t.title;
+  document.getElementById('startSub').textContent   = t.choose;
+  document.querySelectorAll('[data-lbl]').forEach(el => el.textContent = t[el.dataset.lbl]);
+  document.getElementById('lblUndo').textContent  = t.undo;
+  document.getElementById('lblRedo').textContent  = t.redo;
+  document.getElementById('lblErase').textContent = t.erase;
+  document.getElementById('lblNotes').textContent = t.notes;
+  document.getElementById('lblHint').textContent  = t.hint;
+  document.getElementById('lblNewGame').textContent = t.newGame;
+  document.getElementById('endTimeLbl').textContent = t.time;
+  document.getElementById('endMistLbl').textContent = t.mistakes;
+  document.getElementById('lblAgain').textContent = t.again;
+  document.getElementById('lblGen').textContent = t.gen;
+  document.documentElement.lang = lang === 'lao' ? 'lo' : lang;
+}
+
+/* ============================ Audio ============================ */
+let muted = localStorage.getItem('sudokuMuted') === '1';
+let actx = null;
+function ac(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function tone(f,d,type='sine',g=0.16,slide=null){
+  if(muted) return;
+  try{ const c=ac(),o=c.createOscillator(),ga=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide,c.currentTime+d);
+    ga.gain.setValueAtTime(0.0001,c.currentTime);
+    ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.008);
+    ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
+    o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+d+0.02);
+  }catch(e){}
+}
+const sTap  = ()=>tone(420,0.04,'triangle',0.10);
+const sPlace= ()=>tone(560,0.08,'sine',0.16,760);
+const sErr  = ()=>tone(200,0.18,'sawtooth',0.16,120);
+const sErase= ()=>tone(300,0.06,'sine',0.10);
+const sHint = ()=>{ tone(700,0.09,'sine',0.16,980); setTimeout(()=>tone(980,0.10,'sine',0.14),80); };
+function sWin(){ if(muted)return; [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'triangle',0.2),i*130)); }
+function sLose(){ if(muted)return; [440,349,262].forEach((f,i)=>setTimeout(()=>tone(f,0.28,'sawtooth',0.16),i*150)); }
+
+/* ============================ Sudoku engine ============================ */
+function makeSolvedGrid() {
+  const g = Array.from({length:9}, ()=>new Array(9).fill(0));
+  fillGrid(g);
+  return g;
+}
+function fillGrid(g) {
+  for (let i=0;i<81;i++){
+    const r=(i/9)|0, c=i%9;
+    if (g[r][c]!==0) continue;
+    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    for (const n of nums){
+      if (canPlace(g,r,c,n)){
+        g[r][c]=n;
+        if (isFull(g) || fillGrid(g)) return true;
+        g[r][c]=0;
+      }
+    }
+    return false;
+  }
+  return true;
+}
+function isFull(g){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(g[r][c]===0) return false; return true; }
+function canPlace(g,r,c,n){
+  for(let i=0;i<9;i++){ if(g[r][i]===n||g[i][c]===n) return false; }
+  const br=r-r%3, bc=c-c%3;
+  for(let a=0;a<3;a++) for(let b=0;b<3;b++) if(g[br+a][bc+b]===n) return false;
+  return true;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// Count solutions up to a limit (2 = "is it unique?")
+function countSolutions(g, limit=2){
+  let count=0;
+  const grid = g.map(r=>r.slice());
+  (function solve(){
+    if (count>=limit) return;
+    // find cell with fewest candidates for speed
+    let br=-1,bc=-1,best=10,cand=null;
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      if(grid[r][c]!==0) continue;
+      const options=[];
+      for(let n=1;n<=9;n++) if(canPlace(grid,r,c,n)) options.push(n);
+      if(options.length<best){ best=options.length; br=r; bc=c; cand=options; if(best===0) return; }
+    }
+    if(br===-1){ count++; return; }        // filled → a solution
+    for(const n of cand){
+      grid[br][bc]=n; solve(); grid[br][bc]=0;
+      if(count>=limit) return;
+    }
+  })();
+  return count;
+}
+
+const DIFF = { easy:{clues:44}, medium:{clues:34}, hard:{clues:28} };
+function generatePuzzle(diff){
+  const solution = makeSolvedGrid();
+  const puzzle = solution.map(r=>r.slice());
+  const target = DIFF[diff].clues;
+  // remove cells while keeping a unique solution
+  const cells = shuffle([...Array(81).keys()]);
+  let filled = 81;
+  for (const idx of cells){
+    if (filled<=target) break;
+    const r=(idx/9)|0, c=idx%9;
+    if (puzzle[r][c]===0) continue;
+    const backup = puzzle[r][c];
+    puzzle[r][c]=0;
+    if (countSolutions(puzzle,2)!==1){ puzzle[r][c]=backup; }   // not unique → revert
+    else filled--;
+  }
+  return { puzzle, solution };
+}
+
+/* ============================ Game state ============================ */
+let solution, given, value, notes, selected=-1;
+let mistakes=0, hintsLeft=3, notesMode=false;
+let history=[], future=[];
+let startTs=0, timerId=null, playing=false, difficulty='easy';
+const MAX_MISTAKES=3;
+
+const boardEl = document.getElementById('board');
+const cells=[];
+function buildBoard(){
+  boardEl.innerHTML=''; cells.length=0;
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+    const d=document.createElement('div');
+    d.className='cell'; d.dataset.r=r; d.dataset.c=c; d.dataset.i=r*9+c;
+    d.addEventListener('pointerdown',()=>selectCell(r*9+c));
+    boardEl.appendChild(d); cells.push(d);
+  }
+}
+
+function startGame(diff){
+  difficulty=diff;
+  const {puzzle,solution:sol}=generatePuzzle(diff);
+  solution=sol;
+  given=puzzle.map(r=>r.map(v=>v!==0));
+  value=puzzle.map(r=>r.slice());
+  notes=Array.from({length:9},()=>Array.from({length:9},()=>new Set()));
+  selected=-1; mistakes=0; hintsLeft=3; notesMode=false;
+  history=[]; future=[]; playing=true;
+  document.getElementById('statDiff').textContent = T()[diff];
+  document.getElementById('statMistakes').textContent = '0';
+  document.getElementById('hintBadge').textContent = hintsLeft;
+  document.getElementById('btnHint').disabled = false;
+  document.getElementById('btnNotes').classList.remove('on');
+  document.getElementById('notesIc').textContent='✏️';
+  document.getElementById('startModal').style.display='none';
+  document.getElementById('endModal').style.display='none';
+  render(); updateUndoRedo();
+  startTs=performance.now(); startTimer();
+}
+
+/* ---------- conflict detection ---------- */
+function conflictsFor(r,c){
+  const v=value[r][c];
+  if(!v) return false;
+  for(let i=0;i<9;i++){
+    if(i!==c && value[r][i]===v) return true;
+    if(i!==r && value[i][c]===v) return true;
+  }
+  const br=r-r%3, bc=c-c%3;
+  for(let a=0;a<3;a++) for(let b=0;b<3;b++){
+    const rr=br+a, cc=bc+b;
+    if((rr!==r||cc!==c) && value[rr][cc]===v) return true;
+  }
+  return false;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const selR = selected>=0 ? (selected/9|0):-1;
+  const selC = selected>=0 ? (selected%9):-1;
+  const selV = selected>=0 ? value[selR][selC] : 0;
+  for(let i=0;i<81;i++){
+    const r=i/9|0, c=i%9, el=cells[i], v=value[r][c];
+    el.className='cell';
+    if(given[r][c]) el.classList.add('given');
+    // highlighting
+    if(selected>=0){
+      if(i===selected) el.classList.add('sel');
+      else if(r===selR||c===selC||(((r/3|0)===(selR/3|0))&&((c/3|0)===(selC/3|0)))) el.classList.add('peer');
+      if(v && selV && v===selV && i!==selected) el.classList.add('same');
+    }
+    if(v && conflictsFor(r,c)) el.classList.add('err');
+    // content
+    if(v){ el.innerHTML='<span class="num">'+v+'</span>'; }
+    else if(notes[r][c].size){
+      let h='<div class="notes">';
+      for(let n=1;n<=9;n++) h+='<span>'+(notes[r][c].has(n)?n:'')+'</span>';
+      h+='</div>';
+      el.innerHTML=h;
+    } else el.innerHTML='';
+  }
+  updatePad();
+}
+function updatePad(){
+  // grey out digits already placed 9 times
+  const counts=new Array(10).fill(0);
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(value[r][c]) counts[value[r][c]]++;
+  document.querySelectorAll('#pad .pad').forEach(p=>{
+    const n=+p.dataset.n;
+    p.classList.toggle('done', counts[n]>=9);
+  });
+}
+
+/* ---------- selection ---------- */
+function selectCell(i){
+  selected=i; sTap(); render();
+}
+
+/* ---------- input ---------- */
+function pushHistory(){
+  history.push(snapshot());
+  if(history.length>200) history.shift();
+  future=[];
+  updateUndoRedo();
+}
+function inputNumber(n){
+  if(!playing || selected<0) return;
+  const r=selected/9|0, c=selected%9;
+  if(given[r][c]) return;
+  if(notesMode){
+    pushHistory();
+    if(value[r][c]) value[r][c]=0;         // clear a filled value when noting
+    if(notes[r][c].has(n)) notes[r][c].delete(n); else notes[r][c].add(n);
+    sTap(); render(); return;
+  }
+  pushHistory();
+  notes[r][c].clear();
+  if(value[r][c]===n){ value[r][c]=0; sErase(); render(); return; }
+  value[r][c]=n;
+  // auto-clear notes in peers
+  clearPeerNotes(r,c,n);
+  if(n!==solution[r][c]){
+    mistakes++;
+    document.getElementById('statMistakes').textContent=mistakes;
+    cells[selected].classList.add('badflash');
+    setTimeout(()=>cells[selected].classList.remove('badflash'),500);
+    sErr();
+    render();
+    if(mistakes>=MAX_MISTAKES){ endGame(false); return; }
+  } else {
+    sPlace();
+    render();
+    const span=cells[selected].querySelector('.num'); if(span){ span.classList.add('pop'); }
+    checkWin();
+  }
+}
+function clearPeerNotes(r,c,n){
+  for(let i=0;i<9;i++){ notes[r][i].delete(n); notes[i][c].delete(n); }
+  const br=r-r%3, bc=c-c%3;
+  for(let a=0;a<3;a++) for(let b=0;b<3;b++) notes[br+a][bc+b].delete(n);
+}
+function erase(){
+  if(!playing || selected<0) return;
+  const r=selected/9|0, c=selected%9;
+  if(given[r][c]) return;
+  if(!value[r][c] && notes[r][c].size===0) return;
+  pushHistory();
+  value[r][c]=0; notes[r][c].clear();
+  sErase(); render();
+}
+
+/* ---------- hint ---------- */
+function useHint(){
+  if(!playing || hintsLeft<=0) return;
+  let r,c;
+  if(selected>=0 && !given[selected/9|0][selected%9] && value[selected/9|0][selected%9]!==solution[selected/9|0][selected%9]){
+    r=selected/9|0; c=selected%9;
+  } else {
+    // pick a random empty/wrong cell
+    const opts=[];
+    for(let i=0;i<81;i++){ const rr=i/9|0,cc=i%9; if(!given[rr][cc] && value[rr][cc]!==solution[rr][cc]) opts.push(i); }
+    if(!opts.length) return;
+    const pick=opts[Math.floor(Math.random()*opts.length)];
+    r=pick/9|0; c=pick%9; selected=pick;
+  }
+  pushHistory();
+  value[r][c]=solution[r][c];
+  notes[r][c].clear(); clearPeerNotes(r,c,value[r][c]);
+  given[r][c]=true;                       // lock the hinted cell so it can't be broken
+  hintsLeft--;
+  document.getElementById('hintBadge').textContent=hintsLeft;
+  document.getElementById('btnHint').disabled = hintsLeft<=0;
+  sHint(); render();
+  const span=cells[r*9+c].querySelector('.num'); if(span) span.classList.add('pop');
+  checkWin();
+}
+
+/* ---------- undo / redo ---------- */
+function updateUndoRedo(){
+  document.getElementById('btnUndo').disabled = history.length===0;
+  document.getElementById('btnRedo').disabled = future.length===0;
+}
+function snapshot(){ return { value:value.map(r=>r.slice()), notes:notes.map(r=>r.map(s=>new Set(s))), given:given.map(r=>r.slice()), mistakes }; }
+function restore(s){
+  value=s.value.map(r=>r.slice());
+  notes=s.notes.map(r=>r.map(x=>new Set(x)));
+  given=s.given.map(r=>r.slice());
+  mistakes=s.mistakes;
+  document.getElementById('statMistakes').textContent=mistakes;
+}
+function undo(){
+  if(!history.length) return;
+  future.push(snapshot());
+  restore(history.pop());
+  sErase(); render(); updateUndoRedo();
+}
+function redo(){
+  if(!future.length) return;
+  history.push(snapshot());
+  restore(future.pop());
+  sTap(); render(); updateUndoRedo();
+}
+
+/* ---------- notes mode ---------- */
+function toggleNotes(){
+  notesMode=!notesMode;
+  document.getElementById('btnNotes').classList.toggle('on',notesMode);
+  document.getElementById('notesIc').textContent = notesMode ? '📝' : '✏️';
+  sTap();
+}
+
+/* ---------- win / lose ---------- */
+function checkWin(){
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(value[r][c]!==solution[r][c]) return;
+  endGame(true);
+}
+function endGame(won){
+  playing=false; stopTimer();
+  won ? sWin() : sLose();
+  document.getElementById('endEmoji').textContent = won ? '🏆' : '💥';
+  document.getElementById('endTitle').textContent = won ? T().win : T().lose;
+  document.getElementById('endSub').textContent   = won ? T().winSub : T().loseSub;
+  document.getElementById('endTime').textContent  = fmt(performance.now()-startTs);
+  document.getElementById('endMist').textContent  = mistakes;
+  document.getElementById('endModal').style.display='flex';
+}
+
+/* ---------- timer ---------- */
+function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function startTimer(){ stopTimer(); timerId=setInterval(()=>{ document.getElementById('statTime').textContent=fmt(performance.now()-startTs); },500); }
+function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+
+/* ============================ Wiring ============================ */
+// number pad
+const padEl=document.getElementById('pad');
+for(let n=1;n<=9;n++){
+  const b=document.createElement('div');
+  b.className='pad btn'; b.dataset.n=n; b.textContent=n;
+  b.addEventListener('pointerdown',(e)=>{ e.preventDefault(); ac(); inputNumber(n); });
+  padEl.appendChild(b);
+}
+document.getElementById('btnUndo').addEventListener('click',undo);
+document.getElementById('btnRedo').addEventListener('click',redo);
+document.getElementById('btnErase').addEventListener('click',erase);
+document.getElementById('btnNotes').addEventListener('click',toggleNotes);
+document.getElementById('btnHint').addEventListener('click',useHint);
+document.getElementById('btnNew').addEventListener('click',()=>{ document.getElementById('startModal').style.display='flex'; });
+document.getElementById('btnAgain').addEventListener('click',()=>{ document.getElementById('endModal').style.display='none'; document.getElementById('startModal').style.display='flex'; });
+document.querySelectorAll('.diffbtn').forEach(b=>b.addEventListener('click',()=>{
+  ac();
+  document.getElementById('startModal').style.display='none';
+  document.getElementById('loader').style.display='flex';
+  // defer so the spinner paints before the (heavy) generation blocks the thread
+  setTimeout(()=>{ startGame(b.dataset.d); document.getElementById('loader').style.display='none'; }, 40);
+}));
+document.getElementById('btnSound').addEventListener('click',()=>{
+  muted=!muted; localStorage.setItem('sudokuMuted',muted?'1':'0');
+  document.getElementById('btnSound').textContent=muted?'🔇':'🔊';
+  if(!muted) tone(660,0.08,'sine',0.16);
+});
+
+// keyboard
+window.addEventListener('keydown',(e)=>{
+  if(!playing) return;
+  if(e.key>='1'&&e.key<='9'){ inputNumber(+e.key); e.preventDefault(); return; }
+  if(e.key==='Backspace'||e.key==='Delete'||e.key==='0'){ erase(); e.preventDefault(); return; }
+  if(e.key==='n'||e.key==='N'){ toggleNotes(); return; }
+  if(e.key==='h'||e.key==='H'){ useHint(); return; }
+  // arrow navigation
+  if(selected<0){ if(e.key.startsWith('Arrow')){ selected=40; render(); e.preventDefault(); } return; }
+  let r=selected/9|0, c=selected%9;
+  if(e.key==='ArrowUp')    r=(r+8)%9;
+  else if(e.key==='ArrowDown')  r=(r+1)%9;
+  else if(e.key==='ArrowLeft')  c=(c+8)%9;
+  else if(e.key==='ArrowRight') c=(c+1)%9;
+  else return;
+  selected=r*9+c; render(); e.preventDefault();
+});
+
+/* ============================ Boot ============================ */
+applyLang();
+buildBoard();
+document.getElementById('btnSound').textContent = muted ? '🔇' : '🔊';
+document.getElementById('startModal').style.display='flex';
+</script>
+</body>
+</html>

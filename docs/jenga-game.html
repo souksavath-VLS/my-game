@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🪵 Jenga Tower · เกมตึกถล่ม</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0; overflow: hidden;
+    height: 100dvh; width: 100vw;
+    background: #050b1c;
+    font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+</style>
+</head>
+<body class="text-white">
+  <div id="scene-mount" class="fixed inset-0"></div>
+
+  <!-- Top HUD -->
+  <div class="fixed top-3 left-3 right-3 z-10 flex justify-between items-start gap-2 pointer-events-none">
+    <a href="index.html" class="pointer-events-auto bg-red-600/85 backdrop-blur-md border border-white/25 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg hover:bg-red-500 transition shadow-lg">✕</a>
+    <div class="bg-slate-900/75 backdrop-blur-md border border-white/15 px-4 py-2 rounded-2xl shadow-xl">
+      <div class="text-sm text-amber-300 font-bold tracking-wider" id="ui-title">🪵 JENGA TOWER</div>
+    </div>
+    <div class="pointer-events-auto flex gap-2">
+      <div class="bg-slate-900/75 backdrop-blur-md border border-white/15 px-4 py-2 rounded-2xl shadow-xl text-center min-w-[68px]">
+        <div class="text-3xl font-black text-amber-400 leading-none" id="ui-score">0</div>
+        <div class="text-[10px] text-white/60 tracking-wider mt-1" id="ui-score-lbl">BLOCKS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="fixed bottom-3 left-3 right-3 z-10 flex justify-between items-end gap-2 pointer-events-none">
+    <div class="bg-slate-900/70 backdrop-blur-md border border-white/15 rounded-xl px-3 py-2 text-xs text-white/85 max-w-[220px] shadow-lg">
+      <div><span class="text-cyan-300 font-bold">🖱️</span> <span id="hint-camera">Drag empty area to rotate</span></div>
+      <div class="mt-0.5"><span class="text-amber-300 font-bold">🎯</span> <span id="hint-drag">Click & drag a block to pull it</span></div>
+    </div>
+    <div class="pointer-events-auto flex gap-2">
+      <button id="btn-reset" class="bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/60 text-white font-bold px-4 py-2.5 rounded-xl shadow-lg text-sm transition active:scale-95">
+        🔄 <span id="btn-reset-label">Reset</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading splash -->
+  <div id="loading" class="fixed inset-0 z-30 bg-slate-950 flex items-center justify-center">
+    <div class="text-center">
+      <div class="text-6xl mb-4 animate-bounce">🪵</div>
+      <div class="text-cyan-300 font-bold tracking-widest text-sm">STACKING TOWER...</div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="modal-over" class="fixed inset-0 z-20 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-red-500 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-8 -right-8 w-32 h-32 bg-red-500/30 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-amber-500/30 rounded-full blur-3xl"></div>
+      <div class="relative">
+        <div class="text-7xl mb-2 animate-bounce">💥</div>
+        <h2 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-400 mb-2" id="over-title">Tower Collapsed!</h2>
+        <p class="text-white/70 mb-4 text-sm" id="over-sub">Your tower fell over!</p>
+        <div class="my-5 p-4 bg-black/50 rounded-2xl border border-white/10">
+          <div class="text-6xl font-black text-amber-400 leading-none" id="over-score">0</div>
+          <div class="text-white/60 mt-2 text-sm" id="over-score-lbl">Blocks removed</div>
+        </div>
+        <button id="btn-again" class="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-3 px-8 rounded-2xl shadow-lg text-lg transition active:scale-95">
+          🔄 <span id="btn-again-label">Play Again</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ============================================================
+  // i18n
+  // ============================================================
+  const I18N = {
+    th: {
+      title: '🪵 เกมตึกถล่ม', blocks: 'บล็อก',
+      hintCam: 'ลากพื้นที่ว่างเพื่อหมุนกล้อง',
+      hintDrag: 'คลิกและลากแท่งไม้เพื่อดึงออก',
+      reset: 'เริ่มใหม่',
+      overTitle: '💥 ตึกถล่ม!', overSub: 'ตึกของคุณล้มลงแล้ว',
+      overScoreLbl: 'ดึงบล็อกออกได้', playAgain: 'เล่นใหม่'
+    },
+    en: {
+      title: '🪵 JENGA TOWER', blocks: 'BLOCKS',
+      hintCam: 'Drag empty area to rotate camera',
+      hintDrag: 'Click and drag a block to pull it out',
+      reset: 'Reset',
+      overTitle: '💥 Tower Collapsed!', overSub: 'Your tower fell over!',
+      overScoreLbl: 'Blocks removed', playAgain: 'Play Again'
+    },
+    lao: {
+      title: '🪵 ເກມຕຶກຖະລົ່ມ', blocks: 'ບລັອກ',
+      hintCam: 'ລາກພື້ນທີ່ວ່າງເພື່ອໝູນກ້ອງ',
+      hintDrag: 'ຄລິກແລະລາກແທ່ງໄມ້ເພື່ອດຶງອອກ',
+      reset: 'ເລີ່ມໃໝ່',
+      overTitle: '💥 ຕຶກຖະລົ່ມ!', overSub: 'ຕຶກຂອງເຈົ້າລົ້ມແລ້ວ',
+      overScoreLbl: 'ດຶງບລັອກອອກໄດ້', playAgain: 'ຫຼິ້ນໃໝ່'
+    }
+  };
+  const lang = (['th','en','lao'].includes(localStorage.getItem('lang'))) ? localStorage.getItem('lang') : 'en';
+  const T = I18N[lang];
+  const $ = id => document.getElementById(id);
+  $('ui-title').textContent = T.title;
+  $('ui-score-lbl').textContent = T.blocks;
+  $('hint-camera').textContent = T.hintCam;
+  $('hint-drag').textContent = T.hintDrag;
+  $('btn-reset-label').textContent = T.reset;
+  $('over-title').textContent = T.overTitle;
+  $('over-sub').textContent = T.overSub;
+  $('over-score-lbl').textContent = T.overScoreLbl;
+  $('btn-again-label').textContent = T.playAgain;
+
+  // ============================================================
+  // Audio (synthesized wood clacks + game over)
+  // ============================================================
+  let audioCtx = null, master = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        master = audioCtx.createGain();
+        master.gain.value = 0.35;
+        master.connect(audioCtx.destination);
+      } catch {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function clack() {
+    ensureAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220 + Math.random() * 80, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.10);
+    g.gain.setValueAtTime(0.22, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+    osc.connect(g); g.connect(master);
+    osc.start(now); osc.stop(now + 0.12);
+  }
+  function success() {
+    ensureAudio();
+    if (!audioCtx) return;
+    [660, 990].forEach((f, i) => {
+      const now = audioCtx.currentTime + i * 0.06;
+      const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now);
+      g.gain.setValueAtTime(0.22, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(g); g.connect(master);
+      osc.start(now); osc.stop(now + 0.16);
+    });
+  }
+  function crash() {
+    ensureAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    // Noise burst
+    const bufLen = audioCtx.sampleRate * 0.6;
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.4, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    src.connect(g); g.connect(master);
+    src.start();
+    // Low thud
+    const osc = audioCtx.createOscillator(), g2 = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+    g2.gain.setValueAtTime(0.4, now);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(g2); g2.connect(master);
+    osc.start(now); osc.stop(now + 0.6);
+  }
+
+  // ============================================================
+  // Three.js scene setup
+  // ============================================================
+  const container = $('scene-mount');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05070f);
+  scene.fog = new THREE.Fog(0x05070f, 22, 55);
+
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(11, 8, 12);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  container.appendChild(renderer.domElement);
+
+  // ============================================================
+  // Lights
+  // ============================================================
+  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+  const fill = new THREE.DirectionalLight(0x88aaff, 0.28);
+  fill.position.set(-15, 8, -10);
+  scene.add(fill);
+  const sun = new THREE.DirectionalLight(0xfff5e0, 0.95);
+  sun.position.set(11, 20, 9);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -12; sun.shadow.camera.right = 12;
+  sun.shadow.camera.top = 12;   sun.shadow.camera.bottom = -12;
+  sun.shadow.camera.near = 5;   sun.shadow.camera.far = 40;
+  sun.shadow.bias = -0.0005;
+  scene.add(sun);
+  const rim = new THREE.PointLight(0xffaa55, 0.6, 32);
+  rim.position.set(-9, 6, -12);
+  scene.add(rim);
+
+  // ============================================================
+  // Table / ground
+  // ============================================================
+  const table = new THREE.Mesh(
+    new THREE.CylinderGeometry(13, 13, 0.5, 48),
+    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.06 })
+  );
+  table.position.y = -0.25;
+  table.receiveShadow = true;
+  scene.add(table);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(4.5, 5.0, 48),
+    new THREE.MeshBasicMaterial({ color: 0x475569, side: THREE.DoubleSide, opacity: 0.55, transparent: true })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.02;
+  scene.add(ring);
+
+  // ============================================================
+  // Camera / orbit controls
+  // ============================================================
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.target.set(0, 4, 0);
+  controls.minDistance = 7;
+  controls.maxDistance = 25;
+  controls.minPolarAngle = 0.15;
+  controls.maxPolarAngle = Math.PI / 2 - 0.05;
+  controls.enablePan = false;
+
+  // ============================================================
+  // Physics world (Cannon.js)
+  // ============================================================
+  const world = new CANNON.World();
+  world.gravity.set(0, -9.82, 0);
+  world.broadphase = new CANNON.NaiveBroadphase();
+  world.solver.iterations = 24;
+  world.solver.tolerance = 0.001;
+  world.allowSleep = true;
+  world.defaultContactMaterial.contactEquationStiffness = 1e8;
+  world.defaultContactMaterial.contactEquationRelaxation = 3;
+
+  const woodMat = new CANNON.Material('wood');
+  const groundMat = new CANNON.Material('ground');
+  world.addContactMaterial(new CANNON.ContactMaterial(woodMat, woodMat, {
+    friction: 0.45, restitution: 0.05
+  }));
+  world.addContactMaterial(new CANNON.ContactMaterial(woodMat, groundMat, {
+    friction: 0.9, restitution: 0.02
+  }));
+
+  // Ground plane
+  const groundBody = new CANNON.Body({ mass: 0, material: groundMat, shape: new CANNON.Plane() });
+  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+  world.addBody(groundBody);
+
+  // ============================================================
+  // Blocks
+  // ============================================================
+  const BLOCK_LEN = 3.0;
+  const BLOCK_WID = 1.0;
+  const BLOCK_HEI = 0.6;
+  const NUM_LAYERS = 12;
+  const BLOCKS_PER_LAYER = 3;
+  const WOOD_COLORS = [0xc19a6b, 0xb8916a, 0xc4a06a, 0xbc9865, 0xb18656, 0xa87b4c];
+
+  const blocks = [];  // { mesh, mat, body, removed, id }
+
+  function makeBlock(px, py, pz, rotY) {
+    const half = new CANNON.Vec3(BLOCK_LEN / 2, BLOCK_HEI / 2, BLOCK_WID / 2);
+    const shape = new CANNON.Box(half);
+    const body = new CANNON.Body({
+      mass: 1.2,
+      material: woodMat,
+      shape,
+      position: new CANNON.Vec3(px, py, pz)
+    });
+    body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
+    body.linearDamping = 0.18;
+    body.angularDamping = 0.22;
+    body.allowSleep = true;
+    body.sleepSpeedLimit = 0.08;
+    body.sleepTimeLimit = 0.4;
+    world.addBody(body);
+
+    const geo = new THREE.BoxGeometry(BLOCK_LEN, BLOCK_HEI, BLOCK_WID);
+    // Slight bevel look via emissive line? Use plain material with subtle color variation.
+    const color = WOOD_COLORS[Math.floor(Math.random() * WOOD_COLORS.length)];
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.72,
+      metalness: 0.05
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    // Wood grain: add subtle edge outline using edges geometry
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0x5b3f22, transparent: true, opacity: 0.3 })
+    );
+    mesh.add(edges);
+    scene.add(mesh);
+
+    const block = { mesh, mat, body, removed: false, id: blocks.length };
+    body.userData = { block };
+    blocks.push(block);
+  }
+
+  function buildTower() {
+    // Clean up existing
+    for (const b of blocks) {
+      world.removeBody(b.body);
+      scene.remove(b.mesh);
+      b.mesh.geometry.dispose();
+      b.mat.dispose();
+    }
+    blocks.length = 0;
+    for (let layer = 0; layer < NUM_LAYERS; layer++) {
+      const y = BLOCK_HEI / 2 + layer * BLOCK_HEI;
+      const rotated = layer % 2 === 1;
+      for (let i = 0; i < BLOCKS_PER_LAYER; i++) {
+        const off = (i - 1) * BLOCK_WID;
+        if (!rotated) makeBlock(0, y, off, 0);
+        else           makeBlock(off, y, 0, Math.PI / 2);
+      }
+    }
+  }
+
+  // ============================================================
+  // Drag interaction with Cannon PointToPointConstraint
+  // ============================================================
+  let jointBody = null;
+  let jointConstraint = null;
+  let draggedBlock = null;
+  const dragPlaneNormal = new THREE.Vector3();
+  const dragPlanePoint = new THREE.Vector3();
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  function updateMouse(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const cx = e.clientX;
+    const cy = e.clientY;
+    mouse.x = ((cx - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((cy - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function mouseToPlane() {
+    raycaster.setFromCamera(mouse, camera);
+    const plane = new THREE.Plane();
+    plane.setFromNormalAndCoplanarPoint(dragPlaneNormal, dragPlanePoint);
+    const out = new THREE.Vector3();
+    if (!raycaster.ray.intersectPlane(plane, out)) return null;
+    return out;
+  }
+
+  function pickBlock() {
+    raycaster.setFromCamera(mouse, camera);
+    const meshes = blocks.filter(b => !b.removed).map(b => b.mesh);
+    const hits = raycaster.intersectObjects(meshes, false);
+    if (hits.length === 0) return null;
+    const hit = hits[0];
+    const block = blocks.find(b => b.mesh === hit.object);
+    return { block, hitPoint: hit.point };
+  }
+
+  function startDrag(block, hitPoint) {
+    if (gameOver) return;
+    draggedBlock = block;
+    block.body.wakeUp();
+
+    // Wake nearby blocks so the physics doesn't feel sleepy
+    for (const b of blocks) {
+      if (Math.abs(b.body.position.y - block.body.position.y) < BLOCK_HEI * 3) b.body.wakeUp();
+    }
+
+    // Drag on a plane perpendicular to the camera view (through hit point)
+    camera.getWorldDirection(dragPlaneNormal).negate();
+    dragPlanePoint.copy(hitPoint);
+
+    // Joint body follows the cursor; the constraint pulls the block toward it
+    jointBody = new CANNON.Body({ mass: 0 });
+    jointBody.collisionFilterGroup = 0;
+    jointBody.collisionFilterMask = 0;
+    jointBody.position.set(hitPoint.x, hitPoint.y, hitPoint.z);
+    world.addBody(jointBody);
+
+    // Convert world hit point into the block's local frame for pivot
+    const worldPivot = new CANNON.Vec3(hitPoint.x, hitPoint.y, hitPoint.z);
+    const rel = worldPivot.vsub(block.body.position);
+    const invQ = block.body.quaternion.inverse();
+    const pivotLocal = invQ.vmult(rel);
+
+    jointConstraint = new CANNON.PointToPointConstraint(
+      block.body, pivotLocal,
+      jointBody, new CANNON.Vec3(0, 0, 0),
+      45  // maxForce — feels like a firm grip
+    );
+    world.addConstraint(jointConstraint);
+
+    // Highlight
+    block.mat.emissive = new THREE.Color(0x225ea8);
+    block.mat.emissiveIntensity = 0.55;
+
+    controls.enabled = false;
+  }
+
+  function updateDrag() {
+    if (!jointBody) return;
+    const target = mouseToPlane();
+    if (target) {
+      jointBody.position.set(target.x, target.y, target.z);
+      if (jointConstraint) jointConstraint.update();
+    }
+  }
+
+  function endDrag() {
+    if (draggedBlock) {
+      draggedBlock.mat.emissive = new THREE.Color(0x000000);
+      draggedBlock.mat.emissiveIntensity = 0;
+    }
+    if (jointConstraint) { world.removeConstraint(jointConstraint); jointConstraint = null; }
+    if (jointBody) { world.removeBody(jointBody); jointBody = null; }
+    draggedBlock = null;
+    controls.enabled = true;
+  }
+
+  // Pointer handlers — capture phase so we can intercept before OrbitControls
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    ensureAudio();
+    updateMouse(e);
+    const pick = pickBlock();
+    if (pick) {
+      // Intercept: pull-block, not orbit
+      e.preventDefault();
+      e.stopPropagation();
+      try { renderer.domElement.setPointerCapture(e.pointerId); } catch {}
+      startDrag(pick.block, pick.hitPoint);
+    }
+  }, { capture: true });
+
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (!draggedBlock) return;
+    e.preventDefault();
+    updateMouse(e);
+    updateDrag();
+  });
+
+  const releaseDrag = (e) => {
+    if (!draggedBlock) return;
+    e.preventDefault();
+    try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
+    endDrag();
+  };
+  renderer.domElement.addEventListener('pointerup', releaseDrag);
+  renderer.domElement.addEventListener('pointercancel', releaseDrag);
+  renderer.domElement.addEventListener('pointerleave', (e) => { if (draggedBlock) endDrag(); });
+
+  // Collision listener → clack sound (throttled)
+  let lastClackTime = 0;
+  world.addEventListener('postStep', () => {});
+  function onCollide(evt) {
+    const now = performance.now();
+    if (now - lastClackTime < 60) return;
+    const impact = Math.abs(evt.contact.getImpactVelocityAlongNormal());
+    if (impact > 1.2) {
+      lastClackTime = now;
+      clack();
+    }
+  }
+  const origAddBody = world.addBody.bind(world);
+  world.addBody = function (body) {
+    origAddBody(body);
+    if (body.mass > 0) body.addEventListener('collide', onCollide);
+  };
+
+  // ============================================================
+  // Game state
+  // ============================================================
+  let score = 0;
+  let gameOver = false;
+  function updateScoreUI() { $('ui-score').textContent = score; }
+
+  function checkRemovedAndCollapse() {
+    if (gameOver) return;
+
+    // Successfully removed blocks
+    for (const b of blocks) {
+      if (b.removed || b === draggedBlock) continue;
+      const p = b.body.position;
+      const dist = Math.sqrt(p.x * p.x + p.z * p.z);
+      if (dist > 5.5) {
+        b.removed = true;
+        score++;
+        updateScoreUI();
+        success();
+      }
+    }
+
+    // Collapse: count non-removed blocks that have fallen/tilted heavily
+    let fallenCount = 0;
+    for (const b of blocks) {
+      if (b.removed || b === draggedBlock) continue;
+      if (b.body.position.y < BLOCK_HEI / 2 - 0.15) { fallenCount++; continue; }
+      const upWorld = b.body.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
+      if (Math.abs(upWorld.y) < 0.45) fallenCount++;
+    }
+    if (fallenCount >= 5) triggerGameOver();
+  }
+
+  function triggerGameOver() {
+    if (gameOver) return;
+    gameOver = true;
+    endDrag();
+    crash();
+    $('over-score').textContent = score;
+    const modal = $('modal-over');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function resetGame() {
+    endDrag();
+    buildTower();
+    score = 0;
+    gameOver = false;
+    updateScoreUI();
+    const modal = $('modal-over');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  $('btn-reset').addEventListener('click', resetGame);
+  $('btn-again').addEventListener('click', resetGame);
+
+  // ============================================================
+  // Animation loop
+  // ============================================================
+  const clock = new THREE.Clock();
+  let stateAcc = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, clock.getDelta());
+    world.step(1 / 60, dt, 4);
+
+    // Sync mesh to physics
+    for (const b of blocks) {
+      b.mesh.position.copy(b.body.position);
+      b.mesh.quaternion.copy(b.body.quaternion);
+    }
+
+    if (jointBody) updateDrag();
+
+    stateAcc += dt;
+    if (stateAcc > 0.2) { stateAcc = 0; checkRemovedAndCollapse(); }
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  // Resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Boot
+  buildTower();
+  updateScoreUI();
+  animate();
+  setTimeout(() => {
+    const el = $('loading');
+    if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.4s'; setTimeout(() => el.remove(), 400); }
+  }, 400);
+})();
+</script>
+</body>
+</html>

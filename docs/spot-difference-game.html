@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔍 Spot the Difference · จับผิดภาพ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: linear-gradient(180deg, #0c4a6e, #082f49);
+    color: #e0f2fe;
+    font-family: 'Noto Sans Lao', 'Segoe UI', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+  }
+  .sd-wrap {
+    max-width: 900px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    height: 100dvh; padding: 6px;
+  }
+
+  /* Header */
+  .sd-header {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: linear-gradient(135deg, rgba(14,165,233,0.6), rgba(59,130,246,0.6));
+    padding: 8px 12px; border-radius: 12px;
+    margin-bottom: 6px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .sd-exit {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(220,38,38,0.8); color: #fff;
+    text-decoration: none; font-weight: 900; font-size: 0.9rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+  }
+  .sd-title {
+    font-size: 1rem; font-weight: 900;
+    letter-spacing: 0.3px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    text-align: center; flex: 1;
+  }
+  .sd-level-btn {
+    background: rgba(15,23,42,0.75); color: #facc15;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 10px; border-radius: 20px;
+    font-weight: 800; font-size: 0.85rem; font-family: inherit;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    flex-shrink: 0;
+  }
+  .sd-level-btn:active { transform: scale(0.95); }
+
+  /* Stat bar */
+  .sd-stats {
+    flex: 0 0 auto;
+    display: flex; gap: 6px; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .sd-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(15,23,42,0.65); padding: 6px 12px;
+    border-radius: 20px; font-weight: 700; font-size: 0.85rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    min-height: 36px;
+  }
+  .sd-chip .val { color: #facc15; font-size: 0.95rem; font-weight: 900; }
+  .sd-chip.hearts { color: #fca5a5; letter-spacing: 2px; font-size: 0.95rem; }
+  .sd-chip.found { color: #86efac; }
+  .sd-hint-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff; border: none; padding: 8px 14px;
+    border-radius: 20px; font-weight: 800; font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(146,64,14,0.7);
+    font-family: inherit;
+    min-height: 36px;
+  }
+  .sd-hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .sd-hint-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(146,64,14,0.7); }
+  .sd-restart-btn {
+    background: linear-gradient(135deg, #06b6d4, #0284c7);
+    color: #fff; border: none; padding: 8px 14px;
+    border-radius: 20px; font-weight: 800; font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(3,105,161,0.7);
+    font-family: inherit;
+    min-height: 36px;
+  }
+  .sd-restart-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(3,105,161,0.7); }
+
+  /* Scenes */
+  .sd-scenes {
+    flex: 1; min-height: 0;
+    display: flex; gap: 8px;
+  }
+  .sd-panel {
+    flex: 1;
+    background: rgba(15,23,42,0.4);
+    border: 3px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 4px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .sd-panel-label {
+    position: absolute; top: 6px; left: 8px;
+    background: rgba(15,23,42,0.75);
+    color: #facc15; font-weight: 900; font-size: 0.75rem;
+    padding: 2px 8px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    pointer-events: none; z-index: 2;
+  }
+  .sd-panel svg {
+    max-width: 100%; max-height: 100%;
+    width: 100%; height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* Feedback circles */
+  .sd-found {
+    stroke: #22c55e; stroke-width: 4;
+    fill: none; opacity: 0;
+    animation: sdPop 0.4s ease-out forwards;
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.9));
+  }
+  @keyframes sdPop {
+    0% { transform: scale(2); opacity: 0; }
+    50% { transform: scale(0.85); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .sd-hint-mark {
+    stroke: #facc15; stroke-width: 3; stroke-dasharray: 6 4;
+    fill: none; opacity: 0.9;
+    animation: sdHintPulse 1.2s ease-in-out 2;
+  }
+  @keyframes sdHintPulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+  .sd-wrong-mark {
+    stroke: #ef4444; stroke-width: 4; fill: none;
+    animation: sdWrongFade 0.6s ease-out forwards;
+  }
+  @keyframes sdWrongFade {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* Modal */
+  .sd-modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .sd-modal.show { display: flex; }
+  .sd-card {
+    background: linear-gradient(145deg, #0f172a, #082f49);
+    border: 2px solid #22d3ee;
+    border-radius: 20px;
+    padding: 24px 22px;
+    max-width: 420px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(34, 211, 238, 0.5);
+    animation: sdCardIn 0.4s ease-out;
+  }
+  @keyframes sdCardIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .sd-card h2 {
+    font-size: 1.4rem;
+    background: linear-gradient(90deg, #22d3ee, #a78bfa, #facc15);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .sd-card p { color: #cbd5e1; margin: 8px 0; line-height: 1.5; }
+  .sd-card .stats-row {
+    display: flex; justify-content: space-around;
+    margin: 14px 0; padding: 10px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+  }
+  .sd-card .stat { text-align: center; }
+  .sd-card .stat .num { display: block; font-size: 1.4rem; font-weight: 900; color: #facc15; }
+  .sd-card .stat .lbl { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+  .sd-card-btn {
+    display: inline-block;
+    padding: 12px 22px; font-size: 0.95rem; font-weight: 800;
+    background: linear-gradient(135deg, #06b6d4, #6366f1);
+    color: #fff; border: none; border-radius: 12px;
+    cursor: pointer; margin: 4px;
+    box-shadow: 0 4px 0 rgba(20,60,120,0.6);
+    font-family: inherit;
+  }
+  .sd-card-btn.secondary {
+    background: rgba(255,255,255,0.10);
+    box-shadow: 0 4px 0 rgba(40,40,80,0.55);
+  }
+  .sd-card-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(20,60,120,0.6); }
+  .sd-emoji { font-size: 3rem; margin-bottom: 4px; animation: sdBounce 1s ease-in-out infinite; }
+  @keyframes sdBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Level select modal */
+  .sd-level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 12px 0;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .sd-lvl-cell {
+    aspect-ratio: 1 / 1;
+    background: rgba(15,23,42,0.7);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-weight: 900; font-size: 0.85rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit;
+    position: relative;
+  }
+  .sd-lvl-cell.unlocked { color: #22d3ee; border-color: rgba(34,211,238,0.5); }
+  .sd-lvl-cell.completed { background: rgba(34,197,94,0.25); color: #86efac; border-color: rgba(34,197,94,0.6); }
+  .sd-lvl-cell.current { background: rgba(250,204,21,0.30); color: #fef3c7; border-color: #facc15; box-shadow: 0 0 10px rgba(250,204,21,0.5); }
+  .sd-lvl-cell.locked { opacity: 0.4; cursor: not-allowed; }
+  .sd-lvl-cell:disabled { cursor: not-allowed; }
+  .sd-scene-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.35);
+    color: #a5b4fc;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin: 4px 2px;
+    font-weight: 700;
+  }
+
+  /* Landscape phones — side-by-side */
+  @media (orientation: landscape) {
+    .sd-scenes { flex-direction: row; }
+  }
+  /* Portrait phones — stacked */
+  @media (orientation: portrait) {
+    .sd-scenes { flex-direction: column; }
+    .sd-panel svg { max-height: 100%; }
+  }
+  @media (max-width: 420px) {
+    .sd-title { font-size: 0.88rem; }
+    .sd-chip { padding: 4px 10px; font-size: 0.75rem; min-height: 32px; }
+    .sd-hint-btn, .sd-restart-btn { padding: 6px 10px; font-size: 0.75rem; min-height: 32px; }
+    .sd-panel-label { font-size: 0.65rem; padding: 1px 6px; }
+    .sd-level-btn { font-size: 0.75rem; padding: 4px 8px; }
+    .sd-level-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <div class="sd-wrap">
+    <div class="sd-header">
+      <a href="index.html" class="sd-exit" aria-label="Exit">✕</a>
+      <div class="sd-title" id="sd-title">🔍 Spot the Difference</div>
+      <button class="sd-level-btn" id="sd-level-btn">
+        <span id="sd-level-lbl">Lv</span> <span id="sd-level-num">1</span>/100
+      </button>
+    </div>
+
+    <div class="sd-stats">
+      <div class="sd-chip hearts" id="sd-hearts">❤️❤️❤️❤️❤️</div>
+      <div class="sd-chip found">
+        <span id="sd-found-label">Found</span>:
+        <span class="val"><span id="sd-found">0</span>/<span id="sd-total">5</span></span>
+      </div>
+      <button class="sd-hint-btn" id="sd-hint-btn">💡 <span id="sd-hint-label">Hint</span> (<span id="sd-hint-count">3</span>)</button>
+      <button class="sd-restart-btn" id="sd-restart-btn">🔄 <span id="sd-restart-label">Restart</span></button>
+    </div>
+
+    <div class="sd-scenes">
+      <div class="sd-panel">
+        <div class="sd-panel-label">A</div>
+        <div id="scene-a" style="width:100%;height:100%;"></div>
+      </div>
+      <div class="sd-panel">
+        <div class="sd-panel-label">B</div>
+        <div id="scene-b" style="width:100%;height:100%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win modal -->
+  <div class="sd-modal" id="sd-modal-win">
+    <div class="sd-card">
+      <div class="sd-emoji">🏆</div>
+      <h2 id="sd-win-title">Level Complete!</h2>
+      <p id="sd-win-sub">Amazing eyes!</p>
+      <div class="stats-row">
+        <div class="stat"><span class="num" id="sd-win-lvl">1</span><span class="lbl" id="sd-lbl-lvl">Level</span></div>
+        <div class="stat"><span class="num" id="sd-win-hearts">5</span><span class="lbl" id="sd-lbl-hearts">Hearts</span></div>
+        <div class="stat"><span class="num" id="sd-win-hints">3</span><span class="lbl" id="sd-lbl-hints">Hints</span></div>
+      </div>
+      <button class="sd-card-btn" id="sd-next-btn"><span id="sd-next-label">Next Level →</span></button>
+      <button class="sd-card-btn secondary" id="sd-win-replay"><span id="sd-replay-label">🔄 Replay</span></button>
+    </div>
+  </div>
+
+  <!-- Lose modal -->
+  <div class="sd-modal" id="sd-modal-lose">
+    <div class="sd-card">
+      <div class="sd-emoji">💔</div>
+      <h2 id="sd-lose-title">Out of Hearts!</h2>
+      <p id="sd-lose-sub">Try again — you'll get it!</p>
+      <div class="stats-row">
+        <div class="stat"><span class="num" id="sd-lose-found">0</span><span class="lbl" id="sd-lbl-found">Found</span></div>
+      </div>
+      <button class="sd-card-btn" id="sd-play-again2"><span id="sd-again-label2">▶ Try Again</span></button>
+    </div>
+  </div>
+
+  <!-- Game complete modal -->
+  <div class="sd-modal" id="sd-modal-all-done">
+    <div class="sd-card">
+      <div class="sd-emoji">🎊</div>
+      <h2 id="sd-all-title">All 100 Levels Complete!</h2>
+      <p id="sd-all-sub">You are the ultimate spotter!</p>
+      <button class="sd-card-btn" id="sd-all-replay"><span id="sd-restart-all">🔄 Play Again</span></button>
+    </div>
+  </div>
+
+  <!-- Level select modal -->
+  <div class="sd-modal" id="sd-modal-level">
+    <div class="sd-card">
+      <h2 id="sd-lvl-title">📋 Select Level</h2>
+      <div>
+        <span class="sd-scene-badge">🌊 <span id="badge-1">1-20</span></span>
+        <span class="sd-scene-badge">🚀 <span id="badge-2">21-40</span></span>
+        <span class="sd-scene-badge">🌴 <span id="badge-3">41-60</span></span>
+        <span class="sd-scene-badge">🐄 <span id="badge-4">61-80</span></span>
+        <span class="sd-scene-badge">🏙️ <span id="badge-5">81-100</span></span>
+      </div>
+      <div class="sd-level-grid" id="sd-level-grid"></div>
+      <button class="sd-card-btn secondary" id="sd-level-close"><span id="sd-close-label">Close</span></button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============================================================
+  // i18n
+  // ============================================================
+  const I18N = {
+    th: {
+      title: '🔍 จับผิดภาพ', level: 'ด่าน',
+      found: 'พบแล้ว', hint: 'คำใบ้', restart: 'เริ่มใหม่',
+      winTitle: '🎉 ผ่านด่านแล้ว!', winSub: 'สายตายอดเยี่ยม!',
+      loseTitle: '💔 หัวใจหมดแล้ว', loseSub: 'ลองใหม่นะ!',
+      heartsLeft: 'หัวใจ', hintsLeft: 'คำใบ้', lvLbl: 'ด่าน',
+      foundLbl: 'ที่พบ', nextLvl: 'ด่านต่อไป →', replay: '🔄 เล่นซ้ำ',
+      tryAgain: '▶ ลองอีกครั้ง', allDone: '🎊 ผ่านครบ 100 ด่าน!',
+      allDoneSub: 'คุณคือสุดยอดนักสังเกต!', playAgain: '🔄 เล่นใหม่',
+      selectLevel: '📋 เลือกด่าน', close: 'ปิด'
+    },
+    en: {
+      title: '🔍 Spot the Difference', level: 'Lv',
+      found: 'Found', hint: 'Hint', restart: 'Restart',
+      winTitle: '🎉 Level Complete!', winSub: 'Amazing eyes!',
+      loseTitle: '💔 Out of Hearts!', loseSub: "Try again — you'll get it!",
+      heartsLeft: 'Hearts', hintsLeft: 'Hints', lvLbl: 'Level',
+      foundLbl: 'Found', nextLvl: 'Next Level →', replay: '🔄 Replay',
+      tryAgain: '▶ Try Again', allDone: '🎊 All 100 Levels Complete!',
+      allDoneSub: 'You are the ultimate spotter!', playAgain: '🔄 Play Again',
+      selectLevel: '📋 Select Level', close: 'Close'
+    },
+    lao: {
+      title: '🔍 ຊອກຫາຄວາມແຕກຕ່າງ', level: 'ດ່ານ',
+      found: 'ພົບແລ້ວ', hint: 'ຄຳໃບ້', restart: 'ເລີ່ມໃໝ່',
+      winTitle: '🎉 ຜ່ານດ່ານແລ້ວ!', winSub: 'ຕາເກັ່ງຫຼາຍ!',
+      loseTitle: '💔 ຫົວໃຈໝົດແລ້ວ', loseSub: 'ລອງໃໝ່ເດີ້!',
+      heartsLeft: 'ຫົວໃຈ', hintsLeft: 'ຄຳໃບ້', lvLbl: 'ດ່ານ',
+      foundLbl: 'ພົບແລ້ວ', nextLvl: 'ດ່ານຕໍ່ໄປ →', replay: '🔄 ຫຼິ້ນຄືນ',
+      tryAgain: '▶ ລອງອີກ', allDone: '🎊 ຜ່ານຄົບ 100 ດ່ານ!',
+      allDoneSub: 'ເຈົ້າຄືສຸດຍອດ!', playAgain: '🔄 ຫຼິ້ນໃໝ່',
+      selectLevel: '📋 ເລືອກດ່ານ', close: 'ປິດ'
+    }
+  };
+  function getLang() {
+    let l = localStorage.getItem('lang') || 'en';
+    if (!['th','en','lao'].includes(l)) l = 'en';
+    return l;
+  }
+  const lang = getLang();
+  const T = I18N[lang];
+
+  // ============================================================
+  // Audio
+  // ============================================================
+  let audioCtx = null, master = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        master = audioCtx.createGain();
+        master.gain.value = 0.35;
+        master.connect(audioCtx.destination);
+      } catch {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function tone(freq, dur, type, gain, freqEnd) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    if (freqEnd != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), now + dur);
+    g.gain.setValueAtTime(gain || 0.2, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(g); g.connect(master);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+  const SFX = {
+    correct() { ensureAudio(); tone(660, 0.10, 'triangle', 0.30, 990); setTimeout(() => tone(880, 0.14, 'triangle', 0.28, 1320), 90); },
+    wrong()   { ensureAudio(); tone(220, 0.15, 'sawtooth', 0.28, 130); setTimeout(() => tone(170, 0.18, 'sawtooth', 0.24, 100), 100); },
+    hint()    { ensureAudio(); tone(1200, 0.08, 'sine', 0.20, 800); setTimeout(() => tone(1000, 0.12, 'sine', 0.20, 600), 80); },
+    win()     { ensureAudio(); [523,659,784,1046,1319].forEach((f, i) => setTimeout(() => tone(f, 0.20, 'triangle', 0.32), i * 110)); },
+    lose()    { ensureAudio(); tone(300, 0.20, 'sawtooth', 0.30, 200); setTimeout(() => tone(220, 0.30, 'sawtooth', 0.28, 150), 200); setTimeout(() => tone(160, 0.50, 'sawtooth', 0.26, 100), 500); }
+  };
+
+  // ============================================================
+  // Deterministic RNG (level number → same content)
+  // ============================================================
+  function mulberry32(seed) {
+    return function () {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pickN(arr, n, rng) {
+    // Fisher-Yates partial shuffle
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, n);
+  }
+
+  // ============================================================
+  // Scenes — each has render(side, activeDiffIds) + diffPool
+  // Each diff describes a hit region (cx, cy, r). The scene render
+  // function uses the activeDiffIds set to decide which A/B variant
+  // of each element to draw.
+  // ============================================================
+
+  const VW = 400, VH = 400;
+
+  // ---------- Scene 1: Underwater ----------
+  const SCENE_UNDERWATER = {
+    name: 'underwater', icon: '🌊',
+    diffPool: [
+      { id: 'bigfish',   cx: 210, cy: 200, r: 40 },
+      { id: 'smallfish', cx: 88,  cy: 100, r: 30 },
+      { id: 'starfish',  cx: 250, cy: 360, r: 26 },
+      { id: 'bubble',    cx: 175, cy: 62,  r: 22 },
+      { id: 'seaweed',   cx: 355, cy: 300, r: 34 },
+      { id: 'coral',     cx: 122, cy: 340, r: 28 },
+      { id: 'jelly',     cx: 325, cy: 90,  r: 32 },
+      { id: 'rock',      cx: 60,  cy: 365, r: 32 },
+      { id: 'shell',     cx: 180, cy: 375, r: 22 }
+    ],
+    render(side, on) {
+      const a = side === 'a';
+      const use = (id) => on.has(id) && !a;   // "changed" version shown in B
+      // Big fish color
+      const fishC   = use('bigfish') ? '#a855f7' : '#fb923c';
+      const fishSC  = use('bigfish') ? '#6b21a8' : '#c2410c';
+      // Small fish tail (missing in B)
+      const hasTail = !use('smallfish');
+      // Starfish color
+      const starC   = use('starfish') ? '#facc15' : '#ec4899';
+      const starE   = use('starfish') ? '#b45309' : '#be185d';
+      // Extra bubble in A
+      const hasBub  = !(on.has('bubble') && !a);
+      // Seaweed color
+      const seaC    = use('seaweed') ? '#0d9488' : '#22c55e';
+      // Coral color
+      const corC    = use('coral') ? '#f97316' : '#fb7185';
+      // Jellyfish tentacle count (3 vs 4)
+      const jelly4  = !use('jelly');
+      // Big rock second stone (present in A only)
+      const rockDbl = !(on.has('rock') && !a);
+      // Shell present in A only
+      const hasShell= !(on.has('shell') && !a);
+      return `
+<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="oc-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0891b2"/><stop offset="55%" stop-color="#0369a1"/><stop offset="100%" stop-color="#164e63"/>
+    </linearGradient>
+    <linearGradient id="sand-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="${VW}" height="${VH}" fill="url(#oc-${side})"/>
+  <polygon points="30,0 70,0 85,300 45,300" fill="#fef3c7" opacity="0.09"/>
+  <polygon points="140,0 190,0 175,320 125,320" fill="#fef3c7" opacity="0.09"/>
+  <polygon points="300,0 340,0 320,340 280,340" fill="#fef3c7" opacity="0.09"/>
+  <path d="M20,400 Q18,340 30,340 Q25,310 35,300 Q28,270 40,270" stroke="#0f766e" stroke-width="5" fill="none" opacity="0.5"/>
+  <path d="M0,350 Q60,340 120,352 T240,348 T400,352 L400,400 L0,400 Z" fill="url(#sand-${side})"/>
+  <path d="M0,362 Q60,355 120,365 T240,360 T400,368 L400,400 L0,400 Z" fill="#f59e0b" opacity="0.5"/>
+  <ellipse cx="60" cy="365" rx="42" ry="14" fill="#57534e"/>
+  ${rockDbl ? '<ellipse cx="60" cy="362" rx="35" ry="9" fill="#78716c"/>' : ''}
+  <ellipse cx="330" cy="370" rx="28" ry="10" fill="#44403c"/>
+  <g stroke-linecap="round" fill="none">
+    <path d="M110,360 Q108,320 118,320 M120,360 Q118,300 128,310 M130,360 Q128,320 138,325" stroke="${corC}" stroke-width="7"/>
+    <circle cx="118" cy="315" r="4" fill="#fecdd3"/><circle cx="128" cy="308" r="4" fill="#fecdd3"/>
+  </g>
+  <path fill="none" stroke-linecap="round" stroke-width="8" stroke="${seaC}"
+        d="M350,360 Q345,320 355,300 Q360,270 350,250 Q345,230 355,215"/>
+  <path fill="none" stroke-linecap="round" stroke-width="6" stroke="${seaC}" opacity="0.85"
+        d="M365,360 Q368,325 358,310 Q365,285 358,265"/>
+  <g transform="translate(210, 200)">
+    <polygon points="-32,0 -55,-22 -55,22" fill="${fishC}"/>
+    <polygon points="-32,0 -50,-15 -50,15" fill="${fishSC}" opacity="0.6"/>
+    <ellipse cx="0" cy="0" rx="35" ry="20" fill="${fishC}"/>
+    <ellipse cx="0" cy="6" rx="30" ry="10" fill="#fed7aa" opacity="0.8"/>
+    <path d="M-10,-18 Q-5,-32 5,-30 Q10,-24 8,-18 Z" fill="${fishC}"/>
+    <path d="M-15,-4 Q-5,-8 5,-4 M-15,4 Q-5,8 5,4" stroke="${fishSC}" stroke-width="2" fill="none"/>
+    <circle cx="18" cy="-4" r="5" fill="#fff"/><circle cx="20" cy="-4" r="2.5" fill="#0f172a"/>
+    <path d="M28,4 Q32,7 28,10" stroke="${fishSC}" stroke-width="1.5" fill="none"/>
+  </g>
+  <g transform="translate(88, 100)">
+    ${hasTail ? '<polygon points="-18,0 -34,-13 -34,13" fill="#3b82f6"/><polygon points="-18,0 -30,-9 -30,9" fill="#1e40af" opacity="0.6"/>' : ''}
+    <ellipse cx="0" cy="0" rx="18" ry="10" fill="#3b82f6"/>
+    <ellipse cx="0" cy="3" rx="15" ry="5" fill="#93c5fd"/>
+    <path d="M-5,-8 Q0,-14 6,-11 Z" fill="#3b82f6"/>
+    <circle cx="10" cy="-2" r="3" fill="#fff"/><circle cx="11" cy="-2" r="1.6" fill="#0f172a"/>
+  </g>
+  <g transform="translate(325, 90)">
+    <path d="M-22,0 Q-22,-28 0,-28 Q22,-28 22,0 Q18,-4 14,0 Q10,-4 6,0 Q2,-4 -2,0 Q-6,-4 -10,0 Q-14,-4 -18,0 Q-20,-4 -22,0Z" fill="#c084fc"/>
+    <ellipse cx="-8" cy="-14" rx="3.5" ry="6" fill="#e9d5ff" opacity="0.85"/>
+    <path d="M-15,0 Q-18,15 -15,28" stroke="#a855f7" stroke-width="2.5" fill="none"/>
+    <path d="M-5,0 Q-3,20 -8,32" stroke="#a855f7" stroke-width="2.5" fill="none"/>
+    <path d="M5,0 Q3,20 8,32" stroke="#a855f7" stroke-width="2.5" fill="none"/>
+    ${jelly4 ? '<path d="M15,0 Q18,15 15,28" stroke="#a855f7" stroke-width="2.5" fill="none"/>' : ''}
+  </g>
+  <circle cx="100" cy="80" r="9" fill="#fff" opacity="0.55"/><circle cx="100" cy="80" r="3" fill="#fff" opacity="0.9"/>
+  <circle cx="140" cy="150" r="6" fill="#fff" opacity="0.55"/><circle cx="70" cy="250" r="7" fill="#fff" opacity="0.55"/>
+  ${hasBub ? '<g><circle cx="175" cy="62" r="10" fill="#fff" opacity="0.6"/><circle cx="171" cy="59" r="3" fill="#fff" opacity="0.95"/></g>' : ''}
+  <g transform="translate(250, 360)">
+    <polygon points="0,-18 4,-5 18,-5 7,4 12,18 0,10 -12,18 -7,4 -18,-5 -4,-5" fill="${starC}" stroke="${starE}" stroke-width="1.6"/>
+    <circle cx="0" cy="0" r="2.5" fill="${starE}"/>
+  </g>
+  ${hasShell ? `<g transform="translate(180, 375)">
+    <ellipse cx="0" cy="0" rx="14" ry="8" fill="#fecdd3"/>
+    <path d="M-12,0 Q-8,-8 0,-6 Q8,-8 12,0" stroke="#be185d" stroke-width="1.5" fill="none"/>
+    <path d="M-6,0 Q0,-5 6,0" stroke="#be185d" stroke-width="1.2" fill="none"/>
+  </g>` : ''}
+  <g data-overlay="marks"></g>
+</svg>`;
+    }
+  };
+
+  // ---------- Scene 2: Space ----------
+  const SCENE_SPACE = {
+    name: 'space', icon: '🚀',
+    diffPool: [
+      { id: 'rocket',   cx: 200, cy: 220, r: 42 },
+      { id: 'planet',   cx: 320, cy: 100, r: 45 },
+      { id: 'moon',     cx: 80,  cy: 90,  r: 32 },
+      { id: 'ufo',      cx: 100, cy: 240, r: 30 },
+      { id: 'star1',    cx: 60,  cy: 220, r: 15 },
+      { id: 'astronaut',cx: 300, cy: 300, r: 30 },
+      { id: 'sat',      cx: 340, cy: 220, r: 24 },
+      { id: 'comet',    cx: 140, cy: 60,  r: 22 },
+      { id: 'meteor',   cx: 250, cy: 340, r: 20 }
+    ],
+    render(side, on) {
+      const a = side === 'a';
+      const use = (id) => on.has(id) && !a;
+      const rocketC = use('rocket') ? '#ef4444' : '#f8fafc';
+      const rocketW = use('rocket') ? '#dc2626' : '#e2e8f0';
+      const planetC = use('planet') ? '#22c55e' : '#f97316';
+      const planetR = use('planet') ? '#15803d' : '#c2410c';
+      const moonSmile = !use('moon');   // A moon smiles, B frowns
+      const ufoLight = use('ufo') ? '#22c55e' : '#facc15';
+      const showStar = !(on.has('star1') && !a);
+      const astroHelmet = use('astronaut') ? '#22d3ee' : '#f8fafc';
+      const showSat = !(on.has('sat') && !a);
+      const showComet = !(on.has('comet') && !a);
+      const showMeteor = !(on.has('meteor') && !a);
+      return `
+<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <radialGradient id="sp-${side}" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#312e81"/><stop offset="100%" stop-color="#0f0f2f"/>
+    </radialGradient>
+  </defs>
+  <rect width="${VW}" height="${VH}" fill="url(#sp-${side})"/>
+  <!-- Background stars -->
+  <g fill="#fff">
+    <circle cx="30" cy="30" r="1.4"/><circle cx="120" cy="180" r="1"/><circle cx="200" cy="40" r="1.6"/>
+    <circle cx="280" cy="70" r="1"/><circle cx="360" cy="160" r="1.2"/><circle cx="45" cy="150" r="1"/>
+    <circle cx="380" cy="60" r="1.6"/><circle cx="220" cy="250" r="1"/><circle cx="150" cy="120" r="1.4"/>
+    <circle cx="270" cy="180" r="1"/><circle cx="40" cy="300" r="1.2"/><circle cx="360" cy="340" r="1.4"/>
+    <circle cx="100" cy="330" r="1"/><circle cx="180" cy="380" r="1.2"/><circle cx="330" cy="250" r="1.4"/>
+  </g>
+  <!-- Twinkling star (diff) -->
+  ${showStar ? `<g transform="translate(60,220)">
+    <polygon points="0,-12 3,-3 12,-3 5,3 8,12 0,7 -8,12 -5,3 -12,-3 -3,-3" fill="#fef3c7"/>
+    <circle r="14" fill="#facc15" opacity="0.3"/>
+  </g>` : ''}
+  <!-- Planet -->
+  <g transform="translate(320,100)">
+    <circle r="35" fill="${planetC}"/>
+    <ellipse cx="0" cy="0" rx="55" ry="10" fill="none" stroke="${planetR}" stroke-width="3" transform="rotate(-20)"/>
+    <ellipse cx="-8" cy="-10" rx="10" ry="6" fill="${planetR}" opacity="0.4"/>
+    <ellipse cx="12" cy="8" rx="6" ry="4" fill="${planetR}" opacity="0.4"/>
+  </g>
+  <!-- Moon face -->
+  <g transform="translate(80,90)">
+    <circle r="28" fill="#f1f5f9"/>
+    <circle cx="8" cy="-6" r="5" fill="#e2e8f0"/><circle cx="-10" cy="8" r="4" fill="#e2e8f0"/>
+    <circle cx="-8" cy="-4" r="2" fill="#334155"/><circle cx="6" cy="-4" r="2" fill="#334155"/>
+    ${moonSmile
+      ? '<path d="M-8,6 Q0,14 8,6" stroke="#334155" stroke-width="2" fill="none"/>'
+      : '<path d="M-8,10 Q0,2 8,10" stroke="#334155" stroke-width="2" fill="none"/>'}
+  </g>
+  <!-- Rocket -->
+  <g transform="translate(200,220)">
+    <polygon points="0,-38 15,0 -15,0" fill="${rocketC}"/>
+    <rect x="-15" y="0" width="30" height="40" fill="${rocketC}"/>
+    <rect x="-15" y="0" width="30" height="6" fill="${rocketW}"/>
+    <circle cx="0" cy="16" r="6" fill="#38bdf8"/><circle cx="0" cy="16" r="3" fill="#0284c7"/>
+    <polygon points="-15,25 -25,40 -15,40" fill="${rocketW}"/>
+    <polygon points="15,25 25,40 15,40" fill="${rocketW}"/>
+    <!-- Flames -->
+    <polygon points="-10,40 0,60 10,40" fill="#f97316"/>
+    <polygon points="-5,40 0,54 5,40" fill="#fef3c7"/>
+  </g>
+  <!-- UFO -->
+  <g transform="translate(100,240)">
+    <ellipse cx="0" cy="0" rx="28" ry="7" fill="#a3a3a3"/>
+    <ellipse cx="0" cy="-4" rx="18" ry="10" fill="#e2e8f0"/>
+    <ellipse cx="0" cy="-6" rx="10" ry="7" fill="#7dd3fc" opacity="0.85"/>
+    <circle cx="-16" cy="4" r="3" fill="${ufoLight}"/>
+    <circle cx="0" cy="6" r="3" fill="${ufoLight}"/>
+    <circle cx="16" cy="4" r="3" fill="${ufoLight}"/>
+  </g>
+  <!-- Astronaut -->
+  <g transform="translate(300,300)">
+    <circle cx="0" cy="-8" r="12" fill="${astroHelmet}"/>
+    <ellipse cx="0" cy="-9" rx="8" ry="6" fill="#0f172a"/>
+    <path d="M-8,4 Q-10,20 -6,25 L6,25 Q10,20 8,4 Z" fill="#e2e8f0"/>
+    <rect x="-10" y="6" width="4" height="14" fill="#e2e8f0"/>
+    <rect x="6" y="6" width="4" height="14" fill="#e2e8f0"/>
+    <circle cx="0" cy="14" r="3" fill="#ef4444"/>
+  </g>
+  <!-- Satellite -->
+  ${showSat ? `<g transform="translate(340,220)">
+    <rect x="-6" y="-6" width="12" height="12" fill="#e2e8f0"/>
+    <rect x="-22" y="-3" width="14" height="6" fill="#0369a1"/>
+    <rect x="8" y="-3" width="14" height="6" fill="#0369a1"/>
+    <line x1="0" y1="-6" x2="0" y2="-16" stroke="#e2e8f0" stroke-width="1.5"/>
+    <circle cx="0" cy="-18" r="2" fill="#facc15"/>
+  </g>` : ''}
+  <!-- Comet -->
+  ${showComet ? `<g transform="translate(140,60)">
+    <path d="M0,0 Q-25,15 -45,20" stroke="#fef3c7" stroke-width="3" fill="none" opacity="0.7"/>
+    <circle r="8" fill="#fef3c7"/>
+    <circle r="4" fill="#fff"/>
+  </g>` : ''}
+  <!-- Meteor -->
+  ${showMeteor ? `<g transform="translate(250,340)">
+    <ellipse cx="0" cy="0" rx="12" ry="8" fill="#57534e"/>
+    <ellipse cx="-4" cy="-3" rx="4" ry="3" fill="#78716c"/>
+    <ellipse cx="4" cy="2" rx="3" ry="2" fill="#78716c"/>
+  </g>` : ''}
+  <g data-overlay="marks"></g>
+</svg>`;
+    }
+  };
+
+  // ---------- Scene 3: Jungle ----------
+  const SCENE_JUNGLE = {
+    name: 'jungle', icon: '🌴',
+    diffPool: [
+      { id: 'monkey',  cx: 130, cy: 200, r: 36 },
+      { id: 'snake',   cx: 300, cy: 340, r: 36 },
+      { id: 'parrot',  cx: 300, cy: 100, r: 32 },
+      { id: 'flower',  cx: 60,  cy: 350, r: 28 },
+      { id: 'sun',     cx: 340, cy: 60,  r: 34 },
+      { id: 'banana',  cx: 80,  cy: 120, r: 24 },
+      { id: 'tree',    cx: 200, cy: 100, r: 40 },
+      { id: 'butterfly',cx: 240, cy: 220, r: 26 },
+      { id: 'log',     cx: 200, cy: 360, r: 30 }
+    ],
+    render(side, on) {
+      const a = side === 'a';
+      const use = (id) => on.has(id) && !a;
+      const monkeyC = use('monkey') ? '#7c2d12' : '#a16207';
+      const snakeC  = use('snake') ? '#facc15' : '#22c55e';
+      const parrotC = use('parrot') ? '#3b82f6' : '#ef4444';
+      const showFlower = !(on.has('flower') && !a);
+      const sunRays = use('sun');   // A: with rays, B: without
+      const showBanana = !(on.has('banana') && !a);
+      const treeC = use('tree') ? '#14532d' : '#166534';
+      const showBFly = !(on.has('butterfly') && !a);
+      const showLog = !(on.has('log') && !a);
+      return `
+<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="jg-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#84cc16"/><stop offset="60%" stop-color="#4d7c0f"/><stop offset="100%" stop-color="#365314"/>
+    </linearGradient>
+  </defs>
+  <rect width="${VW}" height="${VH}" fill="url(#jg-${side})"/>
+  <!-- Sun -->
+  <g transform="translate(340,60)">
+    <circle r="24" fill="#facc15"/>
+    ${sunRays ? '' : `<g stroke="#facc15" stroke-width="4" stroke-linecap="round">
+      <line x1="0" y1="-32" x2="0" y2="-42"/><line x1="0" y1="32" x2="0" y2="42"/>
+      <line x1="-32" y1="0" x2="-42" y2="0"/><line x1="32" y1="0" x2="42" y2="0"/>
+      <line x1="-22" y1="-22" x2="-30" y2="-30"/><line x1="22" y1="-22" x2="30" y2="-30"/>
+    </g>`}
+    <circle cx="-6" cy="-2" r="2" fill="#0f172a"/><circle cx="6" cy="-2" r="2" fill="#0f172a"/>
+    <path d="M-6,6 Q0,12 6,6" stroke="#0f172a" stroke-width="2" fill="none"/>
+  </g>
+  <!-- Ground -->
+  <path d="M0,340 Q100,325 200,340 T400,335 L400,400 L0,400 Z" fill="#3f6212"/>
+  <!-- Trees -->
+  <g transform="translate(50,180)">
+    <rect x="-5" y="0" width="10" height="120" fill="#78350f"/>
+    <circle cx="0" cy="-10" r="35" fill="${treeC}"/>
+    <circle cx="-20" cy="10" r="25" fill="${treeC}"/>
+    <circle cx="20" cy="10" r="25" fill="${treeC}"/>
+  </g>
+  <g transform="translate(200,100)">
+    <rect x="-6" y="10" width="12" height="230" fill="#78350f"/>
+    <circle cx="0" cy="0" r="40" fill="${treeC}"/>
+    <circle cx="-25" cy="15" r="28" fill="${treeC}"/>
+    <circle cx="25" cy="15" r="28" fill="${treeC}"/>
+  </g>
+  <!-- Bananas hanging -->
+  ${showBanana ? `<g transform="translate(80,120)">
+    <path d="M0,0 Q-8,10 -3,20" stroke="#facc15" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M3,-3 Q-4,10 2,22" stroke="#eab308" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M6,-5 Q1,10 8,22" stroke="#facc15" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>` : ''}
+  <!-- Parrot -->
+  <g transform="translate(300,100)">
+    <ellipse cx="0" cy="0" rx="18" ry="20" fill="${parrotC}"/>
+    <circle cx="0" cy="-16" r="12" fill="${parrotC}"/>
+    <polygon points="-2,-14 -12,-14 -6,-8" fill="#fbbf24"/>
+    <circle cx="4" cy="-18" r="2.5" fill="#fff"/><circle cx="4" cy="-18" r="1.2" fill="#0f172a"/>
+    <path d="M8,-8 Q22,-8 20,8" stroke="${parrotC}" stroke-width="10" fill="none"/>
+    <path d="M0,15 L-4,30 L4,30 Z" fill="${parrotC}"/>
+  </g>
+  <!-- Monkey -->
+  <g transform="translate(130,200)">
+    <ellipse cx="0" cy="0" rx="24" ry="26" fill="${monkeyC}"/>
+    <circle cx="-20" cy="-8" r="8" fill="${monkeyC}"/>
+    <circle cx="20" cy="-8" r="8" fill="${monkeyC}"/>
+    <ellipse cx="0" cy="3" rx="15" ry="14" fill="#fed7aa"/>
+    <circle cx="-6" cy="-2" r="2.5" fill="#0f172a"/><circle cx="6" cy="-2" r="2.5" fill="#0f172a"/>
+    <path d="M-5,7 Q0,12 5,7" stroke="#0f172a" stroke-width="1.8" fill="none"/>
+    <path d="M20,20 Q35,25 40,10" stroke="${monkeyC}" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Snake -->
+  <g transform="translate(300,340)">
+    <path d="M-30,0 Q-15,-10 0,0 Q15,10 30,0" stroke="${snakeC}" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <circle cx="-30" cy="0" r="8" fill="${snakeC}"/>
+    <circle cx="-33" cy="-2" r="1.5" fill="#0f172a"/>
+    <path d="M-38,-1 L-42,-2 M-38,1 L-42,2" stroke="#ef4444" stroke-width="1.2"/>
+  </g>
+  <!-- Flower -->
+  ${showFlower ? `<g transform="translate(60,350)">
+    <ellipse cx="0" cy="0" rx="6" ry="10" fill="#ec4899"/>
+    <ellipse cx="-6" cy="-3" rx="6" ry="8" fill="#f472b6"/>
+    <ellipse cx="6" cy="-3" rx="6" ry="8" fill="#f472b6"/>
+    <ellipse cx="0" cy="-8" rx="5" ry="7" fill="#fbcfe8"/>
+    <circle cx="0" cy="-3" r="3" fill="#facc15"/>
+    <rect x="-1" y="4" width="2" height="14" fill="#166534"/>
+  </g>` : ''}
+  <!-- Butterfly -->
+  ${showBFly ? `<g transform="translate(240,220)">
+    <ellipse cx="-8" cy="-4" rx="10" ry="8" fill="#a855f7"/>
+    <ellipse cx="8" cy="-4" rx="10" ry="8" fill="#a855f7"/>
+    <ellipse cx="-8" cy="6" rx="8" ry="6" fill="#c084fc"/>
+    <ellipse cx="8" cy="6" rx="8" ry="6" fill="#c084fc"/>
+    <ellipse cx="0" cy="0" rx="2" ry="10" fill="#1e293b"/>
+    <circle cx="0" cy="-9" r="2" fill="#1e293b"/>
+  </g>` : ''}
+  <!-- Log -->
+  ${showLog ? `<g transform="translate(200,360)">
+    <ellipse cx="0" cy="0" rx="30" ry="10" fill="#78350f"/>
+    <ellipse cx="-30" cy="0" rx="5" ry="10" fill="#92400e"/>
+    <ellipse cx="-30" cy="0" rx="3" ry="6" fill="#78350f"/>
+    <line x1="-15" y1="-4" x2="15" y2="-4" stroke="#451a03" stroke-width="1"/>
+  </g>` : ''}
+  <g data-overlay="marks"></g>
+</svg>`;
+    }
+  };
+
+  // ---------- Scene 4: Farm ----------
+  const SCENE_FARM = {
+    name: 'farm', icon: '🐄',
+    diffPool: [
+      { id: 'cow',    cx: 150, cy: 260, r: 38 },
+      { id: 'barn',   cx: 320, cy: 220, r: 42 },
+      { id: 'chick',  cx: 80,  cy: 320, r: 22 },
+      { id: 'pig',    cx: 260, cy: 320, r: 26 },
+      { id: 'sun',    cx: 60,  cy: 60,  r: 32 },
+      { id: 'cloud',  cx: 200, cy: 60,  r: 26 },
+      { id: 'apple',  cx: 350, cy: 100, r: 22 },
+      { id: 'fence',  cx: 30,  cy: 260, r: 30 },
+      { id: 'flower', cx: 200, cy: 340, r: 20 }
+    ],
+    render(side, on) {
+      const a = side === 'a';
+      const use = (id) => on.has(id) && !a;
+      // Cow spots
+      const cowSpotted = !use('cow');
+      // Barn door color
+      const barnDoor = use('barn') ? '#facc15' : '#7f1d1d';
+      // Chick color
+      const chickC = use('chick') ? '#f97316' : '#facc15';
+      // Pig has curly tail vs straight
+      const pigCurly = !use('pig');
+      // Sun face happy vs sleeping
+      const sunHappy = !use('sun');
+      // Extra cloud in A
+      const showCloud2 = !(on.has('cloud') && !a);
+      // Apple color (red vs green)
+      const appleC = use('apple') ? '#22c55e' : '#ef4444';
+      // Fence post height
+      const fenceExtra = !(on.has('fence') && !a);
+      // Flower present in A only
+      const showFlower = !(on.has('flower') && !a);
+      return `
+<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="sky-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="gr-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#84cc16"/><stop offset="100%" stop-color="#4d7c0f"/>
+    </linearGradient>
+  </defs>
+  <rect width="${VW}" height="240" fill="url(#sky-${side})"/>
+  <rect y="240" width="${VW}" height="160" fill="url(#gr-${side})"/>
+  <!-- Sun -->
+  <g transform="translate(60,60)">
+    <circle r="24" fill="#facc15"/>
+    <g stroke="#facc15" stroke-width="3" stroke-linecap="round">
+      <line x1="0" y1="-30" x2="0" y2="-38"/><line x1="0" y1="30" x2="0" y2="38"/>
+      <line x1="-30" y1="0" x2="-38" y2="0"/><line x1="30" y1="0" x2="38" y2="0"/>
+    </g>
+    ${sunHappy
+      ? '<circle cx="-7" cy="-3" r="2" fill="#0f172a"/><circle cx="7" cy="-3" r="2" fill="#0f172a"/><path d="M-7,7 Q0,13 7,7" stroke="#0f172a" stroke-width="2" fill="none"/>'
+      : '<path d="M-10,-4 L-4,-4 M4,-4 L10,-4" stroke="#0f172a" stroke-width="2"/><path d="M-5,8 L5,8" stroke="#0f172a" stroke-width="2"/>'}
+  </g>
+  <!-- Clouds -->
+  <g fill="#fff">
+    <ellipse cx="130" cy="80" rx="30" ry="14"/><ellipse cx="115" cy="74" rx="20" ry="12"/><ellipse cx="150" cy="76" rx="22" ry="12"/>
+    ${showCloud2 ? '<ellipse cx="240" cy="60" rx="26" ry="12"/><ellipse cx="225" cy="55" rx="18" ry="10"/><ellipse cx="258" cy="57" rx="20" ry="10"/>' : ''}
+  </g>
+  <!-- Barn -->
+  <g transform="translate(320,220)">
+    <polygon points="-45,0 0,-30 45,0" fill="#7f1d1d"/>
+    <rect x="-45" y="0" width="90" height="55" fill="#b91c1c"/>
+    <rect x="-10" y="15" width="20" height="40" fill="${barnDoor}"/>
+    <rect x="-25" y="5" width="12" height="12" fill="#fef3c7"/>
+    <rect x="13" y="5" width="12" height="12" fill="#fef3c7"/>
+    <line x1="0" y1="15" x2="0" y2="55" stroke="#7f1d1d" stroke-width="1.5"/>
+  </g>
+  <!-- Apple on tree stump -->
+  <g transform="translate(350,100)">
+    <ellipse cx="0" cy="0" rx="14" ry="15" fill="${appleC}"/>
+    <path d="M0,-15 Q2,-22 8,-20" stroke="#166534" stroke-width="3" fill="none"/>
+    <ellipse cx="-4" cy="-4" rx="4" ry="3" fill="#fff" opacity="0.55"/>
+  </g>
+  <!-- Cow -->
+  <g transform="translate(150,260)">
+    <ellipse cx="0" cy="0" rx="42" ry="26" fill="#fff"/>
+    ${cowSpotted
+      ? '<ellipse cx="-15" cy="-8" rx="10" ry="7" fill="#1f2937"/><ellipse cx="15" cy="6" rx="8" ry="5" fill="#1f2937"/><ellipse cx="10" cy="-14" rx="6" ry="4" fill="#1f2937"/>'
+      : '<ellipse cx="-10" cy="-8" rx="18" ry="10" fill="#7c2d12"/><ellipse cx="15" cy="4" rx="12" ry="8" fill="#7c2d12"/>'}
+    <ellipse cx="35" cy="-10" rx="14" ry="12" fill="#fff"/>
+    <ellipse cx="42" cy="-8" rx="8" ry="6" fill="#fecaca"/>
+    <circle cx="38" cy="-14" r="1.8" fill="#0f172a"/>
+    <path d="M28,-20 Q30,-25 32,-22 M42,-22 Q44,-25 46,-22" stroke="#1f2937" stroke-width="2" fill="none"/>
+    <rect x="-30" y="20" width="6" height="14" fill="#1f2937"/>
+    <rect x="-6" y="20" width="6" height="14" fill="#1f2937"/>
+    <rect x="18" y="20" width="6" height="14" fill="#1f2937"/>
+  </g>
+  <!-- Chick -->
+  <g transform="translate(80,320)">
+    <ellipse cx="0" cy="0" rx="16" ry="14" fill="${chickC}"/>
+    <circle cx="8" cy="-8" r="10" fill="${chickC}"/>
+    <polygon points="16,-8 24,-6 16,-4" fill="#f97316"/>
+    <circle cx="10" cy="-10" r="1.8" fill="#0f172a"/>
+    <path d="M-8,10 L-6,16 M-2,10 L0,16" stroke="#f97316" stroke-width="2"/>
+  </g>
+  <!-- Pig -->
+  <g transform="translate(260,320)">
+    <ellipse cx="0" cy="0" rx="22" ry="16" fill="#f9a8d4"/>
+    <circle cx="18" cy="-2" r="10" fill="#f9a8d4"/>
+    <ellipse cx="22" cy="-2" rx="4" ry="3" fill="#ec4899"/>
+    <circle cx="20" cy="-4" r="0.8" fill="#0f172a"/><circle cx="24" cy="-4" r="0.8" fill="#0f172a"/>
+    <circle cx="14" cy="-6" r="1.5" fill="#0f172a"/>
+    <polygon points="10,-15 14,-10 6,-10" fill="#f9a8d4"/>
+    ${pigCurly
+      ? '<path d="M-20,-4 Q-30,-4 -28,4 Q-24,10 -20,4" stroke="#f9a8d4" stroke-width="3" fill="none"/>'
+      : '<line x1="-20" y1="0" x2="-30" y2="0" stroke="#f9a8d4" stroke-width="3"/>'}
+    <rect x="-15" y="12" width="4" height="8" fill="#ec4899"/>
+    <rect x="5" y="12" width="4" height="8" fill="#ec4899"/>
+  </g>
+  <!-- Fence -->
+  <g transform="translate(30,260)">
+    <rect x="-3" y="0" width="6" height="60" fill="#a16207"/>
+    <rect x="20" y="0" width="6" height="60" fill="#a16207"/>
+    ${fenceExtra ? '<rect x="45" y="0" width="6" height="60" fill="#a16207"/>' : ''}
+    <rect x="-8" y="15" width="55" height="4" fill="#a16207"/>
+    <rect x="-8" y="35" width="55" height="4" fill="#a16207"/>
+  </g>
+  <!-- Flower -->
+  ${showFlower ? `<g transform="translate(200,340)">
+    <ellipse cx="0" cy="-4" rx="5" ry="7" fill="#a855f7"/>
+    <ellipse cx="-5" cy="0" rx="5" ry="6" fill="#c084fc"/>
+    <ellipse cx="5" cy="0" rx="5" ry="6" fill="#c084fc"/>
+    <ellipse cx="0" cy="4" rx="5" ry="5" fill="#a855f7"/>
+    <circle cx="0" cy="0" r="3" fill="#facc15"/>
+    <rect x="-1" y="8" width="2" height="10" fill="#166534"/>
+  </g>` : ''}
+  <g data-overlay="marks"></g>
+</svg>`;
+    }
+  };
+
+  // ---------- Scene 5: City / Playground ----------
+  const SCENE_CITY = {
+    name: 'city', icon: '🏙️',
+    diffPool: [
+      { id: 'car',     cx: 150, cy: 320, r: 38 },
+      { id: 'bldg1',   cx: 80,  cy: 180, r: 42 },
+      { id: 'bldg2',   cx: 220, cy: 160, r: 42 },
+      { id: 'traffic', cx: 320, cy: 250, r: 26 },
+      { id: 'cloud',   cx: 350, cy: 60,  r: 26 },
+      { id: 'bird',    cx: 170, cy: 80,  r: 24 },
+      { id: 'balloon', cx: 60,  cy: 100, r: 24 },
+      { id: 'lamp',    cx: 280, cy: 300, r: 24 },
+      { id: 'tree',    cx: 20,  cy: 320, r: 30 }
+    ],
+    render(side, on) {
+      const a = side === 'a';
+      const use = (id) => on.has(id) && !a;
+      const carC = use('car') ? '#3b82f6' : '#ef4444';
+      const bldg1Windows = use('bldg1');    // A lit, B dark
+      const bldg2Antenna = !use('bldg2');   // A has antenna
+      const trafficRed = !use('traffic');   // A red, B green
+      const showCloud = !(on.has('cloud') && !a);
+      const showBird = !(on.has('bird') && !a);
+      const showBalloon = !(on.has('balloon') && !a);
+      const lampOn = !use('lamp');   // A on, B off
+      const treeGreen = !use('tree'); // A green, B autumn
+      return `
+<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="cty-${side}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/><stop offset="60%" stop-color="#fb923c"/><stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="${VW}" height="280" fill="url(#cty-${side})"/>
+  <rect y="280" width="${VW}" height="120" fill="#334155"/>
+  <!-- Sun -->
+  <circle cx="330" cy="80" r="26" fill="#fde68a" opacity="0.85"/>
+  <!-- Clouds -->
+  <g fill="#fff" opacity="0.85">
+    <ellipse cx="130" cy="70" rx="25" ry="10"/><ellipse cx="115" cy="66" rx="15" ry="8"/>
+    ${showCloud ? '<ellipse cx="350" cy="60" rx="26" ry="11"/><ellipse cx="335" cy="55" rx="17" ry="9"/><ellipse cx="368" cy="57" rx="19" ry="9"/>' : ''}
+  </g>
+  <!-- Building 1 -->
+  <g>
+    <rect x="50" y="130" width="60" height="150" fill="#334155"/>
+    <rect x="55" y="135" width="50" height="140" fill="#475569"/>
+    ${[0,1,2,3,4,5].map(r => [0,1,2].map(c => {
+      const lit = bldg1Windows ? (r + c) % 2 === 0 : (r === 0 && c === 1);
+      return `<rect x="${60 + c*15}" y="${145 + r*22}" width="10" height="14" fill="${lit ? '#fde68a' : '#1e293b'}"/>`;
+    }).join('')).join('')}
+  </g>
+  <!-- Building 2 -->
+  <g>
+    <rect x="190" y="110" width="60" height="170" fill="#0f172a"/>
+    <rect x="195" y="115" width="50" height="160" fill="#1e293b"/>
+    ${[0,1,2,3,4,5,6].map(r => [0,1,2].map(c => {
+      const lit = (r + c) % 3 !== 0;
+      return `<rect x="${200 + c*15}" y="${125 + r*22}" width="10" height="14" fill="${lit ? '#facc15' : '#0f172a'}"/>`;
+    }).join('')).join('')}
+    ${bldg2Antenna ? '<line x1="220" y1="110" x2="220" y2="90" stroke="#ef4444" stroke-width="2"/><circle cx="220" cy="88" r="3" fill="#ef4444"/>' : ''}
+  </g>
+  <!-- Skyline extras -->
+  <rect x="280" y="180" width="45" height="100" fill="#1e293b"/>
+  <rect x="330" y="150" width="55" height="130" fill="#0f172a"/>
+  <!-- Traffic light -->
+  <g transform="translate(320,250)">
+    <rect x="-6" y="10" width="12" height="40" fill="#0f172a"/>
+    <rect x="-12" y="-16" width="24" height="30" rx="4" fill="#1e293b"/>
+    <circle cx="0" cy="-8" r="4" fill="${trafficRed ? '#ef4444' : '#0f172a'}"/>
+    <circle cx="0" cy="0" r="4" fill="#0f172a"/>
+    <circle cx="0" cy="8" r="4" fill="${trafficRed ? '#0f172a' : '#22c55e'}"/>
+  </g>
+  <!-- Street lamp -->
+  <g transform="translate(280,300)">
+    <rect x="-2" y="0" width="4" height="45" fill="#1e293b"/>
+    <circle cx="0" cy="-4" r="6" fill="${lampOn ? '#fde68a' : '#1e293b'}"/>
+    ${lampOn ? '<circle cx="0" cy="-4" r="12" fill="#fde68a" opacity="0.35"/>' : ''}
+  </g>
+  <!-- Tree -->
+  <g transform="translate(20,320)">
+    <rect x="-4" y="0" width="8" height="30" fill="#78350f"/>
+    <circle cx="0" cy="-10" r="20" fill="${treeGreen ? '#22c55e' : '#f97316'}"/>
+    <circle cx="-10" cy="-2" r="14" fill="${treeGreen ? '#16a34a' : '#ea580c'}"/>
+    <circle cx="10" cy="-2" r="14" fill="${treeGreen ? '#16a34a' : '#ea580c'}"/>
+  </g>
+  <!-- Car -->
+  <g transform="translate(150,320)">
+    <rect x="-32" y="0" width="64" height="18" rx="4" fill="${carC}"/>
+    <path d="M-22,-15 L-14,0 L18,0 L26,-15 Z" fill="${carC}"/>
+    <rect x="-14" y="-13" width="12" height="10" fill="#7dd3fc"/>
+    <rect x="4" y="-13" width="16" height="10" fill="#7dd3fc"/>
+    <circle cx="-18" cy="20" r="7" fill="#0f172a"/><circle cx="-18" cy="20" r="3" fill="#94a3b8"/>
+    <circle cx="18" cy="20" r="7" fill="#0f172a"/><circle cx="18" cy="20" r="3" fill="#94a3b8"/>
+    <circle cx="-28" cy="6" r="2" fill="#fef3c7"/>
+    <circle cx="30" cy="8" r="2" fill="#ef4444"/>
+  </g>
+  <!-- Bird -->
+  ${showBird ? `<g transform="translate(170,80)">
+    <path d="M-15,0 Q-8,-10 0,0 Q8,-10 15,0" stroke="#0f172a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>` : ''}
+  <!-- Balloon -->
+  ${showBalloon ? `<g transform="translate(60,100)">
+    <ellipse cx="0" cy="0" rx="12" ry="16" fill="#ef4444"/>
+    <polygon points="-3,15 0,20 3,15" fill="#ef4444"/>
+    <line x1="0" y1="20" x2="0" y2="60" stroke="#78350f" stroke-width="1"/>
+    <ellipse cx="-4" cy="-5" rx="3" ry="4" fill="#fca5a5"/>
+  </g>` : ''}
+  <!-- Road markings -->
+  <g stroke="#facc15" stroke-width="3" stroke-dasharray="15 10">
+    <line x1="0" y1="360" x2="400" y2="360"/>
+  </g>
+  <g data-overlay="marks"></g>
+</svg>`;
+    }
+  };
+
+  const SCENES = [SCENE_UNDERWATER, SCENE_SPACE, SCENE_JUNGLE, SCENE_FARM, SCENE_CITY];
+  const LEVELS_PER_SCENE = 20;
+  const TOTAL_LEVELS = SCENES.length * LEVELS_PER_SCENE;   // 100
+
+  function getSceneForLevel(level) {
+    return SCENES[Math.min(SCENES.length - 1, Math.floor((level - 1) / LEVELS_PER_SCENE))];
+  }
+  function getDifficultyForLevel(level) {
+    // Progressive: within each scene block of 20, difficulty rises
+    const inScene = (level - 1) % LEVELS_PER_SCENE;   // 0..19
+    // Difficulty tier: 0-easy, 1-med, 2-hard, 3-expert
+    if (inScene < 5)  return 0;
+    if (inScene < 10) return 1;
+    if (inScene < 15) return 2;
+    return 3;
+  }
+  function getLevelConfig(level) {
+    const scene = getSceneForLevel(level);
+    const rng = mulberry32(level * 7919);
+    // Always pick exactly 5 diffs from the pool
+    const chosen = pickN(scene.diffPool, 5, rng);
+    const diffIds = new Set(chosen.map(d => d.id));
+    // Fewer hints on higher levels, less hearts
+    const diff = getDifficultyForLevel(level);
+    const startHearts = diff >= 3 ? 3 : diff >= 2 ? 4 : 5;
+    const startHints  = diff >= 3 ? 1 : diff >= 2 ? 2 : 3;
+    return { scene, diffs: chosen, diffIds, startHearts, startHints };
+  }
+
+  // ============================================================
+  // Progress persistence
+  // ============================================================
+  const SAVE_KEY = 'spotDiff_v1';
+  function loadProgress() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function saveProgress(p) {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(p)); } catch {}
+  }
+  const progress = loadProgress();
+  if (!progress.current) progress.current = 1;
+  if (!progress.completed) progress.completed = [];
+  if (!progress.maxUnlocked) progress.maxUnlocked = 1;
+
+  // ============================================================
+  // State
+  // ============================================================
+  let currentLevel = progress.current;
+  let config = getLevelConfig(currentLevel);
+  let hearts = config.startHearts;
+  let hints  = config.startHints;
+  let found  = new Set();
+  let acceptInput = true;
+
+  const $ = id => document.getElementById(id);
+  const sceneAWrap = $('scene-a');
+  const sceneBWrap = $('scene-b');
+
+  function render() {
+    sceneAWrap.innerHTML = config.scene.render('a', config.diffIds);
+    sceneBWrap.innerHTML = config.scene.render('b', config.diffIds);
+    bindSceneClicks(sceneAWrap.querySelector('svg'), 'a');
+    bindSceneClicks(sceneBWrap.querySelector('svg'), 'b');
+    for (const id of found) drawFoundMarker(id);
+    updateHUD();
+  }
+  function updateHUD() {
+    $('sd-found').textContent = found.size;
+    $('sd-total').textContent = config.diffs.length;
+    $('sd-hearts').textContent = '❤️'.repeat(hearts) + '🖤'.repeat(config.startHearts - hearts);
+    $('sd-hint-count').textContent = hints;
+    $('sd-hint-btn').disabled = hints <= 0 || found.size >= config.diffs.length || !acceptInput;
+    $('sd-level-num').textContent = currentLevel;
+  }
+
+  // Apply i18n text
+  $('sd-title').textContent = T.title;
+  $('sd-found-label').textContent = T.found;
+  $('sd-hint-label').textContent = T.hint;
+  $('sd-restart-label').textContent = T.restart;
+  $('sd-level-lbl').textContent = T.level;
+  $('sd-win-title').textContent = T.winTitle;
+  $('sd-win-sub').textContent = T.winSub;
+  $('sd-lose-title').textContent = T.loseTitle;
+  $('sd-lose-sub').textContent = T.loseSub;
+  $('sd-lbl-hearts').textContent = T.heartsLeft;
+  $('sd-lbl-hints').textContent = T.hintsLeft;
+  $('sd-lbl-lvl').textContent = T.lvLbl;
+  $('sd-lbl-found').textContent = T.foundLbl;
+  $('sd-next-label').textContent = T.nextLvl;
+  $('sd-replay-label').textContent = T.replay;
+  $('sd-again-label2').textContent = T.tryAgain;
+  $('sd-all-title').textContent = T.allDone;
+  $('sd-all-sub').textContent = T.allDoneSub;
+  $('sd-restart-all').textContent = T.playAgain;
+  $('sd-lvl-title').textContent = T.selectLevel;
+  $('sd-close-label').textContent = T.close;
+
+  // ============================================================
+  // Click handling
+  // ============================================================
+  function svgLocalPoint(svg, ev) {
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const local = pt.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
+  }
+  function bindSceneClicks(svg, side) {
+    if (!svg) return;
+    svg.addEventListener('click', (ev) => {
+      if (!acceptInput) return;
+      if (found.size >= config.diffs.length) return;
+      const { x, y } = svgLocalPoint(svg, ev);
+      let hit = null;
+      for (const d of config.diffs) {
+        if (found.has(d.id)) continue;
+        const dx = x - d.cx, dy = y - d.cy;
+        if (dx * dx + dy * dy <= d.r * d.r) { hit = d; break; }
+      }
+      if (hit) {
+        found.add(hit.id);
+        drawFoundMarker(hit.id);
+        SFX.correct();
+        updateHUD();
+        if (found.size >= config.diffs.length) {
+          acceptInput = false;
+          setTimeout(showWin, 500);
+        }
+      } else {
+        drawWrongMarker(svg, x, y);
+        hearts = Math.max(0, hearts - 1);
+        SFX.wrong();
+        updateHUD();
+        if (hearts <= 0) {
+          acceptInput = false;
+          setTimeout(showLose, 500);
+        }
+      }
+    });
+  }
+  function drawFoundMarker(id) {
+    const d = config.diffs.find(x => x.id === id);
+    if (!d) return;
+    for (const wrap of [sceneAWrap, sceneBWrap]) {
+      const overlay = wrap.querySelector('g[data-overlay="marks"]');
+      if (!overlay || overlay.querySelector(`[data-id="${id}"]`)) continue;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', d.cx); c.setAttribute('cy', d.cy); c.setAttribute('r', d.r + 4);
+      c.setAttribute('class', 'sd-found'); c.setAttribute('data-id', id);
+      c.style.transformOrigin = `${d.cx}px ${d.cy}px`;
+      c.style.transformBox = 'fill-box';
+      overlay.appendChild(c);
+    }
+  }
+  function drawWrongMarker(svg, x, y) {
+    const overlay = svg.querySelector('g[data-overlay="marks"]');
+    if (!overlay) return;
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 14);
+    c.setAttribute('class', 'sd-wrong-mark');
+    c.style.transformOrigin = `${x}px ${y}px`;
+    c.style.transformBox = 'fill-box';
+    overlay.appendChild(c);
+    setTimeout(() => c.remove(), 700);
+  }
+  function drawHintMarker(id) {
+    const d = config.diffs.find(x => x.id === id);
+    if (!d) return;
+    for (const wrap of [sceneAWrap, sceneBWrap]) {
+      const overlay = wrap.querySelector('g[data-overlay="marks"]');
+      if (!overlay) continue;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', d.cx); c.setAttribute('cy', d.cy); c.setAttribute('r', d.r + 6);
+      c.setAttribute('class', 'sd-hint-mark');
+      c.style.transformOrigin = `${d.cx}px ${d.cy}px`;
+      c.style.transformBox = 'fill-box';
+      overlay.appendChild(c);
+      setTimeout(() => c.remove(), 2500);
+    }
+  }
+
+  // ============================================================
+  // Buttons
+  // ============================================================
+  $('sd-hint-btn').addEventListener('click', () => {
+    if (hints <= 0 || found.size >= config.diffs.length || !acceptInput) return;
+    const remaining = config.diffs.filter(d => !found.has(d.id));
+    if (remaining.length === 0) return;
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    drawHintMarker(pick.id);
+    hints--;
+    SFX.hint();
+    updateHUD();
+  });
+  $('sd-restart-btn').addEventListener('click', resetLevel);
+  $('sd-next-btn').addEventListener('click', () => {
+    $('sd-modal-win').classList.remove('show');
+    if (currentLevel >= TOTAL_LEVELS) {
+      $('sd-modal-all-done').classList.add('show');
+    } else {
+      goToLevel(currentLevel + 1);
+    }
+  });
+  $('sd-win-replay').addEventListener('click', () => { $('sd-modal-win').classList.remove('show'); resetLevel(); });
+  $('sd-play-again2').addEventListener('click', () => { $('sd-modal-lose').classList.remove('show'); resetLevel(); });
+  $('sd-all-replay').addEventListener('click', () => {
+    $('sd-modal-all-done').classList.remove('show');
+    progress.completed = []; progress.current = 1; progress.maxUnlocked = 1;
+    saveProgress(progress); goToLevel(1);
+  });
+  $('sd-level-btn').addEventListener('click', openLevelSelect);
+  $('sd-level-close').addEventListener('click', () => $('sd-modal-level').classList.remove('show'));
+
+  function showWin() {
+    if (!progress.completed.includes(currentLevel)) progress.completed.push(currentLevel);
+    progress.maxUnlocked = Math.max(progress.maxUnlocked, currentLevel + 1);
+    progress.current = currentLevel;
+    saveProgress(progress);
+    $('sd-win-lvl').textContent = currentLevel;
+    $('sd-win-hearts').textContent = hearts;
+    $('sd-win-hints').textContent = hints;
+    if (currentLevel >= TOTAL_LEVELS) {
+      $('sd-next-label').textContent = '🎊 ' + T.allDone;
+    } else {
+      $('sd-next-label').textContent = T.nextLvl;
+    }
+    $('sd-modal-win').classList.add('show');
+    SFX.win();
+  }
+  function showLose() {
+    $('sd-lose-found').textContent = found.size;
+    $('sd-modal-lose').classList.add('show');
+    SFX.lose();
+  }
+
+  function resetLevel() {
+    config = getLevelConfig(currentLevel);
+    hearts = config.startHearts;
+    hints  = config.startHints;
+    found  = new Set();
+    acceptInput = true;
+    render();
+  }
+  function goToLevel(lv) {
+    currentLevel = Math.min(TOTAL_LEVELS, Math.max(1, lv));
+    progress.current = currentLevel;
+    saveProgress(progress);
+    resetLevel();
+  }
+
+  // ============================================================
+  // Level selector
+  // ============================================================
+  function openLevelSelect() {
+    const grid = $('sd-level-grid');
+    grid.innerHTML = '';
+    for (let i = 1; i <= TOTAL_LEVELS; i++) {
+      const btn = document.createElement('button');
+      const isCurrent = i === currentLevel;
+      const isDone = progress.completed.includes(i);
+      const isUnlocked = i <= progress.maxUnlocked;
+      const scene = getSceneForLevel(i);
+      btn.className = 'sd-lvl-cell' + (isCurrent ? ' current' :
+                                       isDone ? ' completed' :
+                                       isUnlocked ? ' unlocked' : ' locked');
+      btn.textContent = i;
+      btn.title = scene.icon + ' ' + scene.name;
+      if (!isUnlocked) btn.disabled = true;
+      btn.addEventListener('click', () => {
+        $('sd-modal-level').classList.remove('show');
+        goToLevel(i);
+      });
+      grid.appendChild(btn);
+    }
+    $('sd-modal-level').classList.add('show');
+  }
+
+  // ============================================================
+  // Boot
+  // ============================================================
+  render();
+})();
+</script>
+</body>
+</html>

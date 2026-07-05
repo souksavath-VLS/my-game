@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Jigsaw Puzzle</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    overflow: hidden; overscroll-behavior: none;
+    position: fixed; inset: 0;
+    background: #0f172a;
+    font-family: 'Baloo 2', 'Noto Sans Lao', system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #stage { position: absolute; inset: 0; touch-action: none; }
+
+  /* faint full-image hint behind pieces */
+  #ghost { position: absolute; border-radius: 10px; overflow: hidden;
+           box-shadow: 0 0 0 2px rgba(255,255,255,.10), 0 18px 50px rgba(0,0,0,.45);
+           background: rgba(255,255,255,.03); }
+  #ghost canvas { position:absolute; inset:0; opacity: .16; }
+  #ghost .grid { position:absolute; inset:0; pointer-events:none; }
+
+  .piece {
+    position: absolute; touch-action: none; cursor: grab;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.42));
+    transition: filter .12s ease;
+    will-change: left, top, transform;
+  }
+  .piece.dragging { cursor: grabbing; filter: drop-shadow(0 10px 16px rgba(0,0,0,.55)); }
+  .piece.locked { filter: none; pointer-events: none; transition: left .18s cubic-bezier(.2,.9,.3,1.3), top .18s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes pop { 0%{transform:scale(1)} 45%{transform:scale(1.09)} 100%{transform:scale(1)} }
+  .piece.snap { animation: pop .32s ease; }
+
+  #preview { position:absolute; border-radius:10px; overflow:hidden; pointer-events:none;
+             box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 20px 60px rgba(0,0,0,.6);
+             opacity:0; transform:scale(.96); transition: opacity .2s, transform .2s; z-index: 60; }
+  #preview.on { opacity:1; transform:scale(1); }
+  #preview canvas { display:block; }
+
+  .glass { background: rgba(15,23,42,.72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .btn { transition: transform .08s ease, background .2s; }
+  .btn:active { transform: scale(.92); }
+
+  #winModal { transition: opacity .3s; }
+  @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .floaty { animation: floaty 2.2s ease-in-out infinite; }
+  .confetti { position:absolute; width:10px; height:14px; top:-20px; will-change:transform; border-radius:2px; }
+  @keyframes fall { to { transform: translateY(115vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <!-- Top bar -->
+  <div class="absolute top-0 left-0 right-0 z-40 px-3 pt-3 flex items-center gap-2" style="padding-top:max(0.75rem,env(safe-area-inset-top))">
+    <a href="index.html" class="glass btn w-10 h-10 rounded-full flex items-center justify-center text-white/90 text-lg shrink-0">✕</a>
+    <div class="glass rounded-full px-3 h-10 flex items-center gap-2 text-white shrink-0">
+      <span class="text-lg">🧩</span>
+      <span class="text-sm font-bold" id="lblLevel">Lv</span>
+      <span class="text-sm font-extrabold text-amber-300" id="statLevel">1</span>
+    </div>
+    <div class="glass rounded-full px-3 h-10 flex items-center gap-2 text-white shrink-0">
+      <span class="text-base">⏱️</span>
+      <span class="text-sm font-extrabold tabular-nums" id="statTime">00:00</span>
+    </div>
+    <div class="glass rounded-full px-3 h-10 flex items-center gap-1 text-white shrink-0 ml-auto">
+      <span class="text-sm font-extrabold text-emerald-300 tabular-nums" id="statDone">0</span>
+      <span class="text-sm text-white/60">/</span>
+      <span class="text-sm font-bold text-white/80 tabular-nums" id="statTotal">9</span>
+    </div>
+  </div>
+
+  <!-- Bottom controls -->
+  <div class="absolute bottom-0 left-0 right-0 z-40 px-3 pb-3 flex items-center justify-center gap-2" style="padding-bottom:max(0.75rem,env(safe-area-inset-bottom))">
+    <button id="btnPreview" class="glass btn rounded-2xl px-4 h-12 flex items-center gap-2 text-white font-bold">
+      <span class="text-lg">👁️</span><span class="text-sm" id="lblPreview">Preview</span>
+    </button>
+    <button id="btnShuffle" class="glass btn rounded-2xl px-4 h-12 flex items-center gap-2 text-white font-bold">
+      <span class="text-lg">🔀</span><span class="text-sm" id="lblShuffle">Shuffle</span>
+    </button>
+    <button id="btnNew" class="btn rounded-2xl px-4 h-12 flex items-center gap-2 text-white font-bold"
+            style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <span class="text-lg">🖼️</span><span class="text-sm" id="lblNew">New</span>
+    </button>
+    <button id="btnMute" class="glass btn w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl">🔊</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loader" class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-slate-900/80" style="display:none">
+    <div class="w-14 h-14 border-4 border-white/20 border-t-indigo-400 rounded-full animate-spin"></div>
+    <div class="text-white/80 font-bold" id="lblLoading">Loading…</div>
+  </div>
+
+  <!-- Victory -->
+  <div id="winModal" class="absolute inset-0 z-[70] flex items-center justify-center p-6 bg-slate-900/70" style="display:none;opacity:0">
+    <div class="glass rounded-3xl p-7 max-w-sm w-full text-center border border-white/15 relative overflow-hidden">
+      <div class="text-6xl floaty mb-1">🎉</div>
+      <div id="winTitle" class="text-2xl font-extrabold text-white mb-1">Solved!</div>
+      <div id="winSub" class="text-white/60 text-sm mb-5">Great job!</div>
+      <div class="flex gap-3 justify-center mb-6">
+        <div class="bg-white/5 rounded-2xl px-5 py-3 flex-1">
+          <div class="text-white/50 text-xs font-semibold" id="lblYourTime">Time</div>
+          <div class="text-amber-300 text-2xl font-extrabold tabular-nums" id="winTime">00:00</div>
+        </div>
+        <div class="bg-white/5 rounded-2xl px-5 py-3 flex-1">
+          <div class="text-white/50 text-xs font-semibold" id="lblPieces">Pieces</div>
+          <div class="text-emerald-300 text-2xl font-extrabold tabular-nums" id="winPieces">9</div>
+        </div>
+      </div>
+      <button id="btnNext" class="btn w-full rounded-2xl h-13 py-3 text-white font-extrabold text-lg mb-2"
+              style="background:linear-gradient(135deg,#f59e0b,#ef4444)">
+        <span id="lblNext">Next Level ➜</span>
+      </button>
+      <button id="btnReplay" class="btn w-full rounded-2xl py-2.5 text-white/80 font-bold glass">
+        <span id="lblReplay">🔁 Play Again</span>
+      </button>
+    </div>
+  </div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N = {
+  en: { level:'Lv', preview:'Preview', shuffle:'Shuffle', neu:'New', loading:'Loading…',
+        win:'Solved!', winSub:'Puzzle complete!', yourTime:'Time', pieces:'Pieces',
+        next:'Next Level ➜', replay:'🔁 Play Again' },
+  th: { level:'ด่าน', preview:'ดูตัวอย่าง', shuffle:'สลับ', neu:'ภาพใหม่', loading:'กำลังโหลด…',
+        win:'สำเร็จ!', winSub:'ต่อภาพครบแล้ว!', yourTime:'เวลา', pieces:'ชิ้น',
+        next:'ด่านต่อไป ➜', replay:'🔁 เล่นอีกครั้ง' },
+  lao:{ level:'ດ່ານ', preview:'ເບິ່ງຕົວຢ່າງ', shuffle:'ສະລັບ', neu:'ຮູບໃໝ່', loading:'ກຳລັງໂຫຼດ…',
+        win:'ສຳເລັດ!', winSub:'ຕໍ່ພາບຄົບແລ້ວ!', yourTime:'ເວລາ', pieces:'ຊິ້ນ',
+        next:'ດ່ານຕໍ່ໄປ ➜', replay:'🔁 ຫຼິ້ນອີກຄັ້ງ' },
+};
+let lang = (localStorage.getItem('lang') || 'en');
+if (!I18N[lang]) lang = 'en';
+function applyLang() {
+  const t = I18N[lang];
+  document.getElementById('lblLevel').textContent   = t.level;
+  document.getElementById('lblPreview').textContent = t.preview;
+  document.getElementById('lblShuffle').textContent = t.shuffle;
+  document.getElementById('lblNew').textContent     = t.neu;
+  document.getElementById('lblLoading').textContent = t.loading;
+  document.getElementById('winTitle').textContent   = t.win;
+  document.getElementById('winSub').textContent      = t.winSub;
+  document.getElementById('lblYourTime').textContent = t.yourTime;
+  document.getElementById('lblPieces').textContent   = t.pieces;
+  document.getElementById('lblNext').textContent     = t.next;
+  document.getElementById('lblReplay').textContent   = t.replay;
+  document.documentElement.lang = lang === 'lao' ? 'lo' : lang;
+}
+
+/* ============================ Audio ============================ */
+let muted = localStorage.getItem('jigsawMuted') === '1';
+let actx = null;
+function ac() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; }
+function tone(freq, dur, type = 'sine', gain = 0.2, slideTo = null) {
+  if (muted) return;
+  try {
+    const c = ac(), o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, c.currentTime);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+    g.gain.setValueAtTime(0.0001, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(gain, c.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + dur + 0.02);
+  } catch (e) {}
+}
+const sndPick  = () => tone(440, 0.06, 'triangle', 0.14);
+const sndSnap  = () => { tone(660, 0.09, 'sine', 0.22, 900); setTimeout(() => tone(990, 0.10, 'sine', 0.18), 70); };
+const sndDrop  = () => tone(240, 0.07, 'sine', 0.10);
+function sndWin() {
+  if (muted) return;
+  [523, 659, 784, 1046, 1318].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.22), i * 130));
+}
+
+/* ============================ Level state ============================ */
+const stage = document.getElementById('stage');
+const ghost = document.createElement('div'); ghost.id = 'ghost'; stage.appendChild(ghost);
+const preview = document.createElement('div'); preview.id = 'preview'; stage.appendChild(preview);
+
+let level = parseInt(localStorage.getItem('jigsawLevel') || '1', 10);
+if (!(level >= 1)) level = 1;
+
+let cols, rows, boardW, boardH, cellW, cellH, margin, SS;
+let boardLeft, boardTop;
+let boardCv;           // offscreen full-image canvas at SS resolution
+let pieces = [];
+let placedCount = 0, totalPieces = 0;
+let startTime = 0, timerId = null, running = false;
+let seq = 0;           // z-index counter
+
+function gridForLevel(lv) { return Math.min(3 + (lv - 1), 8); } // 3x3 → up to 8x8
+
+/* ============================ Image loading ============================ */
+function loadImage(lv) {
+  return new Promise((resolve) => {
+    const seed = (lv * 100003 + Math.floor(performance.now()) % 9973 + 7) % 100000;
+    const px = 900;
+    const img = new Image();
+    let done = false;
+    const finish = (src) => { if (!done) { done = true; resolve(src); } };
+    img.onload = () => finish(img);
+    img.onerror = () => finish(makeFallback(seed));
+    // No crossOrigin: we only draw (never read pixels), so tainting is harmless
+    // and the image still loads even if the host sends no CORS header.
+    img.src = `https://picsum.photos/seed/jig${seed}/${px}/${px}`;
+    // Safety timeout → procedural fallback if the network stalls (offline app).
+    setTimeout(() => finish(makeFallback(seed)), 4500);
+  });
+}
+// Deterministic pretty procedural picture (used offline / on load failure)
+function makeFallback(seed) {
+  let s = seed >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const cv = document.createElement('canvas'); cv.width = cv.height = 900;
+  const g = cv.getContext('2d');
+  const palettes = [
+    ['#ff9a9e', '#fad0c4', '#fbc2eb', '#a18cd1'],
+    ['#43cea2', '#185a9d', '#4facfe', '#00f2fe'],
+    ['#fa709a', '#fee140', '#ffb199', '#ff0844'],
+    ['#30cfd0', '#330867', '#5b247a', '#1bcedf'],
+    ['#f6d365', '#fda085', '#fbc687', '#ea5455'],
+  ];
+  const pal = palettes[seed % palettes.length];
+  const lg = g.createLinearGradient(0, 0, 900, 900);
+  lg.addColorStop(0, pal[0]); lg.addColorStop(0.5, pal[1]); lg.addColorStop(1, pal[2]);
+  g.fillStyle = lg; g.fillRect(0, 0, 900, 900);
+  for (let i = 0; i < 26; i++) {
+    g.globalAlpha = 0.18 + rnd() * 0.4;
+    g.fillStyle = pal[Math.floor(rnd() * pal.length)];
+    g.beginPath();
+    g.arc(rnd() * 900, rnd() * 900, 40 + rnd() * 220, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+  return cv;
+}
+
+/* ============================ Geometry / edges ============================ */
+let vEdge, hEdge; // interior boundary signs
+function genEdges() {
+  const rnd = () => (Math.random() < 0.5 ? -1 : 1);
+  vEdge = []; hEdge = [];
+  for (let r = 0; r < rows; r++) { vEdge[r] = []; for (let c = 0; c <= cols; c++) vEdge[r][c] = (c === 0 || c === cols) ? 0 : rnd(); }
+  for (let r = 0; r <= rows; r++) { hEdge[r] = []; for (let c = 0; c < cols; c++) hEdge[r][c] = (r === 0 || r === rows) ? 0 : rnd(); }
+}
+function edgesOf(r, c) {
+  // top/right/bottom/left signs; complementary between neighbours by construction
+  return {
+    top:    hEdge[r][c] === 0 ? 0 : -hEdge[r][c],   // this piece is the lower one of that boundary
+    bottom: hEdge[r + 1][c],                        // this piece is the upper one
+    left:   vEdge[r][c] === 0 ? 0 : -vEdge[r][c],   // this piece is the right one
+    right:  vEdge[r][c + 1],                         // this piece is the left one
+  };
+}
+
+// Symmetric jigsaw knob, normalized along [0,1], fy outward in units of tab height.
+function drawEdgeP2D(path, x0, y0, x1, y1, nx, ny, sign, T) {
+  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+  const ux = dx / L, uy = dy / L;
+  if (sign === 0) { path.lineTo(x1, y1); return; }
+  const tp = (fx, fy) => [
+    x0 + ux * (fx * L) + nx * (sign * fy * T),
+    y0 + uy * (fx * L) + ny * (sign * fy * T),
+  ];
+  let p;
+  p = tp(0.40, 0.00); path.lineTo(p[0], p[1]);
+  const c = (a, b, e) => { const A = tp(...a), B = tp(...b), E = tp(...e); path.bezierCurveTo(A[0], A[1], B[0], B[1], E[0], E[1]); };
+  c([0.35, 0.10], [0.25, 0.35], [0.30, 0.60]);
+  c([0.33, 0.85], [0.42, 1.00], [0.50, 1.00]);
+  c([0.58, 1.00], [0.67, 0.85], [0.70, 0.60]);
+  c([0.75, 0.35], [0.65, 0.10], [0.60, 0.00]);
+  path.lineTo(x1, y1);
+}
+function piecePath(edges) {
+  const M = margin * SS, cw = cellW * SS, ch = cellH * SS, T = margin * SS;
+  const TL = [M, M], TR = [M + cw, M], BR = [M + cw, M + ch], BL = [M, M + ch];
+  const p = new Path2D();
+  p.moveTo(TL[0], TL[1]);
+  drawEdgeP2D(p, TL[0], TL[1], TR[0], TR[1], 0, -1, edges.top, T);
+  drawEdgeP2D(p, TR[0], TR[1], BR[0], BR[1], 1, 0, edges.right, T);
+  drawEdgeP2D(p, BR[0], BR[1], BL[0], BL[1], 0, 1, edges.bottom, T);
+  drawEdgeP2D(p, BL[0], BL[1], TL[0], TL[1], -1, 0, edges.left, T);
+  p.closePath();
+  return p;
+}
+
+/* ============================ Build board image ============================ */
+function drawCover(ctx, img, w, h) {
+  const iw = img.width, ih = img.height;
+  const scale = Math.max(w / iw, h / ih);
+  const sw = w / scale, sh = h / scale;
+  const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+}
+
+/* ============================ Layout ============================ */
+function computeLayout() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  SS = Math.min(2, window.devicePixelRatio || 1);
+  const topSafe = 66, botSafe = 78;                 // reserve space for HUD bars
+  const availH = H - topSafe - botSafe;
+  const size = Math.max(180, Math.min(W * 0.94, availH * 0.66));
+  boardW = boardH = Math.round(size);
+  cellW = boardW / cols; cellH = boardH / rows;
+  margin = Math.round(Math.min(cellW, cellH) * 0.20);
+  boardLeft = Math.round((W - boardW) / 2);
+  boardTop = Math.round(topSafe + (availH * 0.66 - boardH) * 0.15 + 4);
+  if (boardTop < topSafe) boardTop = topSafe;
+}
+
+/* ============================ Setup a level ============================ */
+async function setupLevel(newImage) {
+  running = false; stopTimer();
+  document.getElementById('loader').style.display = 'flex';
+  hideWin();
+
+  cols = rows = gridForLevel(level);
+  document.getElementById('statLevel').textContent = level;
+
+  const img = await (newImage ? loadImage(level) : (currentImg ? Promise.resolve(currentImg) : loadImage(level)));
+  currentImg = img;
+
+  computeLayout();
+
+  // offscreen full board at SS resolution
+  boardCv = document.createElement('canvas');
+  boardCv.width = Math.round(boardW * SS); boardCv.height = Math.round(boardH * SS);
+  const bctx = boardCv.getContext('2d');
+  drawCover(bctx, img, boardCv.width, boardCv.height);
+
+  buildGhost();
+  buildPreview();
+  genEdges();
+  buildPieces();
+  scatterPieces();
+
+  document.getElementById('loader').style.display = 'none';
+  totalPieces = cols * rows; placedCount = 0;
+  document.getElementById('statTotal').textContent = totalPieces;
+  document.getElementById('statDone').textContent = 0;
+
+  running = true;
+  startTime = performance.now();
+  startTimer();
+}
+let currentImg = null;
+
+function buildGhost() {
+  ghost.style.left = boardLeft + 'px'; ghost.style.top = boardTop + 'px';
+  ghost.style.width = boardW + 'px'; ghost.style.height = boardH + 'px';
+  ghost.innerHTML = '';
+  const gc = document.createElement('canvas');
+  gc.width = boardCv.width; gc.height = boardCv.height;
+  gc.style.width = boardW + 'px'; gc.style.height = boardH + 'px';
+  gc.getContext('2d').drawImage(boardCv, 0, 0);
+  ghost.appendChild(gc);
+  // grid lines
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'grid');
+  svg.setAttribute('viewBox', `0 0 ${boardW} ${boardH}`);
+  for (let c = 1; c < cols; c++) {
+    const l = document.createElementNS(svgNS, 'line');
+    l.setAttribute('x1', c * cellW); l.setAttribute('y1', 0);
+    l.setAttribute('x2', c * cellW); l.setAttribute('y2', boardH);
+    l.setAttribute('stroke', 'rgba(255,255,255,.14)'); l.setAttribute('stroke-width', '1');
+    svg.appendChild(l);
+  }
+  for (let r = 1; r < rows; r++) {
+    const l = document.createElementNS(svgNS, 'line');
+    l.setAttribute('x1', 0); l.setAttribute('y1', r * cellH);
+    l.setAttribute('x2', boardW); l.setAttribute('y2', r * cellH);
+    l.setAttribute('stroke', 'rgba(255,255,255,.14)'); l.setAttribute('stroke-width', '1');
+    svg.appendChild(l);
+  }
+  ghost.appendChild(svg);
+}
+
+function buildPreview() {
+  preview.style.left = boardLeft + 'px'; preview.style.top = boardTop + 'px';
+  preview.style.width = boardW + 'px'; preview.style.height = boardH + 'px';
+  preview.innerHTML = '';
+  const pc = document.createElement('canvas');
+  pc.width = boardCv.width; pc.height = boardCv.height;
+  pc.style.width = boardW + 'px'; pc.style.height = boardH + 'px';
+  pc.getContext('2d').drawImage(boardCv, 0, 0);
+  preview.appendChild(pc);
+}
+
+/* ============================ Build pieces ============================ */
+function buildPieces() {
+  pieces.forEach(p => p.el.remove());
+  pieces = [];
+  const pieceW = cellW + 2 * margin, pieceH = cellH + 2 * margin;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const edges = edgesOf(r, c);
+      const path = piecePath(edges);
+      const cv = document.createElement('canvas');
+      cv.className = 'piece';
+      cv.width = Math.round(pieceW * SS); cv.height = Math.round(pieceH * SS);
+      cv.style.width = pieceW + 'px'; cv.style.height = pieceH + 'px';
+      const ctx = cv.getContext('2d');
+      ctx.save();
+      ctx.clip(path);
+      // draw the matching slice of the full board (incl. tab overhang)
+      const sx = (c * cellW - margin) * SS, sy = (r * cellH - margin) * SS;
+      ctx.drawImage(boardCv, sx, sy, pieceW * SS, pieceH * SS, 0, 0, pieceW * SS, pieceH * SS);
+      ctx.restore();
+      // subtle bevel: dark outline + inner highlight
+      ctx.lineWidth = 1.4 * SS; ctx.strokeStyle = 'rgba(0,0,0,.42)'; ctx.stroke(path);
+      ctx.lineWidth = 1 * SS; ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.stroke(path);
+
+      const homeX = boardLeft + c * cellW - margin;
+      const homeY = boardTop + r * cellH - margin;
+      const piece = { r, c, el: cv, homeX, homeY, pieceW, pieceH, locked: false };
+      cv.addEventListener('pointerdown', (e) => onPointerDown(e, piece));
+      stage.appendChild(cv);
+      pieces.push(piece);
+    }
+  }
+}
+
+function scatterPieces() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const boardRect = { l: boardLeft - 6, t: boardTop - 6, r: boardLeft + boardW + 6, b: boardTop + boardH + 6 };
+  // candidate positions on a coarse grid, outside the board
+  const stepX = Math.max(36, (pieces[0].pieceW) * 0.55);
+  const stepY = Math.max(36, (pieces[0].pieceH) * 0.55);
+  const pad = 8;
+  const spots = [];
+  for (let y = 72; y < H - 80 - pieces[0].pieceH; y += stepY) {
+    for (let x = pad; x < W - pad - pieces[0].pieceW; x += stepX) {
+      const cx = x + pieces[0].pieceW / 2, cy = y + pieces[0].pieceH / 2;
+      if (cx > boardRect.l && cx < boardRect.r && cy > boardRect.t && cy < boardRect.b) continue;
+      spots.push({ x, y });
+    }
+  }
+  // shuffle spots
+  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+
+  const order = pieces.slice();
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+
+  order.forEach((p, i) => {
+    let pos = spots[i];
+    if (!pos) { // more pieces than spots → random with jitter (allow overlap)
+      pos = {
+        x: pad + Math.random() * (W - 2 * pad - p.pieceW),
+        y: 80 + Math.random() * (H - 170 - p.pieceH),
+      };
+    }
+    const jx = (Math.random() - 0.5) * stepX * 0.4;
+    const jy = (Math.random() - 0.5) * stepY * 0.4;
+    setPos(p, clamp(pos.x + jx, pad, W - pad - p.pieceW), clamp(pos.y + jy, 66, H - 70 - p.pieceH));
+    p.el.style.zIndex = ++seq;
+  });
+}
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function setPos(p, x, y) { p.x = x; p.y = y; p.el.style.left = x + 'px'; p.el.style.top = y + 'px'; }
+
+/* ============================ Drag ============================ */
+let drag = null;
+function onPointerDown(e, p) {
+  if (!running || p.locked) return;
+  e.preventDefault();
+  ac(); // unlock audio on first touch
+  const rect = stage.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  drag = { p, offX: px - p.x, offY: py - p.y, id: e.pointerId };
+  p.el.style.zIndex = ++seq;
+  p.el.classList.add('dragging');
+  p.el.classList.remove('snap');
+  try { p.el.setPointerCapture(e.pointerId); } catch (err) {}
+  sndPick();
+}
+function onPointerMove(e) {
+  if (!drag) return;
+  const rect = stage.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  setPos(drag.p, px - drag.offX, py - drag.offY);
+}
+function onPointerUp(e) {
+  if (!drag) return;
+  const p = drag.p; drag = null;
+  p.el.classList.remove('dragging');
+  try { p.el.releasePointerCapture(e.pointerId); } catch (err) {}
+  // snap test
+  const dx = p.x - p.homeX, dy = p.y - p.homeY;
+  const dist = Math.hypot(dx, dy);
+  const tol = Math.max(18, Math.min(cellW, cellH) * 0.28);
+  if (dist <= tol) lockPiece(p);
+  else sndDrop();
+}
+function lockPiece(p) {
+  p.locked = true;
+  setPos(p, p.homeX, p.homeY);
+  p.el.classList.add('locked', 'snap');
+  p.el.style.zIndex = 5; // below loose pieces, above ghost
+  placedCount++;
+  document.getElementById('statDone').textContent = placedCount;
+  sndSnap();
+  if (placedCount >= totalPieces) onSolved();
+}
+window.addEventListener('pointermove', onPointerMove, { passive: false });
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointercancel', onPointerUp);
+
+/* ============================ Timer ============================ */
+function fmt(ms) {
+  const s = Math.floor(ms / 1000);
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+function startTimer() { stopTimer(); timerId = setInterval(() => { document.getElementById('statTime').textContent = fmt(performance.now() - startTime); }, 250); }
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+
+/* ============================ Win ============================ */
+function onSolved() {
+  running = false; stopTimer();
+  const elapsed = performance.now() - startTime;
+  sndWin();
+  document.getElementById('winTime').textContent = fmt(elapsed);
+  document.getElementById('winPieces').textContent = totalPieces;
+  const m = document.getElementById('winModal');
+  m.style.display = 'flex'; requestAnimationFrame(() => m.style.opacity = 1);
+  confetti();
+}
+function hideWin() { const m = document.getElementById('winModal'); m.style.opacity = 0; m.style.display = 'none'; }
+function confetti() {
+  const colors = ['#f59e0b', '#ef4444', '#10b981', '#6366f1', '#ec4899', '#22d3ee'];
+  for (let i = 0; i < 60; i++) {
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = Math.random() * 100 + 'vw';
+    d.style.background = colors[i % colors.length];
+    d.style.zIndex = 80;
+    d.style.animation = `fall ${1.6 + Math.random() * 1.6}s ${Math.random() * 0.4}s linear forwards`;
+    stage.appendChild(d);
+    setTimeout(() => d.remove(), 3600);
+  }
+}
+
+/* ============================ Buttons ============================ */
+let previewOn = false;
+document.getElementById('btnPreview').addEventListener('click', () => {
+  previewOn = !previewOn;
+  preview.classList.toggle('on', previewOn);
+  document.getElementById('btnPreview').classList.toggle('bg-white/15', previewOn);
+});
+document.getElementById('btnShuffle').addEventListener('click', () => {
+  if (!pieces.length) return;
+  scatterPieces();
+  sndDrop();
+});
+document.getElementById('btnNew').addEventListener('click', () => setupLevel(true));
+document.getElementById('btnMute').addEventListener('click', () => {
+  muted = !muted; localStorage.setItem('jigsawMuted', muted ? '1' : '0');
+  document.getElementById('btnMute').textContent = muted ? '🔇' : '🔊';
+  if (!muted) tone(660, 0.08, 'sine', 0.18);
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  level = Math.min(level + 1, 8);
+  localStorage.setItem('jigsawLevel', String(level));
+  hideWin(); setupLevel(true);
+});
+document.getElementById('btnReplay').addEventListener('click', () => { hideWin(); setupLevel(true); });
+
+/* ============================ Resize ============================ */
+let resizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if (currentImg) relayout(); }, 250);
+});
+function relayout() {
+  // remember which pieces were locked, rebuild at new size
+  const lockedSet = new Set(pieces.filter(p => p.locked).map(p => p.r + ',' + p.c));
+  computeLayout();
+  const bctx = boardCv.getContext('2d');
+  boardCv.width = Math.round(boardW * SS); boardCv.height = Math.round(boardH * SS);
+  drawCover(bctx, currentImg, boardCv.width, boardCv.height);
+  buildGhost(); buildPreview(); buildPieces();
+  // restore locked + rescatter the rest
+  const loose = [];
+  pieces.forEach(p => {
+    if (lockedSet.has(p.r + ',' + p.c)) {
+      p.locked = true; setPos(p, p.homeX, p.homeY);
+      p.el.classList.add('locked'); p.el.style.zIndex = 5;
+    } else loose.push(p);
+  });
+  placedCount = pieces.length - loose.length;
+  document.getElementById('statDone').textContent = placedCount;
+  // scatter only the loose ones
+  scatterSubset(loose);
+}
+function scatterSubset(list) {
+  const W = stage.clientWidth, H = stage.clientHeight, pad = 8;
+  list.forEach(p => {
+    let x, y, tries = 0;
+    do {
+      x = pad + Math.random() * (W - 2 * pad - p.pieceW);
+      y = 80 + Math.random() * (H - 170 - p.pieceH);
+      tries++;
+    } while (tries < 12 && x + p.pieceW / 2 > boardLeft && x + p.pieceW / 2 < boardLeft + boardW
+             && y + p.pieceH / 2 > boardTop && y + p.pieceH / 2 < boardTop + boardH);
+    setPos(p, x, y); p.el.style.zIndex = ++seq;
+  });
+}
+
+/* ============================ Boot ============================ */
+applyLang();
+document.getElementById('btnMute').textContent = muted ? '🔇' : '🔊';
+setupLevel(true);
+</script>
+</body>
+</html>
