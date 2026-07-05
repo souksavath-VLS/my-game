@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Mahjong Solitaire</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Noto+Sans+SC:wght@700;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin:0; padding:0; height:100%; width:100%;
+    overflow:hidden; overscroll-behavior:none; position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse at 50% 20%, #2f7d4f 0%, #226340 45%, #17472e 100%);
+    font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    color:#f0fff5;
+  }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+
+  .glass{ background:rgba(6,40,24,.42); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+          box-shadow:0 2px 8px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
+  .btn{ transition:transform .08s ease, background .15s, opacity .15s; }
+  .btn:active{ transform:scale(.92); }
+  .btn:disabled,.btn.disabled{ opacity:.4; pointer-events:none; }
+
+  #boardArea{ flex:1; min-height:0; position:relative; overflow:hidden; }
+  #scaler{ position:absolute; top:0; left:0; transform-origin:top left; }
+  #board{ position:relative; }
+
+  /* ---- tiles ---- */
+  .tile{
+    position:absolute;
+    border-radius:7px;
+    background:linear-gradient(150deg,#fffef8 0%,#f6efdb 62%,#ece0c2 100%);
+    box-shadow:
+      2px 3px 0 rgba(120,102,64,.55),
+      3px 5px 7px rgba(0,0,0,.38),
+      inset 0 0 0 1px rgba(255,255,255,.7),
+      inset 0 -3px 5px rgba(150,130,90,.28);
+    cursor:pointer;
+    transition:filter .12s, transform .1s;
+    overflow:hidden;
+  }
+  .tile.locked{ filter:brightness(.8) saturate(.85); }
+  .tile.sel{
+    box-shadow:
+      2px 3px 0 rgba(120,102,64,.55),
+      3px 5px 7px rgba(0,0,0,.38),
+      0 0 0 3px #ffd23f, 0 0 14px 3px rgba(255,210,63,.75);
+    transform:translate(-1px,-2px);
+    filter:brightness(1.06);
+  }
+  @keyframes hintpulse{ 0%,100%{ box-shadow:2px 3px 0 rgba(120,102,64,.55),3px 5px 7px rgba(0,0,0,.38),0 0 0 3px #38bdf8, 0 0 6px 1px rgba(56,189,248,.5);} 50%{ box-shadow:2px 3px 0 rgba(120,102,64,.55),3px 5px 7px rgba(0,0,0,.38),0 0 0 4px #38bdf8, 0 0 18px 5px rgba(56,189,248,.9);} }
+  .tile.hint{ animation:hintpulse .7s ease-in-out infinite; z-index:99999 !important; }
+  @keyframes shakeX{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+  .tile.shake{ animation:shakeX .28s ease; }
+
+  .tf{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; line-height:1; }
+  .tf svg{ width:100%; height:100%; display:block; }
+  .tf-han{ font-family:'Noto Sans SC',serif; font-weight:900; }
+  .tf-han .big{ font-size:30px; }
+  .tf-han .sub{ font-size:12px; margin-top:1px; }
+  .tf-emoji{ font-size:32px; }
+
+  #toast{ position:fixed; left:50%; bottom:88px; transform:translateX(-50%) translateY(16px);
+          background:#0c2a1a; color:#eafff2; padding:9px 16px; border-radius:12px; font-weight:700;
+          font-size:13px; text-align:center; max-width:90vw; opacity:0; pointer-events:none;
+          transition:opacity .25s, transform .25s; z-index:120; box-shadow:0 8px 22px rgba(0,0,0,.4);
+          border:1.5px solid rgba(255,255,255,.14); }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .modal{ position:fixed; inset:0; z-index:130; display:flex; align-items:center; justify-content:center;
+          padding:22px; background:rgba(5,25,15,.62); backdrop-filter:blur(4px); }
+  @keyframes rise{ from{transform:translateY(18px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .28s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+  .floaty{ animation:floaty 2.2s ease-in-out infinite; }
+  .confetti{ position:fixed; width:9px; height:14px; top:-16px; border-radius:2px; z-index:125; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top bar -->
+  <div class="px-3 pt-3 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top))">
+    <a href="index.html" class="glass btn w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">✕</a>
+    <div class="glass rounded-full px-3 h-10 flex items-center gap-2 font-extrabold text-sm shrink-0">
+      <span class="text-lg">🀄</span>
+      <span id="lblLeft" class="opacity-70">Left</span>
+      <span id="statLeft" class="text-amber-300 tabular-nums text-base">144</span>
+    </div>
+    <div class="ml-auto glass rounded-full px-3 h-10 flex items-center gap-1 font-extrabold text-sm shrink-0">
+      <span>🔀</span><span id="statMoves" class="tabular-nums">0</span>
+    </div>
+    <button id="btnSound" class="glass btn w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">🔊</button>
+  </div>
+
+  <!-- Board -->
+  <div id="boardArea">
+    <div id="scaler"><div id="board"></div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="px-3 pb-3 pt-2 grid grid-cols-4 gap-2" style="padding-bottom:max(0.7rem,env(safe-area-inset-bottom))">
+    <button id="btnHint"    class="glass btn rounded-2xl py-3 flex flex-col items-center gap-0.5 font-extrabold"><span class="text-xl">💡</span><span class="text-xs" id="lblHint">Hint</span></button>
+    <button id="btnShuffle" class="glass btn rounded-2xl py-3 flex flex-col items-center gap-0.5 font-extrabold"><span class="text-xl">🔀</span><span class="text-xs" id="lblShuffle">Shuffle</span></button>
+    <button id="btnUndo"    class="glass btn rounded-2xl py-3 flex flex-col items-center gap-0.5 font-extrabold"><span class="text-xl">↩️</span><span class="text-xs" id="lblUndo">Undo</span></button>
+    <button id="btnNew"     class="btn rounded-2xl py-3 flex flex-col items-center gap-0.5 font-extrabold text-white" style="background:linear-gradient(135deg,#d97706,#b45309)"><span class="text-xl">🔄</span><span class="text-xs" id="lblNew">New</span></button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Result modal -->
+<div id="resultModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-7 w-full max-w-xs text-center border border-white/15">
+    <div id="resEmoji" class="text-6xl mb-2 floaty">🏆</div>
+    <div id="resTitle" class="text-2xl font-extrabold mb-1">You Win!</div>
+    <div id="resSub" class="text-white/70 text-sm mb-5">Board cleared!</div>
+    <div id="resStats" class="flex gap-3 justify-center mb-6"></div>
+    <button id="btnPlayAgain" class="btn w-full rounded-2xl py-3 text-white font-extrabold mb-2" style="background:linear-gradient(135deg,#d97706,#b45309)"><span id="lblPlayAgain">Play Again</span></button>
+    <button id="btnResultShuffle" class="btn w-full rounded-2xl py-2.5 text-white/85 font-bold glass" style="display:none"><span id="lblResultShuffle">🔀 Shuffle & Continue</span></button>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N = {
+  en:{ left:'Left', hint:'Hint', shuffle:'Shuffle', undo:'Undo', neu:'New',
+       win:'You Win!', winSub:'Board cleared!', noMoves:'No More Moves', noMovesSub:'No matching pairs left — try a shuffle!',
+       time:'Time', moves:'Matches', playAgain:'Play Again', resultShuffle:'🔀 Shuffle & Continue',
+       noHint:'No moves available — shuffle the tiles!', shuffled:'Tiles shuffled!' },
+  th:{ left:'เหลือ', hint:'คำใบ้', shuffle:'สลับไพ่', undo:'ย้อนกลับ', neu:'เกมใหม่',
+       win:'คุณชนะ!', winSub:'เก็บไพ่หมดกระดานแล้ว!', noMoves:'ไม่มีคู่ให้จับ', noMovesSub:'ไม่เหลือคู่ที่จับได้ — ลองสลับไพ่ดูสิ!',
+       time:'เวลา', moves:'จับคู่', playAgain:'เล่นอีกครั้ง', resultShuffle:'🔀 สลับไพ่แล้วเล่นต่อ',
+       noHint:'ไม่มีคู่ให้จับแล้ว — สลับไพ่เถอะ!', shuffled:'สลับไพ่เรียบร้อย!' },
+  lao:{ left:'ເຫຼືອ', hint:'ຄຳໃບ້', shuffle:'ສະລັບໄພ່', undo:'ຍ້ອນກັບ', neu:'ເກມໃໝ່',
+       win:'ເຈົ້າຊະນະ!', winSub:'ເກັບໄພ່ໝົດກະດານແລ້ວ!', noMoves:'ບໍ່ມີຄູ່ໃຫ້ຈັບ', noMovesSub:'ບໍ່ເຫຼືອຄູ່ທີ່ຈັບໄດ້ — ລອງສະລັບໄພ່ເບິ່ງ!',
+       time:'ເວລາ', moves:'ຈັບຄູ່', playAgain:'ຫຼິ້ນອີກຄັ້ງ', resultShuffle:'🔀 ສະລັບໄພ່ແລ້ວຫຼິ້ນຕໍ່',
+       noHint:'ບໍ່ມີຄູ່ໃຫ້ຈັບແລ້ວ — ສະລັບໄພ່ເຖາະ!', shuffled:'ສະລັບໄພ່ຮຽບຮ້ອຍ!' },
+};
+let lang = localStorage.getItem('lang') || 'en';
+if(!I18N[lang]) lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted = localStorage.getItem('mahjongMuted')==='1';
+let actx=null;
+function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function tone(f,d,type='sine',g=0.15,slide=null){
+  if(muted) return;
+  try{ const c=ac(),o=c.createOscillator(),ga=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide,c.currentTime+d);
+    ga.gain.setValueAtTime(0.0001,c.currentTime);
+    ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.008);
+    ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
+    o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+d+0.02);
+  }catch(e){}
+}
+const sSelect =()=>tone(520,0.05,'triangle',0.12);
+const sMatch  =()=>{ tone(660,0.08,'sine',0.18,900); setTimeout(()=>tone(990,0.10,'sine',0.15),70); };
+const sBad    =()=>tone(200,0.14,'sawtooth',0.14,150);
+const sShuffle=()=>{ [400,500,600,700].forEach((f,i)=>setTimeout(()=>tone(f,0.06,'triangle',0.1),i*45)); };
+function sWin(){ if(muted)return; [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,0.22,'triangle',0.2),i*130)); }
+
+/* ============================ Layout (turtle) ============================ */
+// coordinates in HALF-tile units; every tile spans 2x2 units. All positions even → clean 1:1 stacking.
+function buildLayout(){
+  const pos=[];
+  const row=(z,y,xs)=>xs.forEach(x=>pos.push({x,y,z}));
+  // z0 base (8 rows)
+  row(0,0,[2,4,6,8,10,12,14,16,18,20,22,24]);
+  row(0,2,[6,8,10,12,14,16,18,20]);
+  row(0,4,[4,6,8,10,12,14,16,18,20,22]);
+  row(0,6,[2,4,6,8,10,12,14,16,18,20,22,24]);
+  row(0,8,[2,4,6,8,10,12,14,16,18,20,22,24]);
+  row(0,10,[4,6,8,10,12,14,16,18,20,22]);
+  row(0,12,[6,8,10,12,14,16,18,20]);
+  row(0,14,[2,4,6,8,10,12,14,16,18,20,22,24]);
+  // turtle flippers / head
+  pos.push({x:0,y:6,z:0},{x:0,y:8,z:0},{x:26,y:6,z:0},{x:26,y:8,z:0});
+  // z1 6x6
+  for(let y=4;y<=14;y+=2) for(let x=8;x<=18;x+=2) pos.push({x,y,z:1});
+  // z2 4x4
+  for(let y=6;y<=12;y+=2) for(let x=10;x<=16;x+=2) pos.push({x,y,z:2});
+  // z3 2x2
+  for(let y=8;y<=10;y+=2) for(let x=12;x<=14;x+=2) pos.push({x,y,z:3});
+  return pos; // 88+36+16+4 = 144
+}
+
+/* ============================ Faces ============================ */
+// 36 distinct faces × 4 = 144
+const FACES=[];
+for(let n=1;n<=9;n++) FACES.push('p'+n,'b'+n,'c'+n);   // dots, bamboo, characters
+FACES.push('w1','w2','w3','w4','g1','g2','g3','f1','s1');
+const HAN_NUM=['一','二','三','四','五','六','七','八','九'];
+const DOT_POS={
+  1:[[.5,.5]],
+  2:[[.5,.3],[.5,.7]],
+  3:[[.3,.28],[.5,.5],[.7,.72]],
+  4:[[.32,.32],[.68,.32],[.32,.68],[.68,.68]],
+  5:[[.3,.3],[.7,.3],[.5,.5],[.3,.7],[.7,.7]],
+  6:[[.33,.28],[.67,.28],[.33,.5],[.67,.5],[.33,.72],[.67,.72]],
+  7:[[.3,.26],[.7,.26],[.5,.44],[.3,.62],[.7,.62],[.4,.8],[.6,.8]],
+  8:[[.33,.24],[.67,.24],[.33,.42],[.67,.42],[.33,.6],[.67,.6],[.33,.78],[.67,.78]],
+  9:[[.28,.28],[.5,.28],[.72,.28],[.28,.5],[.5,.5],[.72,.5],[.28,.72],[.5,.72],[.72,.72]],
+};
+const DOT_COL=['#1d6fb8','#c0392b','#1e8449'];
+function mapX(px){ return (18+px*64).toFixed(1); }
+function mapY(py){ return (22+py*86).toFixed(1); }
+function dotsSVG(n){
+  let s='<svg viewBox="0 0 100 130">';
+  DOT_POS[n].forEach((p,i)=>{ const c=DOT_COL[i%3], x=mapX(p[0]), y=mapY(p[1]);
+    s+=`<circle cx="${x}" cy="${y}" r="8.5" fill="#fff" stroke="${c}" stroke-width="3"/><circle cx="${x}" cy="${y}" r="3.4" fill="${c}"/>`; });
+  return s+'</svg>';
+}
+function bambooSVG(n){
+  let s='<svg viewBox="0 0 100 130">';
+  DOT_POS[n].forEach(p=>{ const x=+mapX(p[0]), y=+mapY(p[1]);
+    s+=`<rect x="${x-4}" y="${y-11}" width="8" height="22" rx="4" fill="#2e8b57" stroke="#1c5e39" stroke-width="1.4"/>`+
+       `<line x1="${x-4}" y1="${y}" x2="${x+4}" y2="${y}" stroke="#1c5e39" stroke-width="1.4"/>`; });
+  return s+'</svg>';
+}
+function hanFace(ch,sub,color){
+  return `<div class="tf-han" style="color:${color}"><span class="big">${ch}</span>${sub?`<span class="sub" style="color:#b8860b">${sub}</span>`:''}</div>`;
+}
+const faceCache={};
+function faceInner(face){
+  if(faceCache[face]) return faceCache[face];
+  let html='';
+  const k=face[0], n=+face.slice(1);
+  if(k==='p') html=dotsSVG(n);
+  else if(k==='b') html=bambooSVG(n);
+  else if(k==='c') html=hanFace(HAN_NUM[n-1],'萬','#1c4e80');
+  else if(k==='w') html=hanFace(['東','南','西','北'][n-1],'','#334155');
+  else if(k==='g') html=hanFace(['中','發','白'][n-1],'',['#c0392b','#1e8449','#2563eb'][n-1]);
+  else if(k==='f') html='<div class="tf-emoji">🌸</div>';
+  else if(k==='s') html='<div class="tf-emoji">🍂</div>';
+  faceCache[face]=html;
+  return html;
+}
+
+/* ============================ Geometry helpers ============================ */
+let POS=[];              // {x,y,z}
+let upIdx=[], leftIdx=[], rightIdx=[];
+function precompute(){
+  POS = buildLayout();
+  const map=new Map();
+  POS.forEach((p,i)=>map.set(p.x+','+p.y+','+p.z, i));
+  const get=(x,y,z)=>{ const v=map.get(x+','+y+','+z); return v===undefined?-1:v; };
+  upIdx=[]; leftIdx=[]; rightIdx=[];
+  POS.forEach((p,i)=>{
+    upIdx[i]=get(p.x,p.y,p.z+1);
+    leftIdx[i]=get(p.x-2,p.y,p.z);
+    rightIdx[i]=get(p.x+2,p.y,p.z);
+  });
+}
+function isFreeIn(i, aliveSet){
+  const u=upIdx[i]; if(u>=0 && aliveSet.has(u)) return false;
+  const L=leftIdx[i], R=rightIdx[i];
+  const lo=(L<0 || !aliveSet.has(L));
+  const ro=(R<0 || !aliveSet.has(R));
+  return lo||ro;
+}
+
+/* ============================ Solvable dealer ============================ */
+function computeRemovalOrder(indexList){
+  const alive=new Set(indexList);
+  const order=[];
+  while(alive.size){
+    const free=[];
+    for(const i of alive) if(isFreeIn(i,alive)) free.push(i);
+    if(free.length<2) return null;
+    const a=free[(Math.random()*free.length)|0];
+    let b=a; while(b===a) b=free[(Math.random()*free.length)|0];
+    order.push([a,b]); alive.delete(a); alive.delete(b);
+  }
+  return order;
+}
+function shuffleArr(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function buildFacePairs(multiset){
+  const arr=[];
+  for(const f in multiset) for(let k=0;k<multiset[f]/2;k++) arr.push(f);
+  return shuffleArr(arr);
+}
+// assigns face to tiles[i].face for i in indexList so the sub-board is guaranteed solvable
+function solvableAssign(tiles, indexList, multiset){
+  for(let tries=0; tries<80; tries++){
+    const order=computeRemovalOrder(indexList);
+    if(!order) continue;
+    const facePairs=buildFacePairs(multiset);
+    if(facePairs.length!==order.length) return false; // safety
+    order.forEach(([a,b],k)=>{ tiles[a].face=facePairs[k]; tiles[b].face=facePairs[k]; });
+    return true;
+  }
+  return false;
+}
+
+/* ============================ Game state ============================ */
+const boardEl=document.getElementById('board');
+const scalerEl=document.getElementById('scaler');
+const areaEl=document.getElementById('boardArea');
+const TW=46, TH=60, HW=TW/2, HH=TH/2, SX=6, SY=7, PAD=16;
+let tiles=[];            // {x,y,z,face,el,idx}
+let aliveSet=new Set();
+let selected=-1;
+let undoStack=[];
+let matches=0;
+let natW=0, natH=0;
+let busy=false;
+let startTs=0;
+
+function buildTiles(){
+  boardEl.innerHTML='';
+  tiles=[];
+  // pixel extents
+  let maxR=0,maxB=0;
+  POS.forEach(p=>{
+    const px=p.x*HW - p.z*SX + PAD;
+    const py=p.y*HH - p.z*SY + PAD;
+    maxR=Math.max(maxR,px+TW); maxB=Math.max(maxB,py+TH);
+  });
+  natW=maxR+PAD; natH=maxB+PAD+6;
+  boardEl.style.width=natW+'px';
+  boardEl.style.height=natH+'px';
+
+  POS.forEach((p,i)=>{
+    const px=p.x*HW - p.z*SX + PAD;
+    const py=p.y*HH - p.z*SY + PAD;
+    const el=document.createElement('div');
+    el.className='tile';
+    el.style.left=px+'px'; el.style.top=py+'px';
+    el.style.width=TW+'px'; el.style.height=TH+'px';
+    el.style.zIndex = p.z*10000 + p.y*100 + p.x;
+    const face=document.createElement('div');
+    face.className='tf';
+    el.appendChild(face);
+    el.addEventListener('click',()=>onTileClick(i));
+    boardEl.appendChild(el);
+    tiles.push({...p, face:null, el, faceEl:face, idx:i});
+  });
+}
+
+function paintFaces(){
+  tiles.forEach(t=>{ t.faceEl.innerHTML = faceInner(t.face); });
+}
+
+function layoutFit(){
+  const availW=areaEl.clientWidth, availH=areaEl.clientHeight;
+  if(!natW||!natH) return;
+  const s=Math.min(availW/natW, availH/natH);
+  const w=natW*s, h=natH*s;
+  const tx=(availW-w)/2, ty=(availH-h)/2;
+  scalerEl.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+}
+window.addEventListener('resize', layoutFit);
+window.addEventListener('orientationchange', ()=>setTimeout(layoutFit,80));
+
+/* ---- free-state visuals ---- */
+function refreshLocks(){
+  tiles.forEach(t=>{
+    if(!aliveSet.has(t.idx)) return;
+    const free=isFreeIn(t.idx, aliveSet);
+    t.el.classList.toggle('locked', !free);
+  });
+  document.getElementById('statLeft').textContent = aliveSet.size;
+  document.getElementById('statMoves').textContent = matches;
+  document.getElementById('btnUndo').classList.toggle('disabled', undoStack.length===0);
+}
+
+/* ============================ Interaction ============================ */
+function clearHint(){ tiles.forEach(t=>t.el.classList.remove('hint')); }
+function onTileClick(i){
+  if(busy || !aliveSet.has(i)) return;
+  ac(); clearHint();
+  const t=tiles[i];
+  if(!isFreeIn(i,aliveSet)){ // not selectable
+    t.el.classList.remove('shake'); void t.el.offsetWidth; t.el.classList.add('shake');
+    sBad(); return;
+  }
+  if(selected===i){ deselect(); sSelect(); return; }
+  if(selected<0){ selected=i; t.el.classList.add('sel'); sSelect(); return; }
+  // second pick
+  const a=tiles[selected], b=t;
+  if(a.face===b.face){
+    // MATCH
+    a.el.classList.remove('sel');
+    removePair(selected,i);
+    selected=-1;
+  } else {
+    // switch selection
+    a.el.classList.remove('sel');
+    selected=i; t.el.classList.add('sel'); sSelect();
+  }
+}
+function deselect(){ if(selected>=0) tiles[selected].el.classList.remove('sel'); selected=-1; }
+
+function removePair(i,j){
+  aliveSet.delete(i); aliveSet.delete(j);
+  tiles[i].el.style.display='none';
+  tiles[j].el.style.display='none';
+  undoStack.push([i,j]);
+  matches++;
+  sMatch();
+  refreshLocks();
+  if(aliveSet.size===0){ setTimeout(winGame,260); return; }
+  if(!hasMove()){ setTimeout(()=>showResult(false),320); }
+}
+
+function undo(){
+  if(!undoStack.length || busy) return;
+  clearHint(); deselect();
+  const [i,j]=undoStack.pop();
+  aliveSet.add(i); aliveSet.add(j);
+  tiles[i].el.style.display=''; tiles[j].el.style.display='';
+  matches=Math.max(0,matches-1);
+  refreshLocks();
+  hideResult();
+  tone(330,0.07,'sine',0.12);
+}
+
+/* ---- free tiles / moves / hint ---- */
+function freeAlive(){ const r=[]; for(const i of aliveSet) if(isFreeIn(i,aliveSet)) r.push(i); return r; }
+function findPair(){
+  const free=freeAlive();
+  const byFace={};
+  for(const i of free){ const f=tiles[i].face; if(byFace[f]!==undefined) return [byFace[f], i]; byFace[f]=i; }
+  return null;
+}
+function hasMove(){ return findPair()!==null; }
+
+let hintPair=null;
+function doHint(){
+  if(busy) return;
+  clearHint(); ac();
+  const p=findPair();
+  if(!p){ showToast(T().noHint); sBad(); return; }
+  tiles[p[0]].el.classList.add('hint');
+  tiles[p[1]].el.classList.add('hint');
+  sSelect();
+  setTimeout(clearHint, 2200);
+}
+
+/* ---- shuffle ---- */
+function doShuffle(showMsg){
+  if(busy) return;
+  clearHint(); deselect(); hideResult();
+  const list=[...aliveSet];
+  if(list.length===0) return;
+  // multiset of current faces
+  const ms={};
+  list.forEach(i=>{ const f=tiles[i].face; ms[f]=(ms[f]||0)+1; });
+  const ok=solvableAssign(tiles, list, ms);
+  if(!ok){ // fallback: plain permute of faces
+    const faces=list.map(i=>tiles[i].face); shuffleArr(faces);
+    list.forEach((i,k)=>tiles[i].face=faces[k]);
+  }
+  paintFaces();
+  refreshLocks();
+  sShuffle();
+  if(showMsg!==false) showToast(T().shuffled);
+}
+
+/* ============================ Result / Win ============================ */
+function fmtTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function statBox(label,val,color){
+  return `<div class="bg-white/8 rounded-2xl px-4 py-3"><div class="text-white/50 text-xs font-semibold">${label}</div><div class="text-2xl font-extrabold tabular-nums" style="color:${color}">${val}</div></div>`;
+}
+function showResult(won){
+  busy=false;
+  const t=T();
+  document.getElementById('resEmoji').textContent = won?'🏆':'🧩';
+  document.getElementById('resTitle').textContent = won?t.win:t.noMoves;
+  document.getElementById('resSub').textContent = won?t.winSub:t.noMovesSub;
+  document.getElementById('resStats').innerHTML =
+    statBox(t.time, fmtTime(performance.now()-startTs), '#fbbf24') +
+    statBox(t.moves, matches, '#34d399');
+  document.getElementById('btnResultShuffle').style.display = won?'none':'';
+  document.getElementById('btnPlayAgain').style.display = won?'':'';
+  document.getElementById('resultModal').style.display='flex';
+}
+function hideResult(){ document.getElementById('resultModal').style.display='none'; }
+function winGame(){ sWin(); confetti(); showResult(true); }
+function confetti(){
+  const cols=['#fbbf24','#ef4444','#10b981','#3b82f6','#ec4899','#22d3ee'];
+  for(let i=0;i<64;i++){
+    const d=document.createElement('div');
+    d.className='confetti';
+    d.style.left=Math.random()*100+'vw';
+    d.style.background=cols[i%cols.length];
+    d.style.animation=`fall ${1.6+Math.random()*1.6}s ${Math.random()*.4}s linear forwards`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),3600);
+  }
+}
+const st=document.createElement('style'); st.textContent='@keyframes fall{to{transform:translateY(115vh) rotate(720deg)}}'; document.head.appendChild(st);
+
+/* ---- toast ---- */
+let toastTimer=null;
+function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200); }
+
+/* ============================ New game ============================ */
+function newGame(){
+  clearHint(); deselect(); hideResult();
+  aliveSet=new Set(tiles.map(t=>t.idx));
+  tiles.forEach(t=>{ t.el.style.display=''; t.el.classList.remove('locked','sel','hint'); });
+  const ms={}; FACES.forEach(f=>ms[f]=4);
+  const ok=solvableAssign(tiles, [...aliveSet], ms);
+  if(!ok){ const faces=[]; FACES.forEach(f=>{for(let k=0;k<4;k++)faces.push(f);}); shuffleArr(faces); tiles.forEach((t,k)=>t.face=faces[k]); }
+  paintFaces();
+  undoStack=[]; matches=0; selected=-1; busy=false;
+  startTs=performance.now();
+  refreshLocks();
+  layoutFit();
+}
+
+/* ============================ Wiring ============================ */
+document.getElementById('btnHint').addEventListener('click',doHint);
+document.getElementById('btnShuffle').addEventListener('click',()=>doShuffle(true));
+document.getElementById('btnUndo').addEventListener('click',undo);
+document.getElementById('btnNew').addEventListener('click',newGame);
+document.getElementById('btnPlayAgain').addEventListener('click',()=>{ hideResult(); newGame(); });
+document.getElementById('btnResultShuffle').addEventListener('click',()=>{ hideResult(); doShuffle(true); });
+document.getElementById('btnSound').addEventListener('click',()=>{
+  muted=!muted; localStorage.setItem('mahjongMuted',muted?'1':'0');
+  document.getElementById('btnSound').textContent=muted?'🔇':'🔊';
+  if(!muted) tone(660,0.08,'sine',0.15);
+});
+
+function applyLang(){
+  const t=T();
+  document.getElementById('lblLeft').textContent=t.left;
+  document.getElementById('lblHint').textContent=t.hint;
+  document.getElementById('lblShuffle').textContent=t.shuffle;
+  document.getElementById('lblUndo').textContent=t.undo;
+  document.getElementById('lblNew').textContent=t.neu;
+  document.getElementById('lblPlayAgain').textContent=t.playAgain;
+  document.getElementById('lblResultShuffle').textContent=t.resultShuffle;
+  document.documentElement.lang = lang==='lao'?'lo':lang;
+}
+
+/* ============================ Boot ============================ */
+applyLang();
+document.getElementById('btnSound').textContent = muted?'🔇':'🔊';
+precompute();
+buildTiles();
+newGame();
+</script>
+</body>
+</html>

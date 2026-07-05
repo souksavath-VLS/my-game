@@ -18,18 +18,21 @@
   * { box-sizing: border-box; }
 
   /* ---------- Board ---------- */
+  #boardWrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   #board {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
     grid-template-rows: repeat(9, 1fr);
-    width: min(94vw, 60vh, 460px);
-    height: min(94vw, 60vh, 460px);
+    /* width/height are set in px by JS (resizeBoard) — measuring real
+       available space is reliable across WebViews; CSS aspect-ratio +
+       percentage-height-of-flex-item is not, on older embedded engines. */
     background: #0f172a;
     border: 3px solid #0f172a;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 14px 40px rgba(15,23,42,.16);
     touch-action: manipulation;
+    flex-shrink: 0;
   }
   .cell {
     position: relative;
@@ -116,7 +119,7 @@
   </div>
 
   <!-- Board -->
-  <div class="flex-1 flex items-center justify-center px-2">
+  <div id="boardWrap" class="flex-1 min-h-0 px-2 py-1">
     <div id="board"></div>
   </div>
 
@@ -323,7 +326,16 @@ let startTs=0, timerId=null, playing=false, difficulty='easy';
 const MAX_MISTAKES=3;
 
 const boardEl = document.getElementById('board');
+const boardWrapEl = document.getElementById('boardWrap');
 const cells=[];
+function resizeBoard(){
+  const w = boardWrapEl.clientWidth, h = boardWrapEl.clientHeight;
+  const size = Math.max(120, Math.min(w, h, 460));
+  boardEl.style.width = size + 'px';
+  boardEl.style.height = size + 'px';
+}
+window.addEventListener('resize', resizeBoard);
+window.addEventListener('orientationchange', () => setTimeout(resizeBoard, 60));
 function buildBoard(){
   boardEl.innerHTML=''; cells.length=0;
   for(let r=0;r<9;r++) for(let c=0;c<9;c++){
@@ -351,7 +363,7 @@ function startGame(diff){
   document.getElementById('notesIc').textContent='✏️';
   document.getElementById('startModal').style.display='none';
   document.getElementById('endModal').style.display='none';
-  render(); updateUndoRedo();
+  render(); updateUndoRedo(); resizeBoard();
   startTs=performance.now(); startTimer();
 }
 
@@ -597,6 +609,7 @@ window.addEventListener('keydown',(e)=>{
 /* ============================ Boot ============================ */
 applyLang();
 buildBoard();
+resizeBoard();
 document.getElementById('btnSound').textContent = muted ? '🔇' : '🔊';
 document.getElementById('startModal').style.display='flex';
 </script>
