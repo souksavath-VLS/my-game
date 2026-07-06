@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Zen Garden</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600&family=Noto+Serif+JP:wght@400;600&family=Nunito:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body{
+    margin:0; padding:0; height:100%; width:100%;
+    overflow:hidden; overscroll-behavior:none; position:fixed; inset:0;
+    background:#cdbf9c;
+    font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    color:#5b4a33;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  *{ box-sizing:border-box; }
+
+  #viewport{ position:fixed; inset:0; z-index:0; overflow:hidden; touch-action:none; background:#b7a374; }
+  #world{ position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform;
+          box-shadow:0 0 0 6px #7c5a30, 0 24px 60px rgba(0,0,0,.4); }
+  #sand{ position:absolute; inset:0; display:block; }
+  #stage{ position:absolute; inset:0; }
+
+  .placed{
+    position:absolute; transform-origin:center center;
+    filter: drop-shadow(0 5px 5px rgba(60,45,20,.32));
+    cursor:grab;
+  }
+  .placed svg{ display:block; width:100%; height:auto; pointer-events:none; overflow:visible; }
+  .placed.sel{ filter: drop-shadow(0 0 7px rgba(122,160,86,.95)) drop-shadow(0 6px 6px rgba(60,45,20,.32)); }
+
+  .washi{ background:rgba(250,246,235,.85); backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+          box-shadow:0 4px 18px rgba(80,60,30,.2), inset 0 1px 0 rgba(255,255,255,.6); }
+  .btn{ transition:transform .1s ease, background .2s, opacity .2s; }
+  .btn:active{ transform:scale(.9); }
+
+  .ui{ transition:opacity .55s ease; }
+  body.snap .ui{ opacity:0; pointer-events:none; }
+  #exitSnap{ display:none; }
+  body.snap #exitSnap{ display:flex; }
+
+  #controls{ position:fixed; z-index:25; display:none; gap:8px; }
+  #controls.show{ display:flex; }
+  .ctrl{ width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+         font-size:19px; background:rgba(250,246,235,.96); box-shadow:0 3px 10px rgba(60,45,20,.35);
+         border:1.5px solid rgba(120,95,55,.3); }
+  .ctrl:active{ transform:scale(.88); }
+
+  #tray{ scrollbar-width:none; touch-action:pan-x; }
+  #tray::-webkit-scrollbar{ display:none; }
+  .trayItem{ flex:0 0 auto; width:62px; height:74px; border-radius:16px; display:flex; flex-direction:column;
+             align-items:center; justify-content:center; gap:1px; background:rgba(255,255,255,.55);
+             box-shadow:inset 0 0 0 1.5px rgba(120,95,55,.14); transition:box-shadow .15s, background .15s; }
+  .trayItem:active{ transform:scale(.92); }
+  .trayItem.armed{ background:rgba(226,240,205,.95); box-shadow:inset 0 0 0 2.5px #7ba056, 0 2px 8px rgba(122,160,86,.5); }
+  .trayItem svg{ width:40px; height:34px; pointer-events:none; overflow:visible; }
+  .trayItem span{ font-size:9.5px; color:#7c6a4d; font-weight:700; }
+
+  .zbtn{ width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+         font-size:22px; font-weight:800; }
+
+  #ghost{ position:fixed; z-index:40; pointer-events:none; opacity:.85; transform:translate(-50%,-60%);
+          filter:drop-shadow(0 6px 6px rgba(60,45,20,.3)); display:none; }
+  #ghost svg{ display:block; overflow:visible; }
+
+  #hint{ position:fixed; left:50%; top:70px; transform:translateX(-50%); z-index:30;
+         background:rgba(60,48,28,.55); color:#fff6e6; padding:7px 15px; border-radius:20px; font-size:13px;
+         font-weight:600; opacity:0; transition:opacity .5s; pointer-events:none; backdrop-filter:blur(4px); max-width:88vw; text-align:center; }
+  #hint.show{ opacity:1; }
+
+  .jp{ font-family:'Noto Serif JP',serif; }
+
+  /* ---------- animations ---------- */
+  @keyframes koiA{ 0%{transform:translate(30px,86px) scaleX(1)} 45%{transform:translate(150px,60px) scaleX(1)}
+                   50%{transform:translate(156px,60px) scaleX(-1)} 95%{transform:translate(36px,90px) scaleX(-1)}
+                   100%{transform:translate(30px,86px) scaleX(1)} }
+  @keyframes koiB{ 0%{transform:translate(150px,116px) scaleX(-1)} 48%{transform:translate(44px,96px) scaleX(-1)}
+                   52%{transform:translate(38px,94px) scaleX(1)} 98%{transform:translate(156px,118px) scaleX(1)}
+                   100%{transform:translate(150px,116px) scaleX(-1)} }
+  .koiA{ animation:koiA 15s ease-in-out infinite; }
+  .koiB{ animation:koiB 18s ease-in-out infinite; }
+  .koiTail{ transform-box:fill-box; transform-origin:right center; animation:tail .5s ease-in-out infinite alternate; }
+  @keyframes tail{ from{transform:rotate(-16deg)} to{transform:rotate(16deg)} }
+
+  .ripple{ transform-box:fill-box; transform-origin:center; animation:rip 4.6s ease-out infinite; }
+  @keyframes rip{ 0%{transform:scale(.25);opacity:.6} 100%{transform:scale(1.55);opacity:0} }
+
+  .shishi{ transform-box:fill-box; transform-origin:26px 44px; animation:tip 5.6s ease-in-out infinite; }
+  @keyframes tip{ 0%,55%{transform:rotate(0)} 70%,73%{transform:rotate(15deg)} 84%{transform:rotate(-5deg)} 100%{transform:rotate(0)} }
+  .drop{ animation:drop 1.15s linear infinite; }
+  @keyframes drop{ 0%{transform:translate(0,0);opacity:0} 12%{opacity:.95} 100%{transform:translate(-3px,34px);opacity:0} }
+
+  .sway{ transform-box:fill-box; transform-origin:center bottom; animation:sway 6s ease-in-out infinite; }
+  @keyframes sway{ 0%,100%{transform:rotate(-1.7deg)} 50%{transform:rotate(1.7deg)} }
+
+  .flame{ animation:flame 1.5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+  @keyframes flame{ 0%,100%{opacity:.65; transform:scaleY(.92)} 50%{opacity:1; transform:scaleY(1.05)} }
+
+  #petals{ position:fixed; inset:0; z-index:8; pointer-events:none; overflow:hidden; }
+  .petal{ position:absolute; top:-24px; width:11px; height:8px; background:#f6b8d0;
+          border-radius:60% 10% 60% 10%; opacity:.85; will-change:transform; }
+  @keyframes petfall{ 0%{ transform:translateY(-24px) translateX(0) rotate(0deg) }
+                      100%{ transform:translateY(105vh) translateX(60px) rotate(400deg) } }
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="world">
+    <canvas id="sand"></canvas>
+    <div id="stage"></div>
+  </div>
+</div>
+<div id="petals"></div>
+
+<div id="controls">
+  <div class="ctrl btn" id="ctrlRotate">↻</div>
+  <div class="ctrl btn" id="ctrlDelete">🗑️</div>
+</div>
+
+<div id="hint"></div>
+<div id="ghost"></div>
+
+<!-- Top bar -->
+<div class="ui" style="position:fixed; top:0; left:0; right:0; z-index:20; padding:max(10px,env(safe-area-inset-top)) 12px 0;">
+  <div class="flex items-center gap-2">
+    <a href="index.html" class="washi btn w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">✕</a>
+    <div class="washi rounded-full px-4 h-10 flex items-center gap-2 shrink-0">
+      <span class="text-lg">🎍</span>
+      <span class="jp font-semibold text-sm" id="ttl">枯山水</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <button id="btnSound"    class="washi btn w-10 h-10 rounded-full flex items-center justify-center text-lg">🔈</button>
+      <button id="btnSnapshot" class="washi btn w-10 h-10 rounded-full flex items-center justify-center text-lg">👁️</button>
+      <button id="btnReset"    class="washi btn w-10 h-10 rounded-full flex items-center justify-center text-lg">♻️</button>
+    </div>
+  </div>
+</div>
+
+<!-- Zoom controls -->
+<div class="ui" style="position:fixed; right:12px; bottom:112px; z-index:20; display:flex; flex-direction:column; gap:8px;">
+  <button id="zoomIn"  class="zbtn washi btn">＋</button>
+  <button id="zoomOut" class="zbtn washi btn">－</button>
+  <button id="zoomFit" class="zbtn washi btn" style="font-size:17px;">⤢</button>
+</div>
+
+<!-- Bottom tray -->
+<div id="bottomBar" class="ui" style="position:fixed; left:0; right:0; bottom:0; z-index:20; padding:0 10px max(10px,env(safe-area-inset-bottom));">
+  <div class="washi rounded-3xl p-2.5 flex items-center gap-2">
+    <button id="btnClear" class="btn shrink-0 w-[62px] h-[74px] rounded-2xl flex flex-col items-center justify-center gap-1"
+            style="background:linear-gradient(160deg,#cdb98d,#b89d6b);color:#4a3c22;box-shadow:0 3px 8px rgba(80,60,30,.25)">
+      <span class="text-xl">🧹</span><span class="text-[9.5px] font-bold" id="lblClear">Smooth</span>
+    </button>
+    <div id="tray" class="flex-1 flex items-center gap-2 overflow-x-auto py-0.5"></div>
+  </div>
+</div>
+
+<!-- Snapshot exit -->
+<button id="exitSnap" class="btn" style="position:fixed; z-index:45; right:14px; bottom:max(14px,env(safe-area-inset-bottom));
+        width:46px;height:46px;border-radius:50%;align-items:center;justify-content:center;font-size:20px;
+        background:rgba(250,246,235,.4);backdrop-filter:blur(4px);box-shadow:0 3px 10px rgba(0,0,0,.2);">🌸</button>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ smooth:'Smooth', rocks:'Rock', bonsai:'Bonsai', sakura:'Sakura', lantern:'Lantern', path:'Stone', bamboo:'Fountain', pond:'Pond',
+       tapPlace:'Now tap the sand to place it 🌿', welcome:'Drag to rake · pinch/⊕ to zoom · pick an item 🎍', snapHint:'Breathe. Tap 🌸 to return' },
+  th:{ smooth:'เกลี่ยทราย', rocks:'หิน', bonsai:'บอนไซ', sakura:'ซากุระ', lantern:'ตะเกียง', path:'หินทางเดิน', bamboo:'น้ำพุไผ่', pond:'บ่อน้ำ',
+       tapPlace:'แตะบนผืนทรายเพื่อวาง 🌿', welcome:'ลากคราดทราย · หุบนิ้ว/⊕ ซูม · เลือกไอเทม 🎍', snapHint:'หายใจลึกๆ · แตะ 🌸 เพื่อกลับ' },
+  lao:{ smooth:'ກ່ຽງຊາຍ', rocks:'ຫີນ', bonsai:'ບອນໄຊ', sakura:'ຊາກຸຣະ', lantern:'ໂຄມໄຟ', path:'ຫີນທາງຍ່າງ', bamboo:'ນ້ຳພຸໄຜ່', pond:'ໜອງນ້ຳ',
+       tapPlace:'ແຕະເທິງຜືນຊາຍເພື່ອວາງ 🌿', welcome:'ລາກກ່ຽງຊາຍ · ຫຸບນິ້ວ/⊕ ຊູມ · ເລືອກໄອເທັມ 🎍', snapHint:'ຫາຍໃຈເລິກໆ · ແຕະ 🌸 ເພື່ອກັບ' },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=false;
+let actx=null, ambientOn=false, master=null, windGain=null, knockTimer=null;
+function ac(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==='suspended') actx.resume(); return actx; }
+function tone(f,d,type='sine',g=0.08,slide=null){
+  const c=ac(); if(!c) return;
+  try{ const o=c.createOscillator(),ga=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide,c.currentTime+d);
+    ga.gain.setValueAtTime(0.0001,c.currentTime);
+    ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.01);
+    ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
+    o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+d+0.02);
+  }catch(e){}
+}
+function startAmbient(){
+  const c=ac(); if(!c) return;
+  master=c.createGain(); master.gain.value=0; master.connect(c.destination);
+  master.gain.linearRampToValueAtTime(0.6, c.currentTime+1.5);
+  const len=c.sampleRate*2, buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*0.5;
+  const src=c.createBufferSource(); src.buffer=buf; src.loop=true;
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=520; lp.Q.value=0.7;
+  windGain=c.createGain(); windGain.gain.value=0.16;
+  src.connect(lp); lp.connect(windGain); windGain.connect(master); src.start();
+  const lfo=c.createOscillator(); lfo.frequency.value=0.07;
+  const lg=c.createGain(); lg.gain.value=0.09; lfo.connect(lg); lg.connect(windGain.gain); lfo.start();
+  const lfo2=c.createOscillator(); lfo2.frequency.value=0.05;
+  const l2=c.createGain(); l2.gain.value=180; lfo2.connect(l2); l2.connect(lp.frequency); lfo2.start();
+  ambientOn=true; scheduleKnock();
+}
+function scheduleKnock(){ if(!ambientOn) return; knockTimer=setTimeout(()=>{ shishiKnock(); scheduleKnock(); }, 7000+Math.random()*8000); }
+function shishiKnock(){
+  const c=actx; if(!c||!ambientOn) return; const t=c.currentTime;
+  const nlen=c.sampleRate*0.5, nb=c.createBuffer(1,nlen,c.sampleRate), nd=nb.getChannelData(0);
+  for(let i=0;i<nlen;i++) nd[i]=(Math.random()*2-1)*Math.pow(1-i/nlen,2);
+  const ns=c.createBufferSource(); ns.buffer=nb;
+  const nf=c.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=1600; nf.Q.value=1.2;
+  const ng=c.createGain(); ng.gain.value=0.12; ns.connect(nf); nf.connect(ng); ng.connect(master); ns.start(t);
+  const kt=t+0.35;
+  [[196,0.9],[98,0.6]].forEach(([f,g])=>{
+    const o=c.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(f,kt);
+    o.frequency.exponentialRampToValueAtTime(f*0.7,kt+0.18);
+    const og=c.createGain(); og.gain.setValueAtTime(0.0001,kt);
+    og.gain.exponentialRampToValueAtTime(g*0.5,kt+0.008); og.gain.exponentialRampToValueAtTime(0.0001,kt+0.4);
+    o.connect(og); og.connect(master); o.start(kt); o.stop(kt+0.45);
+  });
+}
+function stopAmbient(){ ambientOn=false; if(knockTimer) clearTimeout(knockTimer); if(master&&actx) master.gain.linearRampToValueAtTime(0,actx.currentTime+0.8); }
+
+/* ============================ Item SVGs ============================ */
+function svgRock(){ return `<svg viewBox="0 0 100 76">
+  <path d="M14,58 Q6,40 24,30 Q40,17 60,26 Q86,34 84,54 Q82,66 54,68 Q26,70 14,58 Z" fill="#8f8d83"/>
+  <path d="M22,40 Q34,26 54,30 Q42,32 34,42 Q28,50 22,52 Q18,46 22,40 Z" fill="#a7a59b"/>
+  <path d="M30,58 Q22,50 34,48 Q30,54 36,58 Q34,62 30,58 Z" fill="#6e6c63"/>
+  <ellipse cx="46" cy="30" rx="13" ry="6" fill="#7fa055" opacity=".9"/>
+  <ellipse cx="62" cy="35" rx="9" ry="4.5" fill="#8fb063" opacity=".85"/>
+  <ellipse cx="34" cy="34" rx="7" ry="3.5" fill="#6f9048" opacity=".8"/>
+</svg>`; }
+function svgLantern(){ return `<svg viewBox="0 0 80 118">
+  <ellipse cx="40" cy="112" rx="26" ry="6" fill="rgba(0,0,0,.12)"/>
+  <path d="M24,110 L56,110 L52,100 L28,100 Z" fill="#9c988c"/>
+  <rect x="34" y="70" width="12" height="32" fill="#8a877b"/>
+  <rect x="22" y="52" width="36" height="20" rx="3" fill="#a6a296"/>
+  <rect x="31" y="56" width="7" height="12" rx="2" fill="#3d3a30"/>
+  <rect class="flame" x="43" y="56" width="7" height="12" rx="2" fill="#ffcf6e"/>
+  <path d="M16,52 Q40,38 64,52 L58,52 Q40,44 22,52 Z" fill="#8f8c80"/>
+  <path d="M14,52 L66,52 L58,42 L22,42 Z" fill="#b3afa2"/>
+  <path d="M20,44 L60,44 L52,32 L28,32 Z" fill="#a6a296"/>
+  <circle cx="40" cy="28" r="5" fill="#8a877b"/>
+</svg>`; }
+function svgBonsai(){ return `<svg viewBox="0 0 110 100">
+  <ellipse cx="55" cy="94" rx="30" ry="6" fill="rgba(0,0,0,.12)"/>
+  <path d="M34,80 L76,80 L70,94 L40,94 Z" fill="#7c5334"/>
+  <rect x="34" y="76" width="42" height="6" rx="2" fill="#8a5d3a"/>
+  <path d="M55,78 Q52,60 46,52 Q42,46 50,44 Q54,52 57,60 Q60,50 66,46 Q62,54 59,62 L58,78 Z" fill="#6b4a2f"/>
+  <g class="sway">
+    <ellipse cx="42" cy="40" rx="20" ry="14" fill="#4f7d3f"/>
+    <ellipse cx="70" cy="44" rx="17" ry="12" fill="#598c47"/>
+    <ellipse cx="56" cy="28" rx="19" ry="13" fill="#66994f"/>
+    <ellipse cx="50" cy="38" rx="12" ry="8" fill="#75a85b"/>
+  </g>
+</svg>`; }
+function svgSakura(){ return `<svg viewBox="0 0 110 104">
+  <ellipse cx="55" cy="98" rx="26" ry="6" fill="rgba(0,0,0,.12)"/>
+  <path d="M52,96 L58,96 Q56,70 58,54 Q50,48 54,40 Q58,50 60,44 Q64,40 60,52 L58,96 Z" fill="#6b4a2f"/>
+  <g class="sway">
+    <ellipse cx="42" cy="42" rx="21" ry="15" fill="#f3a9c6"/>
+    <ellipse cx="72" cy="46" rx="18" ry="13" fill="#f7c0d6"/>
+    <ellipse cx="57" cy="28" rx="20" ry="14" fill="#f5b3cd"/>
+    <ellipse cx="52" cy="40" rx="12" ry="8" fill="#fcd3e2"/>
+    <g fill="#ffffff" opacity=".8"><circle cx="40" cy="34" r="2"/><circle cx="66" cy="40" r="2"/><circle cx="58" cy="24" r="2"/><circle cx="50" cy="48" r="2"/><circle cx="74" cy="52" r="2"/></g>
+  </g>
+</svg>`; }
+function svgPath(){ return `<svg viewBox="0 0 100 64">
+  <ellipse cx="50" cy="40" rx="42" ry="22" fill="#9a978d"/>
+  <ellipse cx="50" cy="36" rx="40" ry="20" fill="#ada99e"/>
+  <ellipse cx="44" cy="30" rx="20" ry="9" fill="#bdb9ad" opacity=".7"/>
+</svg>`; }
+function svgBamboo(){ return `<svg viewBox="0 0 90 120">
+  <ellipse cx="45" cy="113" rx="26" ry="6" fill="rgba(0,0,0,.12)"/>
+  <ellipse cx="45" cy="105" rx="23" ry="8" fill="#6b93c9" opacity=".5"/>
+  <circle class="ripple" style="animation-delay:0s"   cx="45" cy="105" r="8" fill="none" stroke="#e4f2fb" stroke-width="1.6"/>
+  <circle class="ripple" style="animation-delay:2.3s" cx="45" cy="105" r="8" fill="none" stroke="#e4f2fb" stroke-width="1.6"/>
+  <rect x="20" y="44" width="9" height="62" rx="4" fill="#7fa14b"/>
+  <rect x="18" y="62" width="13" height="4" fill="#5e7d36"/>
+  <rect x="18" y="86" width="13" height="4" fill="#5e7d36"/>
+  <g class="shishi">
+    <rect x="26" y="40" width="40" height="9" rx="4" fill="#93b85e"/>
+    <rect x="26" y="40" width="40" height="3" rx="1.5" fill="#b6d17f"/>
+    <path d="M60,40 L70,44 L66,52 L58,48 Z" fill="#7fa14b"/>
+  </g>
+  <circle class="drop" style="animation-delay:0s"  cx="65" cy="52" r="2.2" fill="#8ec4e8"/>
+  <circle class="drop" style="animation-delay:.4s" cx="65" cy="52" r="2"   fill="#8ec4e8"/>
+  <circle class="drop" style="animation-delay:.8s" cx="65" cy="52" r="2.4" fill="#8ec4e8"/>
+</svg>`; }
+function koiShape(c,spot){ return `<g>
+  <path class="koiTail" d="M-9,0 L-19,-6 L-16,0 L-19,6 Z" fill="${c}"/>
+  <ellipse cx="0" cy="0" rx="11" ry="6" fill="${c}"/>
+  ${spot?`<circle cx="2" cy="-1" r="3.4" fill="${spot}"/>`:''}
+  <circle cx="8" cy="-2" r="1.3" fill="#33291f"/>
+</g>`; }
+function svgPond(){ return `<svg viewBox="0 0 200 150">
+  <ellipse cx="100" cy="80" rx="94" ry="60" fill="#5f7c6a"/>
+  <ellipse cx="100" cy="78" rx="88" ry="54" fill="#5fa0b4"/>
+  <ellipse cx="100" cy="76" rx="80" ry="47" fill="#77bcd0"/>
+  <ellipse cx="82" cy="62" rx="34" ry="15" fill="#9fd6e4" opacity=".5"/>
+  <circle class="ripple" style="animation-delay:0s"   cx="70"  cy="70" r="13" fill="none" stroke="#eafaff" stroke-width="2"/>
+  <circle class="ripple" style="animation-delay:1.5s" cx="128" cy="92" r="13" fill="none" stroke="#eafaff" stroke-width="2"/>
+  <circle class="ripple" style="animation-delay:3s"   cx="104" cy="58" r="11" fill="none" stroke="#eafaff" stroke-width="2"/>
+  <g><ellipse cx="46" cy="96" rx="13" ry="8" fill="#4f8a4a"/><path d="M46,96 L44,88 L52,92 Z" fill="#5f7c6a"/></g>
+  <g><ellipse cx="158" cy="54" rx="11" ry="7" fill="#59994f"/><path d="M158,54 L160,47 L152,50 Z" fill="#5f7c6a"/></g>
+  <ellipse cx="150" cy="110" rx="10" ry="6" fill="#4f8a4a"/>
+  <g class="koiA">${koiShape('#f2903f','#fff3e6')}</g>
+  <g class="koiB">${koiShape('#fbfbfb','#f0a15e')}</g>
+</svg>`; }
+
+const ITEMS={
+  rockS:{ svg:svgRock,  w:56  },
+  rockM:{ svg:svgRock,  w:88  },
+  rockL:{ svg:svgRock,  w:128 },
+  pond:{  svg:svgPond,  w:210 },
+  bamboo:{svg:svgBamboo,w:66  },
+  bonsai:{svg:svgBonsai,w:104 },
+  sakura:{svg:svgSakura,w:112 },
+  lantern:{svg:svgLantern,w:74},
+  path:{  svg:svgPath,  w:86  },
+};
+const TRAY_ORDER=['rockS','rockM','rockL','pond','bamboo','bonsai','sakura','lantern','path'];
+const TRAY_LABEL={ rockS:'rocks', rockM:'rocks', rockL:'rocks', pond:'pond', bamboo:'bamboo', bonsai:'bonsai', sakura:'sakura', lantern:'lantern', path:'path' };
+
+/* ============================ Camera (zoom / pan) ============================ */
+const viewport=document.getElementById('viewport');
+const world=document.getElementById('world');
+let worldW=0, worldH=0, scale=1, tx=0, ty=0, minScale=0.3, maxScale=1.7;
+function applyCam(){ world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`; }
+function clampCam(){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const sw=worldW*scale, sh=worldH*scale;
+  tx = sw<=vw ? (vw-sw)/2 : Math.min(0, Math.max(vw-sw, tx));
+  ty = sh<=vh ? (vh-sh)/2 : Math.min(0, Math.max(vh-sh, ty));
+}
+function screenToWorld(x,y){ return { x:(x-tx)/scale, y:(y-ty)/scale }; }
+function zoomAround(cx,cy,factor){
+  const ns=Math.max(minScale, Math.min(maxScale, scale*factor));
+  if(ns===scale) return;
+  const wx=(cx-tx)/scale, wy=(cy-ty)/scale;
+  scale=ns; tx=cx-wx*scale; ty=cy-wy*scale; clampCam(); applyCam();
+}
+function fitWorld(){ const vw=window.innerWidth, vh=window.innerHeight; scale=minScale; tx=(vw-worldW*scale)/2; ty=(vh-worldH*scale)/2; clampCam(); applyCam(); }
+
+/* ============================ Sand canvas ============================ */
+const cv=document.getElementById('sand');
+const ctx=cv.getContext('2d');
+let dpr=1;
+function drawSandBase(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const g=ctx.createLinearGradient(0,0,worldW,worldH);
+  g.addColorStop(0,'#efe1c0'); g.addColorStop(.5,'#e6d4ac'); g.addColorStop(1,'#dcc99c');
+  ctx.fillStyle=g; ctx.fillRect(0,0,worldW,worldH);
+  const r=ctx.createRadialGradient(worldW*.5,worldH*.42,20,worldW*.5,worldH*.42,Math.max(worldW,worldH)*.7);
+  r.addColorStop(0,'rgba(255,250,232,.5)'); r.addColorStop(1,'rgba(255,250,232,0)');
+  ctx.fillStyle=r; ctx.fillRect(0,0,worldW,worldH);
+  // grain
+  const grains=Math.min(9000,(worldW*worldH)/260);
+  for(let i=0;i<grains;i++){
+    const x=Math.random()*worldW, y=Math.random()*worldH;
+    ctx.fillStyle = Math.random()<.5 ? 'rgba(120,98,60,.06)' : 'rgba(255,251,238,.07)';
+    ctx.fillRect(x,y,1.4,1.4);
+  }
+  // inner border shadow so the sand reads as a framed bed
+  ctx.strokeStyle='rgba(90,66,34,.18)'; ctx.lineWidth=10;
+  ctx.strokeRect(5,5,worldW-10,worldH-10);
+  const v=ctx.createRadialGradient(worldW/2,worldH/2,Math.min(worldW,worldH)*.3,worldW/2,worldH/2,Math.max(worldW,worldH)*.72);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(70,50,20,.14)');
+  ctx.fillStyle=v; ctx.fillRect(0,0,worldW,worldH);
+}
+function setupWorld(preserve){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const nW=Math.round(vw+760), nH=Math.round(vh+760);
+  let old=null;
+  if(preserve && cv.width){ old=document.createElement('canvas'); old.width=cv.width; old.height=cv.height; old.getContext('2d').drawImage(cv,0,0); }
+  worldW=nW; worldH=nH;
+  world.style.width=worldW+'px'; world.style.height=worldH+'px';
+  dpr=Math.min(1.8, window.devicePixelRatio||1);
+  cv.width=Math.round(worldW*dpr); cv.height=Math.round(worldH*dpr);
+  cv.style.width=worldW+'px'; cv.style.height=worldH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap='round'; ctx.lineJoin='round';
+  if(old){ ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(old,0,0,old.width,old.height,0,0,cv.width,cv.height); ctx.setTransform(dpr,0,0,dpr,0,0); }
+  else drawSandBase();
+  minScale=Math.min(vw/worldW, vh/worldH);
+}
+
+/* ---- rake ---- */
+const TEETH=7, SPACING=7.5;
+function rakeSegment(x0,y0,x1,y1){
+  const dx=x1-x0, dy=y1-y0, dist=Math.hypot(dx,dy);
+  if(dist<0.5) return;
+  const nx=-dy/dist, ny=dx/dist;
+  const half=(TEETH-1)/2;
+  for(let i=0;i<TEETH;i++){
+    const o=(i-half)*SPACING, ox=nx*o, oy=ny*o;
+    ctx.strokeStyle='rgba(96,72,40,.26)'; ctx.lineWidth=2.1;
+    ctx.beginPath(); ctx.moveTo(x0+ox-nx*1, y0+oy-ny*1); ctx.lineTo(x1+ox-nx*1, y1+oy-ny*1); ctx.stroke();
+    ctx.strokeStyle='rgba(255,252,244,.6)'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(x0+ox+nx*1, y0+oy+ny*1); ctx.lineTo(x1+ox+nx*1, y1+oy+ny*1); ctx.stroke();
+  }
+}
+
+/* ============================ Interaction ============================ */
+const stage=document.getElementById('stage');
+const controls=document.getElementById('controls');
+const ghost=document.getElementById('ghost');
+let mode='idle', lastX=0,lastY=0, rakeQueue=null, rafPending=false;
+let placeType=null, placed=[], selected=null, moveOff={x:0,y:0}, moved=false, armedType=null;
+
+/* pointers / pinch */
+const pointers=new Map(); let pinch=null, pinching=false;
+viewport.addEventListener('pointerdown',trackDown,true);
+window.addEventListener('pointermove',trackMove,true);
+window.addEventListener('pointerup',trackUp,true);
+window.addEventListener('pointercancel',trackUp,true);
+function trackDown(e){ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pointers.size===2){ pinching=true; pinch=null; mode='idle'; ghost.style.display='none'; } }
+function trackMove(e){ if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pinching&&pointers.size>=2) doPinch(); }
+function trackUp(e){ pointers.delete(e.pointerId); if(pointers.size<2){ pinching=false; pinch=null; } }
+function doPinch(){
+  const p=[...pointers.values()], a=p[0], b=p[1];
+  const dist=Math.hypot(b.x-a.x,b.y-a.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  if(!pinch){ pinch={dist,mx,my,scale,tx,ty}; return; }
+  let ns=Math.max(minScale, Math.min(maxScale, pinch.scale*dist/pinch.dist));
+  const wx=(pinch.mx-pinch.tx)/pinch.scale, wy=(pinch.my-pinch.ty)/pinch.scale;
+  scale=ns; tx=mx-wx*ns; ty=my-wy*ns; clampCam(); applyCam();
+}
+
+function disarm(){ armedType=null; ghost.style.display='none'; document.querySelectorAll('.trayItem.armed').forEach(b=>b.classList.remove('armed')); hideHint(); }
+
+/* sand rake / tap-place */
+cv.addEventListener('pointerdown',(e)=>{
+  if(pinching||pointers.size>=2) return;
+  const w=screenToWorld(e.clientX,e.clientY);
+  if(armedType){ addItem(armedType,w.x,w.y); disarm(); return; }
+  if(!document.body.classList.contains('snap')) deselect();
+  ac(); mode='rake'; lastX=w.x; lastY=w.y;
+});
+function schedRake(x,y){ if(!rafPending){ rafPending=true; requestAnimationFrame(flushRake); } rakeQueue={x,y}; }
+function flushRake(){
+  rafPending=false; if(!rakeQueue) return;
+  const {x,y}=rakeQueue; rakeQueue=null;
+  const dx=x-lastX, dy=y-lastY, d=Math.hypot(dx,dy);
+  const steps=Math.max(1, Math.floor(d/6));
+  for(let s=1;s<=steps;s++){
+    rakeSegment(lastX+dx*(s-1)/steps, lastY+dy*(s-1)/steps, lastX+dx*s/steps, lastY+dy*s/steps);
+  }
+  lastX=x; lastY=y;
+}
+
+/* tray */
+function initTray(){
+  const tray=document.getElementById('tray'); tray.innerHTML='';
+  TRAY_ORDER.forEach(type=>{
+    const it=ITEMS[type];
+    const b=document.createElement('button'); b.className='trayItem btn';
+    const sizeTag = type==='rockS'?' S':type==='rockM'?' M':type==='rockL'?' L':'';
+    b.innerHTML = it.svg() + `<span>${T()[TRAY_LABEL[type]]}${sizeTag}</span>`;
+    b.addEventListener('pointerdown',(e)=>{ startPlace(type,e,b); });
+    tray.appendChild(b);
+  });
+}
+function startPlace(type,e,btn){
+  if(pinching||pointers.size>=2) return;
+  ac(); deselect();
+  armedType=type; mode='place'; placeType=type;
+  document.querySelectorAll('.trayItem.armed').forEach(b=>b.classList.remove('armed'));
+  if(btn) btn.classList.add('armed');
+  const it=ITEMS[type];
+  ghost.innerHTML=it.svg(); ghost.style.width=it.w+'px';
+  ghost.firstChild.style.width=it.w+'px'; ghost.firstChild.style.height='auto';
+  ghost.style.display='block'; ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px';
+  showHint(T().tapPlace);
+}
+
+/* global move/up (interaction) */
+window.addEventListener('pointermove',(e)=>{
+  if(pinching) return;
+  if(mode==='rake'){ const w=screenToWorld(e.clientX,e.clientY); schedRake(w.x,w.y); }
+  else if(mode==='place'){ ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; }
+  else if(mode==='move' && selected){ const w=screenToWorld(e.clientX,e.clientY); selected.x=w.x-moveOff.x; selected.y=w.y-moveOff.y; moved=true; positionItem(selected); positionControls(); }
+});
+window.addEventListener('pointerup',(e)=>{
+  if(mode==='place'){
+    ghost.style.display='none';
+    const barTop=document.getElementById('bottomBar').getBoundingClientRect().top;
+    if(e.clientY < barTop-4 && !pinching){ const w=screenToWorld(e.clientX,e.clientY); addItem(placeType,w.x,w.y); disarm(); }
+    else showHint(T().tapPlace,3000);
+    placeType=null; mode='idle'; return;
+  } else if(mode==='move'){ if(selected) selected.el.style.cursor='grab'; saveState(); }
+  mode='idle';
+});
+
+/* ============================ Placed items ============================ */
+function addItem(type,x,y){
+  const it=ITEMS[type];
+  const el=document.createElement('div'); el.className='placed'; el.style.width=it.w+'px'; el.innerHTML=it.svg();
+  const item={type,x,y,rot:0,el};
+  el.addEventListener('pointerdown',(e)=>{ e.stopPropagation(); grabItem(item,e); });
+  stage.appendChild(el); positionItem(item); placed.push(item); select(item); saveState();
+  tone(430,0.05,'sine',0.05);
+}
+function positionItem(it){ it.el.style.left=it.x+'px'; it.el.style.top=it.y+'px'; it.el.style.transform=`translate(-50%,-55%) rotate(${it.rot}deg)`; }
+function grabItem(item,e){
+  if(pinching||pointers.size>=2) return;
+  ac();
+  if(armedType){ const w=screenToWorld(e.clientX,e.clientY); addItem(armedType,w.x,w.y); disarm(); return; }
+  select(item); mode='move'; moved=false;
+  const w=screenToWorld(e.clientX,e.clientY); moveOff={x:w.x-item.x, y:w.y-item.y}; item.el.style.cursor='grabbing';
+}
+function select(item){
+  if(selected && selected!==item) selected.el.classList.remove('sel');
+  selected=item; item.el.classList.add('sel'); stage.appendChild(item.el);
+  positionControls(); controls.classList.add('show');
+}
+function deselect(){ if(selected){ selected.el.classList.remove('sel'); selected=null; } controls.classList.remove('show'); }
+function positionControls(){
+  if(!selected) return;
+  const r=selected.el.getBoundingClientRect();
+  controls.style.left=(r.left+r.width/2-45)+'px';
+  controls.style.top=Math.max(70,(r.top-52))+'px';
+}
+document.getElementById('ctrlRotate').addEventListener('pointerdown',(e)=>{ e.stopPropagation(); if(selected){ selected.rot=(selected.rot+30)%360; positionItem(selected); tone(500,0.04,'sine',0.05); saveState(); } });
+document.getElementById('ctrlDelete').addEventListener('pointerdown',(e)=>{ e.stopPropagation(); if(selected){ selected.el.remove(); placed=placed.filter(p=>p!==selected); deselect(); tone(280,0.08,'sine',0.05); saveState(); } });
+
+/* ============================ Buttons ============================ */
+document.getElementById('btnClear').addEventListener('click',()=>{ drawSandBase(); tone(360,0.12,'sine',0.06,520); });
+document.getElementById('btnReset').addEventListener('click',()=>{
+  placed.forEach(p=>p.el.remove()); placed=[]; deselect(); drawSandBase();
+  localStorage.removeItem('zenGarden'); tone(340,0.14,'sine',0.06,240);
+});
+document.getElementById('btnSnapshot').addEventListener('click',()=>{ deselect(); document.body.classList.add('snap'); showHint(T().snapHint,2600); });
+document.getElementById('exitSnap').addEventListener('click',()=>{ document.body.classList.remove('snap'); });
+document.getElementById('zoomIn').addEventListener('click',()=>zoomAround(window.innerWidth/2,window.innerHeight/2,1.25));
+document.getElementById('zoomOut').addEventListener('click',()=>zoomAround(window.innerWidth/2,window.innerHeight/2,0.8));
+document.getElementById('zoomFit').addEventListener('click',fitWorld);
+window.addEventListener('wheel',(e)=>{ if(e.ctrlKey) return; e.preventDefault(); zoomAround(e.clientX,e.clientY, e.deltaY<0?1.12:0.9); },{passive:false});
+document.getElementById('btnSound').addEventListener('click',()=>{
+  const btn=document.getElementById('btnSound');
+  if(!ambientOn){ startAmbient(); btn.textContent='🔊'; } else { stopAmbient(); btn.textContent='🔈'; }
+});
+
+/* ============================ Hint ============================ */
+let hintTimer=null;
+function showHint(msg,ms){ const el=document.getElementById('hint'); el.textContent=msg; el.classList.add('show'); clearTimeout(hintTimer); if(ms) hintTimer=setTimeout(hideHint,ms); }
+function hideHint(){ document.getElementById('hint').classList.remove('show'); }
+
+/* ============================ Petals ============================ */
+function makePetals(){
+  const box=document.getElementById('petals');
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div'); p.className='petal';
+    p.style.left=Math.random()*100+'vw';
+    const dur=9+Math.random()*9, delay=-Math.random()*dur;
+    p.style.animation=`petfall ${dur}s linear ${delay}s infinite`;
+    p.style.opacity=(0.5+Math.random()*0.4).toFixed(2);
+    const sc=0.7+Math.random()*0.8; p.style.transform=`scale(${sc})`;
+    p.style.background = Math.random()<.5?'#f6b8d0':'#f9cbdd';
+    box.appendChild(p);
+  }
+}
+
+/* ============================ Persistence ============================ */
+function saveState(){ try{ localStorage.setItem('zenGarden', JSON.stringify(placed.map(p=>({type:p.type,x:p.x,y:p.y,rot:p.rot})))); }catch(e){} }
+function loadState(){
+  try{
+    const s=JSON.parse(localStorage.getItem('zenGarden')||'[]');
+    s.forEach(o=>{
+      const it=ITEMS[o.type]; if(!it) return;
+      const el=document.createElement('div'); el.className='placed'; el.style.width=it.w+'px'; el.innerHTML=it.svg();
+      const item={type:o.type,x:o.x,y:o.y,rot:o.rot||0,el};
+      el.addEventListener('pointerdown',(e)=>{ e.stopPropagation(); grabItem(item,e); });
+      stage.appendChild(el); positionItem(item); placed.push(item);
+    });
+  }catch(e){}
+}
+
+/* ============================ Boot ============================ */
+function applyLang(){ document.getElementById('lblClear').textContent=T().smooth; document.documentElement.lang=lang==='lao'?'lo':lang; }
+let resizeT=null;
+window.addEventListener('resize',()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ setupWorld(true); clampCam(); applyCam(); positionControls(); },200); });
+window.addEventListener('orientationchange',()=>setTimeout(()=>{ setupWorld(true); clampCam(); applyCam(); },240));
+
+applyLang();
+setupWorld(false);
+// start centered at scale 1 so the sand fills the screen
+scale=1; tx=(window.innerWidth-worldW)/2; ty=(window.innerHeight-worldH)/2; clampCam(); applyCam();
+initTray();
+makePetals();
+loadState();
+showHint(T().welcome, 4200);
+</script>
+</body>
+</html>
