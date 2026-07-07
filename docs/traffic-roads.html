@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Traffic Roads</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; background:#eef1f4; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    color:#334155; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:none; }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  #cv{ display:block; touch-action:none; }
+  .btn{ transition:transform .08s, background .15s, opacity .15s; }
+  .btn:active{ transform:scale(.92); }
+  .chip{ background:#fff; box-shadow:0 2px 6px rgba(30,41,59,.1); }
+  .modal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(30,41,59,.45); backdrop-filter:blur(4px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .28s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <div class="px-3 pt-3 pb-2 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top))">
+    <a href="index.html" class="chip btn w-10 h-10 rounded-full flex items-center justify-center text-slate-500 text-lg shrink-0">✕</a>
+    <div class="chip rounded-full px-3 h-10 flex items-center gap-1.5 font-extrabold text-sm shrink-0">
+      <span>🚗</span><span id="statScore" class="text-emerald-600 tabular-nums">0</span>
+    </div>
+    <div class="chip rounded-full px-3 h-10 flex items-center gap-1.5 font-extrabold text-sm shrink-0">
+      <span>🛣️</span><span id="statRoads" class="text-blue-600 tabular-nums">30</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <button id="btnErase" class="chip btn w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" title="Erase">🧽</button>
+      <button id="btnPause" class="chip btn w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" title="Pause">⏸️</button>
+    </div>
+  </div>
+  <!-- Canvas -->
+  <div id="wrap" class="flex-1 min-h-0 relative">
+    <canvas id="cv"></canvas>
+    <div id="hint" class="absolute left-1/2 -translate-x-1/2 bottom-3 chip rounded-full px-4 py-2 text-xs font-bold text-slate-500 pointer-events-none transition-opacity duration-500"></div>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="overModal" class="modal" style="display:none">
+  <div class="card bg-white rounded-3xl p-7 w-full max-w-xs text-center shadow-2xl">
+    <div class="text-5xl mb-2">🚦</div>
+    <div id="overTitle" class="text-2xl font-extrabold mb-1">Gridlock!</div>
+    <div id="overSub" class="text-slate-400 text-sm mb-5">A destination overloaded</div>
+    <div class="bg-slate-50 rounded-2xl py-4 mb-5">
+      <div class="text-slate-400 text-xs font-bold" id="lblTrips">Trips delivered</div>
+      <div id="overScore" class="text-4xl font-extrabold text-emerald-600 tabular-nums">0</div>
+    </div>
+    <button id="btnRestart" class="btn w-full rounded-2xl py-3 text-white font-extrabold" style="background:linear-gradient(135deg,#3b82f6,#2563eb)"><span id="lblRestart">Play Again</span></button>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ over:'Gridlock!', overSub:'A destination overloaded', trips:'Trips delivered', restart:'Play Again',
+       hintBuild:'Drag to draw roads between matching houses & offices', hintErase:'Erase mode: drag over roads to remove' },
+  th:{ over:'รถติดขัด!', overSub:'ตึกออฟฟิศโอเวอร์โหลด', trips:'ส่งสำเร็จ', restart:'เล่นอีกครั้ง',
+       hintBuild:'ลากเพื่อสร้างถนนเชื่อมบ้านกับตึกสีเดียวกัน', hintErase:'โหมดลบ: ลากทับถนนเพื่อลบ' },
+  lao:{ over:'ລົດຕິດ!', overSub:'ຕຶກອັອບຟິດໂອເວີໂຫຼດ', trips:'ສົ່ງສຳເລັດ', restart:'ຫຼິ້ນອີກຄັ້ງ',
+       hintBuild:'ລາກເພື່ອສ້າງຖະໜົນເຊື່ອມບ້ານກັບຕຶກສີດຽວກັນ', hintErase:'ໂໝດລຶບ: ລາກທັບຖະໜົນເພື່ອລຶບ' },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=false, actx=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(actx&&actx.state==='suspended')actx.resume(); return actx; }
+function tone(f,d,type='sine',g=0.06,slide=null){ if(muted)return; const c=ac(); if(!c)return;
+  try{ const o=c.createOscillator(),ga=c.createGain(); o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide)o.frequency.exponentialRampToValueAtTime(slide,c.currentTime+d);
+    ga.gain.setValueAtTime(0.0001,c.currentTime); ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.01);
+    ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d); o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+d+0.02);
+  }catch(e){} }
+const sDeliver=()=>{ tone(680,0.07,'sine',0.08,920); };
+const sRoad=()=>tone(300,0.03,'triangle',0.04);
+const sNew =()=>{ tone(520,0.09,'sine',0.09,700); setTimeout(()=>tone(700,0.1,'sine',0.08),80); };
+const sOver=()=>{ [400,320,240].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'sawtooth',0.1),i*140)); };
+
+/* ============================ Colors ============================ */
+const COLORS=[
+  {name:'red',   c:'#ef4444'},
+  {name:'blue',  c:'#3b82f6'},
+  {name:'amber', c:'#f59e0b'},
+  {name:'green', c:'#22c55e'},
+  {name:'violet',c:'#8b5cf6'},
+  {name:'pink',  c:'#ec4899'},
+  {name:'teal',  c:'#14b8a6'},
+];
+
+/* ============================ Canvas / grid ============================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const wrap=document.getElementById('wrap');
+let DPR=1, VW=0, VH=0, cell=34, cols=0, rows=0, ox=0, oy=0;
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=wrap.clientWidth; VH=wrap.clientHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  cv.style.width=VW+'px'; cv.style.height=VH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cell=Math.max(28,Math.min(46, Math.floor(Math.min(VW,VH)/14)));
+  cols=Math.floor(VW/cell); rows=Math.floor(VH/cell);
+  ox=Math.floor((VW-cols*cell)/2); oy=Math.floor((VH-rows*cell)/2);
+}
+const key=(r,c)=>r+','+c;
+function cellCenter(r,c){ return { x:ox+c*cell+cell/2, y:oy+r*cell+cell/2 }; }
+function pxToCell(x,y){ const c=Math.floor((x-ox)/cell), r=Math.floor((y-oy)/cell);
+  if(r<0||c<0||r>=rows||c>=cols) return null; return {r,c}; }
+
+/* ============================ State ============================ */
+let roads, buildings, cellMap, cars, score, roadsLeft, activeColors;
+let timeSec, tDemandGlobal, tRoadGain, tBuilding, tColor, colorIntroIdx;
+let running=true, over=false, eraseMode=false, dispatchAcc=0;
+
+function reset(){
+  roads=new Set();
+  buildings=[];
+  cellMap=new Map();   // "r,c" -> building
+  cars=[];
+  score=0; roadsLeft=30;
+  activeColors=[];
+  timeSec=0; tRoadGain=0; tBuilding=0; tColor=0; colorIntroIdx=0;
+  running=true; over=false; eraseMode=false; dispatchAcc=0;
+  document.getElementById('overModal').style.display='none';
+  document.getElementById('btnPause').textContent='⏸️';
+  document.getElementById('btnErase').classList.remove('bg-rose-100');
+  introduceColor();                 // start with one colour (2 houses + 1 office)
+  updateHUD(); showHint(T().hintBuild,4200);
+}
+
+/* ---- placement ---- */
+function emptyCell(){
+  for(let tries=0; tries<400; tries++){
+    const r=1+Math.floor(Math.random()*(rows-2));
+    const c=1+Math.floor(Math.random()*(cols-2));
+    const k=key(r,c);
+    if(cellMap.has(k)||roads.has(k)) continue;
+    // keep buildings from touching each other (8-neighbourhood)
+    let ok=true;
+    for(let dr=-1;dr<=1&&ok;dr++)for(let dc=-1;dc<=1;dc++){ if(cellMap.has(key(r+dr,c+dc))){ok=false;break;} }
+    if(ok) return {r,c};
+  }
+  return null;
+}
+function addBuilding(kind,color){
+  const p=emptyCell(); if(!p) return null;
+  const b={kind,color, r:p.r,c:p.c, pins:0, incoming:0, maxPins:10, demandTimer:0, busy:false};
+  buildings.push(b); cellMap.set(key(p.r,p.c),b); return b;
+}
+function introduceColor(){
+  if(colorIntroIdx>=COLORS.length) return;
+  const col=COLORS[colorIntroIdx].c; colorIntroIdx++;
+  activeColors.push(col);
+  addBuilding('house',col); addBuilding('house',col); addBuilding('dest',col);
+  sNew();
+}
+
+/* ============================ Pathfinding (BFS) ============================ */
+function passable(r,c, startK, goalK){
+  if(r<0||c<0||r>=rows||c>=cols) return false;
+  const k=key(r,c);
+  return roads.has(k) || k===startK || k===goalK;
+}
+function bfs(start, goal){
+  const startK=key(start.r,start.c), goalK=key(goal.r,goal.c);
+  if(startK===goalK) return [start];
+  const q=[start], prev=new Map(); prev.set(startK,null);
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  while(q.length){
+    const cur=q.shift(); const ck=key(cur.r,cur.c);
+    if(ck===goalK) break;
+    for(const [dr,dc] of dirs){
+      const nr=cur.r+dr, nc=cur.c+dc, nk=key(nr,nc);
+      if(prev.has(nk)) continue;
+      if(!passable(nr,nc,startK,goalK)) continue;
+      prev.set(nk,ck); q.push({r:nr,c:nc});
+    }
+  }
+  if(!prev.has(goalK)) return null;
+  const path=[]; let k=goalK;
+  while(k){ const [r,c]=k.split(',').map(Number); path.push({r,c}); k=prev.get(k); }
+  return path.reverse();
+}
+
+/* ============================ Cars ============================ */
+const CAR_SPEED=4.2; // cells / second
+function makeCar(house,dest,cells){
+  return { color:house.color, house, dest, phase:'toDest',
+           cells, seg:0, t:0, stuckT:0,
+           x:cellCenter(house.r,house.c).x, y:cellCenter(house.r,house.c).y, ang:0 };
+}
+function dispatch(){
+  // for each dest with unmet pending demand, find an idle same-colour house with a path
+  for(const dest of buildings){
+    if(dest.kind!=='dest') continue;
+    if(dest.pins - dest.incoming <= 0) continue;
+    const houses=buildings.filter(b=>b.kind==='house'&&b.color===dest.color&&!b.busy);
+    for(const h of houses){
+      if(dest.pins - dest.incoming <= 0) break;
+      const path=bfs({r:h.r,c:h.c},{r:dest.r,c:dest.c});
+      if(!path) continue;
+      h.busy=true; dest.incoming++;
+      cars.push(makeCar(h,dest,path));
+    }
+  }
+}
+function repath(car){
+  const cur=car.cells[car.seg];
+  const goal = car.phase==='toDest' ? {r:car.dest.r,c:car.dest.c} : {r:car.house.r,c:car.house.c};
+  const p=bfs(cur,goal);
+  if(p){ car.cells=p; car.seg=0; car.t=0; return true; }
+  return false;
+}
+function cancelCar(car,i){
+  if(car.phase==='toDest') car.dest.incoming=Math.max(0,car.dest.incoming-1);
+  car.house.busy=false; cars.splice(i,1);
+}
+function updateCars(dt){
+  for(let i=cars.length-1;i>=0;i--){
+    const car=cars[i];
+    if(car.seg>=car.cells.length-1){ arrive(car,i); continue; }
+    const goalK = car.phase==='toDest'?key(car.dest.r,car.dest.c):key(car.house.r,car.house.c);
+    const startK= key(car.cells[car.seg].r,car.cells[car.seg].c);
+    const next=car.cells[car.seg+1];
+    // road under the path may have been erased → try to re-route
+    if(!passable(next.r,next.c,startK,goalK)){
+      if(!repath(car)){ car.stuckT+=dt; if(car.stuckT>3){ cancelCar(car,i); } continue; }
+    }
+    car.stuckT=0;
+    const a=cellCenter(car.cells[car.seg].r,car.cells[car.seg].c);
+    const b=cellCenter(car.cells[car.seg+1].r,car.cells[car.seg+1].c);
+    const segLen=Math.hypot(b.x-a.x,b.y-a.y);
+    car.t += (CAR_SPEED*cell*dt)/Math.max(1,segLen);
+    car.ang=Math.atan2(b.y-a.y,b.x-a.x);
+    let arrived=false;
+    while(car.t>=1){ car.t-=1; car.seg++; if(car.seg>=car.cells.length-1){ arrived=true; break; } }
+    if(arrived){ arrive(car,i); continue; }
+    const A=cellCenter(car.cells[car.seg].r,car.cells[car.seg].c);
+    const B=cellCenter(car.cells[car.seg+1].r,car.cells[car.seg+1].c);
+    car.x=A.x+(B.x-A.x)*car.t; car.y=A.y+(B.y-A.y)*car.t;
+  }
+}
+function arrive(car,i){
+  if(car.phase==='toDest'){
+    // delivered a worker
+    if(car.dest.pins>0) car.dest.pins--;
+    car.dest.incoming=Math.max(0,car.dest.incoming-1);
+    score++; updateHUD(); sDeliver();
+    // head home
+    const p=bfs({r:car.dest.r,c:car.dest.c},{r:car.house.r,c:car.house.c});
+    if(p){ car.phase='toHome'; car.cells=p; car.seg=0; car.t=0; car.stuckT=0;
+           car.x=cellCenter(car.dest.r,car.dest.c).x; car.y=cellCenter(car.dest.r,car.dest.c).y; }
+    else { car.house.busy=false; cars.splice(i,1); }
+  } else {
+    car.house.busy=false; cars.splice(i,1);
+  }
+}
+
+/* ============================ Update loop ============================ */
+let lastT=0;
+function frame(ts){
+  if(!lastT) lastT=ts;
+  let dt=(ts-lastT)/1000; lastT=ts; if(dt>0.05) dt=0.05;
+  if(running && !over){ update(dt); }
+  render();
+  requestAnimationFrame(frame);
+}
+function update(dt){
+  timeSec+=dt;
+  const diff=Math.min(1, timeSec/180);                 // 0→1 over 3 min
+  // demand per destination
+  const demandInterval = 6.5 - diff*3.5;               // 6.5s → 3.0s
+  for(const b of buildings){
+    if(b.kind!=='dest') continue;
+    b.demandTimer+=dt;
+    if(b.demandTimer>=demandInterval){
+      b.demandTimer=0; b.pins++;
+      if(b.pins>=b.maxPins){ gameOver(); return; }
+    }
+  }
+  // dispatch cars
+  dispatchAcc+=dt;
+  if(dispatchAcc>=0.25){ dispatchAcc=0; dispatch(); }
+  updateCars(dt);
+  // road gains
+  tRoadGain+=dt;
+  if(tRoadGain>=14){ tRoadGain=0; roadsLeft+=4; updateHUD(); }
+  // new buildings
+  tBuilding+=dt;
+  if(tBuilding>=13 && activeColors.length){ tBuilding=0;
+    const col=activeColors[Math.floor(Math.random()*activeColors.length)];
+    addBuilding(Math.random()<0.68?'house':'dest', col);
+  }
+  // new colours
+  tColor+=dt;
+  const colorEvery=42;
+  if(tColor>=colorEvery && colorIntroIdx<COLORS.length){ tColor=0; introduceColor(); roadsLeft+=8; updateHUD(); }
+}
+function gameOver(){
+  over=true; sOver();
+  document.getElementById('overScore').textContent=score;
+  document.getElementById('overModal').style.display='flex';
+}
+
+/* ============================ Render ============================ */
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function render(){
+  ctx.clearRect(0,0,VW,VH);
+  // grid dots
+  ctx.fillStyle='#dbe1e8';
+  for(let r=0;r<=rows;r++)for(let c=0;c<=cols;c++){ ctx.beginPath(); ctx.arc(ox+c*cell,oy+r*cell,1.1,0,7); ctx.fill(); }
+  // roads network
+  const rw=cell*0.42;
+  ctx.strokeStyle='#c3cad3'; ctx.lineWidth=rw; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.fillStyle='#c3cad3';
+  const dirs=[[1,0],[0,1]];
+  roads.forEach(k=>{ const [r,c]=k.split(',').map(Number); const ctr=cellCenter(r,c);
+    ctx.beginPath(); ctx.arc(ctr.x,ctr.y,rw/2,0,7); ctx.fill();
+  });
+  // connectors between adjacent roads / road-building
+  roads.forEach(k=>{ const [r,c]=k.split(',').map(Number); const A=cellCenter(r,c);
+    for(const [dr,dc] of dirs){ const nk=key(r+dr,c+dc);
+      if(roads.has(nk)||cellMap.has(nk)){ const B=cellCenter(r+dr,c+dc);
+        ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); }
+    }
+    // also connect towards a building on the other side (up/left) so stubs reach it
+  });
+  // building→road stubs (up & left handled above from road side; also draw from building to any adjacent road)
+  buildings.forEach(b=>{ const A=cellCenter(b.r,b.c);
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{ const nk=key(b.r+dr,b.c+dc);
+      if(roads.has(nk)){ const B=cellCenter(b.r+dr,b.c+dc); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); }
+    });
+  });
+  // center dividing dashes on roads
+  ctx.strokeStyle='#eef1f4'; ctx.lineWidth=Math.max(1.5,rw*0.12); ctx.setLineDash([3,4]);
+  roads.forEach(k=>{ const [r,c]=k.split(',').map(Number); const A=cellCenter(r,c);
+    for(const [dr,dc] of dirs){ const nk=key(r+dr,c+dc);
+      if(roads.has(nk)){ const B=cellCenter(r+dr,c+dc); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); } }
+  });
+  ctx.setLineDash([]);
+
+  // buildings
+  buildings.forEach(b=>drawBuilding(b));
+  // cars
+  cars.forEach(car=>drawCar(car));
+}
+function drawBuilding(b){
+  const ctr=cellCenter(b.r,b.c); const s=cell*0.62;
+  ctx.save();
+  if(b.kind==='house'){
+    // rounded square with a roof notch
+    roundRect(ctr.x-s/2,ctr.y-s/2,s,s,s*0.22); ctx.fillStyle=b.color; ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    const d=s*0.26; ctx.beginPath(); ctx.moveTo(ctr.x,ctr.y-d); ctx.lineTo(ctr.x+d,ctr.y); ctx.lineTo(ctr.x-d,ctr.y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillRect(ctr.x-d*0.4,ctr.y,d*0.8,d*0.9);
+  } else {
+    // destination = larger disc with ring meter + pins
+    const R=s*0.62;
+    ctx.beginPath(); ctx.arc(ctr.x,ctr.y,R,0,7); ctx.fillStyle=b.color; ctx.fill();
+    // office windows
+    ctx.fillStyle='rgba(255,255,255,.85)';
+    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){ if((i+j)%2===0){ ctx.fillRect(ctr.x+i*R*0.42-R*0.12, ctr.y+j*R*0.42-R*0.12, R*0.24,R*0.24);} }
+    // overload ring
+    const frac=Math.min(1,b.pins/b.maxPins);
+    ctx.beginPath(); ctx.arc(ctr.x,ctr.y,R+5,-Math.PI/2,-Math.PI/2+frac*Math.PI*2);
+    ctx.strokeStyle = frac>0.75?'#ef4444':(frac>0.5?'#f59e0b':'#94a3b8');
+    ctx.lineWidth=3.4; ctx.lineCap='round'; ctx.stroke();
+    // pins (pending workers) above
+    const shown=Math.min(b.pins,6);
+    for(let i=0;i<shown;i++){ const px=ctr.x-(shown-1)*4+i*8, py=ctr.y-R-9;
+      ctx.beginPath(); ctx.arc(px,py,2.6,0,7); ctx.fillStyle=b.color; ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke(); }
+    if(b.pins>6){ ctx.fillStyle='#475569'; ctx.font='bold 9px Nunito'; ctx.textAlign='center'; ctx.fillText('+'+(b.pins-6), ctr.x, ctr.y-R-15); }
+  }
+  ctx.restore();
+}
+function drawCar(car){
+  const w=cell*0.44, h=cell*0.28;
+  ctx.save(); ctx.translate(car.x,car.y); ctx.rotate(car.ang);
+  roundRect(-w/2,-h/2,w,h,h*0.35); ctx.fillStyle=car.color; ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillRect(w*0.08,-h*0.28,w*0.22,h*0.56); // windshield
+  ctx.restore();
+}
+
+/* ============================ HUD / input ============================ */
+function updateHUD(){ document.getElementById('statScore').textContent=score; document.getElementById('statRoads').textContent=roadsLeft; }
+let hintTimer=null;
+function showHint(msg,ms){ const el=document.getElementById('hint'); el.textContent=msg; el.style.opacity='1'; clearTimeout(hintTimer); if(ms) hintTimer=setTimeout(()=>el.style.opacity='0',ms); }
+
+/* road drawing */
+let drawing=false, drawErase=false, lastCell=null;
+function actCell(r,c){
+  const k=key(r,c);
+  if(cellMap.has(k)) return;               // never build on buildings
+  if(drawErase){
+    if(roads.has(k)){ roads.delete(k); roadsLeft++; updateHUD(); sRoad(); }
+  } else {
+    if(!roads.has(k) && roadsLeft>0){ roads.add(k); roadsLeft--; updateHUD(); sRoad(); }
+  }
+}
+function pointerPos(e){ const rect=cv.getBoundingClientRect(); return { x:e.clientX-rect.left, y:e.clientY-rect.top }; }
+cv.addEventListener('pointerdown',(e)=>{
+  if(over) return; ac();
+  const p=pointerPos(e); const cellp=pxToCell(p.x,p.y); if(!cellp) return;
+  drawing=true; drawErase = eraseMode || e.button===2 || e.buttons===2;
+  lastCell=cellp; actCell(cellp.r,cellp.c);
+  try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+});
+cv.addEventListener('pointermove',(e)=>{
+  if(!drawing) return;
+  const p=pointerPos(e); const cellp=pxToCell(p.x,p.y); if(!cellp) return;
+  if(lastCell && cellp.r===lastCell.r && cellp.c===lastCell.c) return;
+  // fill any gap between lastCell and cellp along a simple L-path so fast drags stay connected
+  if(lastCell){ stepTo(lastCell,cellp); }
+  lastCell=cellp;
+});
+function stepTo(a,b){
+  let r=a.r,c=a.c;
+  while(r!==b.r){ r+=Math.sign(b.r-r); actCell(r,c); }
+  while(c!==b.c){ c+=Math.sign(b.c-c); actCell(r,c); }
+}
+window.addEventListener('pointerup',()=>{ drawing=false; lastCell=null; });
+cv.addEventListener('contextmenu',(e)=>e.preventDefault());
+
+/* buttons */
+document.getElementById('btnErase').addEventListener('click',()=>{
+  eraseMode=!eraseMode;
+  document.getElementById('btnErase').classList.toggle('bg-rose-100',eraseMode);
+  showHint(eraseMode?T().hintErase:T().hintBuild, 2600);
+});
+document.getElementById('btnPause').addEventListener('click',()=>{
+  running=!running; document.getElementById('btnPause').textContent=running?'⏸️':'▶️';
+});
+document.getElementById('btnRestart').addEventListener('click',()=>{ reset(); });
+
+/* i18n labels */
+function applyLang(){
+  document.getElementById('overTitle').textContent=T().over;
+  document.getElementById('overSub').textContent=T().overSub;
+  document.getElementById('lblTrips').textContent=T().trips;
+  document.getElementById('lblRestart').textContent=T().restart;
+  document.documentElement.lang=lang==='lao'?'lo':lang;
+}
+
+/* ============================ Boot ============================ */
+function boot(){ resize(); reset(); }
+window.addEventListener('resize',()=>{ resize(); });
+applyLang();
+boot();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
