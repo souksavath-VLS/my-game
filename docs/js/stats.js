@@ -40,6 +40,7 @@
     { key:'tower',        cat:'skill',   icon:'🏗️', statsKey:'tower_stack_stats_v1' },
     { key:'maze',         cat:'skill',   icon:'🌀', statsKey:'maze_stats_v1' },
     { key:'whack',        cat:'skill',   icon:'🔨', statsKey:'whack_stats_v1' },
+    { key:'luckyAnimal',  cat:'skill',   icon:'🔮' },
 
     { key:'tetris',       cat:'classic', icon:'🟦', intKey:'tetrisHighScore' },
     { key:'pacman',       cat:'classic', icon:'👻', intKey:'pacmanHighScore' },
@@ -89,7 +90,7 @@
         drawAbc:'ลากเส้น A-Z', azMatch:'จับคู่ A-Z', drawLaoAbc:'ลากเส้น ກ-ຮ', drawLaoVowel:'ลากสระลาว',
         flag:'ธงประเทศ', matchFlag:'จับคู่ธง', worldMap:'แผนที่โลก',
         months:'เดือน', weekdays:'วันในสัปดาห์', waterTree:'รดน้ำต้นไม้', findObject:'หาสิ่งของ', humanBody:'ร่างกาย',
-        sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย', maze:'เขาวงกต', whack:'ตีตัวตุ่น',
+        sound:'ฟังเสียง', matchIcon:'Match Icon', memory:'จับคู่ภาพ', hideSeek:'ซ่อนหา', tower:'หอคอย', maze:'เขาวงกต', whack:'ตีตัวตุ่น', luckyAnimal:'สุ่มสัตว์นำโชค',
         tetris:'เททริส', pacman:'Pac-Man', snake:'งู', slither:'Slither',
         spaceInv:'Space Invaders', fps:'ยิงลูกโป่ง', piano:'เปียโน', towerDef:'ป้องกันฐาน',
         freeDraw:'วาดอิสระ', stickerChart:'สติกเกอร์รางวัล', gpsTracker:'GPS Tracker', imgPdf:'รูปเป็น PDF', pdfMerge:'รวม PDF', pdfSplit:'แยก PDF', pdfWord:'PDF → Word'
@@ -125,7 +126,7 @@
         drawAbc:'Draw A-Z', azMatch:'Match A-Z', drawLaoAbc:'Draw ກ-ຮ', drawLaoVowel:'Lao Vowels',
         flag:'Country Flags', matchFlag:'Match Flag', worldMap:'World Map',
         months:'Months', weekdays:'Weekdays', waterTree:'Water Plants', findObject:'Find Objects', humanBody:'Human Body',
-        sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack', maze:'Maze', whack:'Whack-a-Mole',
+        sound:'Animal Sounds', matchIcon:'Match Icon', memory:'Memory Match', hideSeek:'Hide & Seek', tower:'Tower Stack', maze:'Maze', whack:'Whack-a-Mole', luckyAnimal:'Lucky Animal',
         tetris:'Tetris', pacman:'Pac-Man', snake:'Snake', slither:'Slither',
         spaceInv:'Space Invaders', fps:'Balloon Shooter', piano:'Piano', towerDef:'Tower Defense',
         freeDraw:'Free Draw', stickerChart:'Sticker Chart', gpsTracker:'GPS Tracker', imgPdf:'Image → PDF', pdfMerge:'PDF Merge', pdfSplit:'PDF Split', pdfWord:'PDF → Word'
@@ -161,7 +162,7 @@
         drawAbc:'ລາກເສັ້ນ A-Z', azMatch:'ຈັບຄູ່ A-Z', drawLaoAbc:'ລາກເສັ້ນ ກ-ຮ', drawLaoVowel:'ລາກສະຫຼະ',
         flag:'ທຸງປະເທດ', matchFlag:'ຈັບຄູ່ທຸງ', worldMap:'ແຜນທີ່ໂລກ',
         months:'ເດືອນ', weekdays:'ວັນໃນອາທິດ', waterTree:'ລົດນ້ຳຕົ້ນໄມ້', findObject:'ຫາສິ່ງຂອງ', humanBody:'ຮ່າງກາຍ',
-        sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ', maze:'ເຂົາວົງກົດ', whack:'ຕີໜູ',
+        sound:'ຟັງສຽງ', matchIcon:'Match Icon', memory:'ຈັບຄູ່ພາບ', hideSeek:'ຊ່ອນຫາ', tower:'ຫໍຄອຍ', maze:'ເຂົາວົງກົດ', whack:'ຕີໜູ', luckyAnimal:'ສຸ່ມສັດນຳໂຊກ',
         tetris:'ເທັດຣິສ', pacman:'Pac-Man', snake:'ງູ', slither:'Slither',
         spaceInv:'Space Invaders', fps:'ຍິງປູມເປົ້າ', piano:'ເປຍໂນ', towerDef:'ປ້ອງກັນຖານ',
         freeDraw:'ແຕ້ມຮູບ', stickerChart:'ສະຕິກເກີຮາງວັນ', gpsTracker:'GPS Tracker', imgPdf:'ຮູບເປັນ PDF', pdfMerge:'ລວມ PDF', pdfSplit:'ແຍກ PDF', pdfWord:'PDF → Word'

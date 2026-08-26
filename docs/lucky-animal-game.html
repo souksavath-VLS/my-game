@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ສຸ່ມສັດນຳໂຊກ · Lucky Animal Draw</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,255,255,.35), transparent 40%),
+        radial-gradient(circle at 80% 60%, rgba(251,191,36,.25), transparent 50%),
+        linear-gradient(180deg, #fde68a 0%, #fbbf24 40%, #d97706 100%);
+      background-attachment: fixed;
+      font-family: 'Noto Sans Lao', 'Segoe UI', Tahoma, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      color: #1e293b;
+      overscroll-behavior: none;
+    }
+    .la-wrap { max-width: 480px; margin: 0 auto; padding: 8px 8px 24px; }
+
+    /* Header */
+    .la-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 4px;
+      margin-bottom: 6px;
+    }
+    .la-back {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,.92); color: #b45309;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none; font-size: 1rem; font-weight: 900;
+      box-shadow: 0 3px 8px rgba(0,0,0,.15);
+    }
+    .la-back:active { transform: scale(.9); }
+    .la-title-wrap {
+      flex: 1; text-align: center;
+      padding: 0 6px;
+    }
+    .la-title {
+      font-size: 1.5rem; font-weight: 900;
+      color: #78350f; letter-spacing: .5px;
+      text-shadow: 0 2px 0 rgba(255,255,255,.35), 0 4px 8px rgba(120,53,15,.2);
+      background: linear-gradient(90deg, #b45309, #d97706, #b45309);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .la-title-em { font-size: 1.1em; }
+
+    /* Subtitle / hint */
+    .la-sub {
+      background: linear-gradient(135deg, #78350f, #92400e);
+      color: #fef3c7; padding: 10px 14px;
+      border-radius: 12px; margin-bottom: 8px;
+      text-align: center; font-weight: 800; font-size: .95rem;
+      box-shadow: 0 3px 10px rgba(120,53,15,.35);
+      border: 2px solid rgba(251,191,36,.4);
+    }
+    .la-hint {
+      color: #d97706; font-weight: 900; font-size: .8rem;
+      text-align: center; margin-bottom: 10px;
+      text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    }
+
+    /* Card grid */
+    .la-board {
+      display: grid; grid-template-columns: repeat(10, 1fr);
+      gap: 4px; padding: 8px;
+      background: rgba(120,53,15,.15); border-radius: 14px;
+      border: 2px solid rgba(120,53,15,.3);
+      margin-bottom: 12px;
+    }
+    @media (max-width: 380px) { .la-board { grid-template-columns: repeat(8, 1fr); } }
+
+    .la-card {
+      aspect-ratio: 2 / 3;
+      cursor: pointer;
+      perspective: 800px;
+      position: relative;
+    }
+    .la-card-inner {
+      width: 100%; height: 100%;
+      position: relative; transform-style: preserve-3d;
+      transition: transform .6s cubic-bezier(.4,.1,.2,1);
+    }
+    .la-card.flipped .la-card-inner { transform: rotateY(180deg); }
+    .la-card-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 5px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,.25);
+    }
+    .la-card-back {
+      background:
+        linear-gradient(135deg, #fbbf24 20%, #d97706 60%, #92400e 100%);
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid #78350f;
+      position: relative;
+    }
+    .la-card-back::before {
+      content: ''; position: absolute; inset: 2px;
+      background:
+        repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(120,53,15,.15) 3px, rgba(120,53,15,.15) 5px),
+        repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,.12) 3px, rgba(255,255,255,.12) 5px);
+      border-radius: 3px;
+    }
+    .la-card-back-ic {
+      position: relative; z-index: 1;
+      color: #78350f; font-size: .8rem; font-weight: 900;
+      text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    }
+    .la-card-front {
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      transform: rotateY(180deg);
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #f59e0b;
+    }
+    .la-card-front .em {
+      font-size: 1.4rem;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
+    }
+
+    .la-card.shake { animation: shakeCard .5s ease-in-out; }
+    @keyframes shakeCard {
+      0%, 100% { transform: translate(0,0) rotate(0); }
+      15% { transform: translate(-3px, 2px) rotate(-4deg); }
+      30% { transform: translate(3px, -2px) rotate(4deg); }
+      45% { transform: translate(-3px, 1px) rotate(-3deg); }
+      60% { transform: translate(3px, -1px) rotate(3deg); }
+      75% { transform: translate(-2px, 0) rotate(-2deg); }
+    }
+    .la-card.dim .la-card-inner { opacity: .55; }
+    .la-card.dim { pointer-events: none; }
+
+    /* Action buttons */
+    .la-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .la-btn {
+      padding: 14px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, #fde68a, #f59e0b);
+      color: #78350f; font-size: 1rem; font-weight: 900;
+      cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 0 #b45309, 0 6px 14px rgba(146,64,14,.35);
+      border: 2px solid #b45309;
+      letter-spacing: .3px;
+    }
+    .la-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b45309, 0 2px 6px rgba(146,64,14,.35); }
+    .la-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .la-btn .em { font-size: 1.2rem; }
+
+    /* Deco footer */
+    .la-deco {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 8px; margin-top: 6px;
+      font-size: 2.4rem;
+      filter: drop-shadow(0 3px 6px rgba(120,53,15,.35));
+      opacity: .9;
+    }
+    .la-deco .big { font-size: 3.2rem; }
+
+    /* Reveal modal */
+    .la-modal {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center; padding: 16px;
+      background: radial-gradient(circle at 50% 30%, rgba(120,53,15,.55), rgba(15,23,42,.85));
+      backdrop-filter: blur(6px);
+      z-index: 100;
+    }
+    .la-modal.show { display: flex; animation: modalFade .3s ease-out; }
+    @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+    .la-modal-inner {
+      width: 100%; max-width: 340px;
+      display: flex; flex-direction: column; align-items: center;
+      animation: modalPop .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes modalPop {
+      0% { opacity: 0; transform: scale(.6) rotate(-4deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0); }
+    }
+    .la-modal-heading {
+      color: #fef3c7; font-size: 1.15rem; font-weight: 900;
+      text-align: center; margin-bottom: 12px;
+      text-shadow: 0 2px 8px rgba(0,0,0,.5);
+    }
+
+    /* Prize card (image #2 style) */
+    .la-prize {
+      width: 100%;
+      background: linear-gradient(180deg, #78350f 0%, #92400e 100%);
+      border: 4px solid #fbbf24;
+      border-radius: 20px;
+      padding: 44px 14px 20px;
+      position: relative;
+      box-shadow:
+        0 0 0 2px #78350f,
+        0 20px 40px rgba(0,0,0,.5),
+        inset 0 0 30px rgba(0,0,0,.25);
+    }
+    .la-prize::before, .la-prize::after {
+      content: ''; position: absolute;
+      width: 20px; height: 20px;
+      background: radial-gradient(circle, #fde68a 30%, #b45309 70%);
+      border-radius: 50%; border: 2px solid #78350f;
+    }
+    .la-prize::before { top: -8px; left: 20px; }
+    .la-prize::after  { top: -8px; right: 20px; }
+
+    .la-name-badge {
+      position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #78350f, #451a03);
+      border: 2px solid #fbbf24;
+      border-radius: 24px;
+      padding: 6px 26px;
+      color: #fde68a; font-weight: 900; font-size: 1rem;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1);
+      min-width: 100px; text-align: center;
+    }
+
+    /* Animal artwork frame */
+    .la-artwork {
+      aspect-ratio: 3 / 3.5;
+      background:
+        radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.35), transparent 60%),
+        linear-gradient(180deg, var(--bg-top, #7dd3fc) 0%, var(--bg-bot, #22c55e) 60%, #78350f 100%);
+      border-radius: 14px;
+      border: 3px solid #fbbf24;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0,0,0,.35);
+      margin-bottom: 14px;
+    }
+    .la-artwork::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(255,255,255,.4), transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(251,191,36,.35), transparent 25%);
+      pointer-events: none;
+    }
+    .la-artwork .big-emoji {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 6.5rem;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.5));
+      animation: floatAnim 3s ease-in-out infinite;
+    }
+    @keyframes floatAnim {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-6px) rotate(1deg); }
+    }
+    .la-artwork .sparkles {
+      position: absolute; inset: 0; pointer-events: none;
+    }
+    .la-artwork .sparkles span {
+      position: absolute; color: #fbbf24; font-size: 1rem;
+      animation: sparkle 2s ease-in-out infinite;
+    }
+    .la-artwork .sparkles span:nth-child(1) { top: 12%; left: 15%; animation-delay: 0s; }
+    .la-artwork .sparkles span:nth-child(2) { top: 20%; right: 18%; animation-delay: .4s; }
+    .la-artwork .sparkles span:nth-child(3) { bottom: 30%; left: 12%; animation-delay: .8s; }
+    .la-artwork .sparkles span:nth-child(4) { bottom: 20%; right: 20%; animation-delay: 1.2s; }
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(.5); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Lucky numbers */
+    .la-numbers {
+      display: flex; justify-content: center; gap: 14px;
+      margin-top: 2px;
+    }
+    .la-num {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fef3c7, #fbbf24 60%, #b45309);
+      color: #78350f; font-weight: 900; font-size: 1.15rem;
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid #78350f;
+      box-shadow:
+        0 4px 8px rgba(0,0,0,.4),
+        inset 0 1px 2px rgba(255,255,255,.5),
+        0 0 12px rgba(251,191,36,.7);
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      animation: numGlow 2s ease-in-out infinite;
+    }
+    .la-num:nth-child(2) { animation-delay: .3s; }
+    .la-num:nth-child(3) { animation-delay: .6s; }
+    @keyframes numGlow {
+      0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,.4), inset 0 1px 2px rgba(255,255,255,.5), 0 0 8px rgba(251,191,36,.5); }
+      50%      { box-shadow: 0 4px 8px rgba(0,0,0,.4), inset 0 1px 2px rgba(255,255,255,.5), 0 0 22px rgba(251,191,36,.9); }
+    }
+
+    /* Modal footer actions */
+    .la-modal-actions {
+      display: flex; gap: 8px; width: 100%; margin-top: 14px;
+    }
+    .la-modal-btn {
+      flex: 1; padding: 12px; border: none; border-radius: 12px;
+      font-family: inherit; font-size: .95rem; font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0,0,0,.3);
+      letter-spacing: .3px;
+    }
+    .la-modal-btn:active { transform: translateY(2px); }
+    .la-modal-btn.again {
+      background: linear-gradient(135deg, #fde68a, #f59e0b);
+      color: #78350f; border: 2px solid #78350f;
+    }
+    .la-modal-btn.close {
+      background: rgba(255,255,255,.15);
+      color: #fef3c7; border: 2px solid rgba(255,255,255,.3);
+    }
+
+    /* Toast */
+    .la-toast {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(120,53,15,.95); color: #fef3c7;
+      padding: 10px 18px; border-radius: 99px;
+      font-size: .85rem; font-weight: 700;
+      box-shadow: 0 6px 18px rgba(0,0,0,.4);
+      border: 2px solid #fbbf24;
+      opacity: 0; pointer-events: none;
+      transition: all .25s; z-index: 200;
+    }
+    .la-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="la-wrap">
+    <div class="la-hdr">
+      <a class="la-back" href="index.html" title="Back">←</a>
+      <div class="la-title-wrap">
+        <div class="la-title"><span class="la-title-em">🔮</span> ສຸ່ມສັດນຳໂຊກ ✨</div>
+      </div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div class="la-sub" id="sub-text">ເປີດການ໌ດສັດນຳໂຊກ ລຸ້ນເລກເສີ່ຍປະຈຳວັນ!</div>
+    <div class="la-hint" id="hint-text">ກົດເລືອກການ໌ດ 1 ໃບ ເພື່ອທຳນາຍສັດນຳໂຊກຂອງທ່ານ</div>
+
+    <div class="la-board" id="board"></div>
+
+    <div class="la-actions">
+      <button class="la-btn" id="btn-shuffle"><span class="em">🔀</span> <span id="btn-shuffle-lbl">ສັບການ໌ດ</span></button>
+      <button class="la-btn" id="btn-random"><span class="em">🎲</span> <span id="btn-random-lbl">ສຸ່ມການ໌ດ</span></button>
+    </div>
+
+    <div class="la-deco">
+      <span>🕯️</span>
+      <span class="big">🔮</span>
+      <span>🕯️</span>
+    </div>
+  </div>
+
+  <div class="la-modal" id="modal">
+    <div class="la-modal-inner">
+      <div class="la-modal-heading" id="modal-heading">ສັດນຳໂຊກຂອງທ່ານຄື...</div>
+      <div class="la-prize">
+        <div class="la-name-badge" id="prize-name">—</div>
+        <div class="la-artwork" id="artwork">
+          <div class="sparkles"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
+          <div class="big-emoji" id="artwork-emoji">🐣</div>
+        </div>
+        <div class="la-numbers" id="prize-numbers">
+          <div class="la-num">00</div>
+          <div class="la-num">00</div>
+          <div class="la-num">00</div>
+        </div>
+      </div>
+      <div class="la-modal-actions">
+        <button class="la-modal-btn close" id="modal-close" data-i18n="modal-close">✕ ປິດ</button>
+        <button class="la-modal-btn again" id="modal-again" data-i18n="modal-again">🔀 ສຸ່ມໃໝ່</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="la-toast" id="toast"></div>
+
+  <script src="js/lucky-animal-game.js"></script>
+</body>
+</html>
