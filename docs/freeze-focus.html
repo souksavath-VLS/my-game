@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Freeze & Focus</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    background:#0b1020; color:#e5e9f5; }
+  *{ box-sizing:border-box; }
+  .screen{ position:absolute; inset:0; display:flex; flex-direction:column; padding:22px;
+    opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity .35s ease, transform .35s ease; overflow-y:auto; }
+  .screen.active{ opacity:1; transform:none; pointer-events:auto; }
+  .btn{ transition:transform .08s, box-shadow .2s, background .2s, opacity .2s; }
+  .btn:active{ transform:scale(.94); }
+  .glass{ background:rgba(255,255,255,.06); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 8px 26px rgba(0,0,0,.35); }
+  input[type=range]{ -webkit-appearance:none; appearance:none; height:8px; border-radius:99px; background:rgba(255,255,255,.16); outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#818cf8; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  input[type=range]::-moz-range-thumb{ width:22px; height:22px; border:none; border-radius:50%; background:#818cf8; }
+  [data-lucide]{ width:1em; height:1em; }
+
+  /* ===== Arena ===== */
+  #arena{ padding:0; }
+  #danceLayer,#freezeLayer{ position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; transition:opacity .18s ease; }
+  #arena.state-dance #danceLayer{ opacity:1; }  #arena.state-dance #freezeLayer{ opacity:0; pointer-events:none; }
+  #arena.state-freeze #danceLayer{ opacity:0; pointer-events:none; }  #arena.state-freeze #freezeLayer{ opacity:1; }
+  #arena.state-flash #danceLayer{ opacity:0; }   #arena.state-flash #freezeLayer{ opacity:1; }
+
+  @keyframes discoBG{ 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+  #danceLayer{ background:linear-gradient(120deg,#6d28d9,#db2777,#f59e0b,#0ea5e9,#6d28d9);
+    background-size:300% 300%; animation:discoBG 6s linear infinite; }
+  @keyframes bar{ 0%,100%{ transform:scaleY(.25) } 50%{ transform:scaleY(1) } }
+  .wbar{ width:8px; height:64px; border-radius:6px; background:rgba(255,255,255,.92); transform-origin:center; }
+  #beatDot{ transition:transform .07s ease-out; }
+  @keyframes floaty{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-10px) } }
+  .floaty{ animation:floaty 1.4s ease-in-out infinite; }
+
+  #freezeLayer{ background:#05070d; }
+  #arena.hard #freezeLayer{ background:#000; }
+  @keyframes breathe{ 0%,100%{ transform:scale(.75); opacity:.25 } 50%{ transform:scale(1.15); opacity:.6 } }
+  #breatheRing{ width:120px; height:120px; border-radius:50%; border:2px solid #64748b; animation:breathe 4s ease-in-out infinite; display:none; }
+  #arena.cue #breatheRing{ display:block; }
+
+  /* HUD (top) — only during dance/flash */
+  #hud{ position:absolute; top:0; left:0; right:0; z-index:6; padding:max(10px,env(safe-area-inset-top)) 14px 0;
+    display:flex; align-items:center; gap:10px; transition:opacity .2s; }
+  #arena.state-freeze #hud{ opacity:0; pointer-events:none; }
+
+  /* target cue */
+  #targetCue{ position:absolute; inset:0; z-index:5; display:none; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  #targetCue.show{ display:flex; }
+  @keyframes cuePop{ 0%{ transform:scale(.6); opacity:0 } 40%{ transform:scale(1.12); opacity:1 } 100%{ transform:scale(1); opacity:1 } }
+  #targetCue > div{ animation:cuePop .4s ease both; }
+
+  /* inter-round flash */
+  #flash{ position:absolute; inset:0; z-index:7; display:none; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    background:rgba(5,7,13,.82); backdrop-filter:blur(3px); }
+  #flash.show{ display:flex; }
+  .fadein{ animation:fi .4s ease both; } @keyframes fi{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+  @keyframes floatUp{ 0%{ transform:translateY(0); opacity:1 } 100%{ transform:translateY(-40px); opacity:0 } }
+</style>
+</head>
+<body>
+
+<!-- =================== LOBBY =================== -->
+<div id="s-lobby" class="screen active items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-6">
+    <a href="index.html" class="btn glass w-10 h-10 rounded-full flex items-center justify-center absolute top-4 left-4"><i data-lucide="x"></i></a>
+    <div class="floaty text-7xl mt-4">🧊</div>
+    <div>
+      <h1 class="text-3xl font-extrabold tracking-tight" id="ttl">Freeze &amp; Focus</h1>
+      <p class="text-indigo-200/60 text-sm mt-1" id="subttl">Dance to the beat. Freeze in silence. Feel the time.</p>
+    </div>
+    <div class="w-full">
+      <div class="text-xs font-bold uppercase tracking-widest text-indigo-200/50 mb-2 text-left" id="lblDiff">Difficulty</div>
+      <div class="grid grid-cols-3 gap-2" id="diffRow"></div>
+      <div class="text-xs text-indigo-200/50 mt-2" id="diffDesc"></div>
+    </div>
+    <div class="w-full glass rounded-2xl p-4 flex items-center gap-3">
+      <i data-lucide="volume-2" class="text-indigo-200"></i>
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" class="flex-1">
+      <span id="volVal" class="text-sm font-bold tabular-nums w-9 text-right">80%</span>
+    </div>
+    <button id="btnStart" class="btn w-full rounded-2xl py-4 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#a5b4fc,#818cf8)">
+      <i data-lucide="play"></i><span id="lblStart">Start</span>
+    </button>
+    <div id="bestLine" class="text-xs text-indigo-200/50"></div>
+  </div>
+</div>
+
+<!-- =================== ARENA =================== -->
+<div id="s-arena" class="screen p-0">
+  <div id="arena" class="relative flex-1 state-dance">
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hudLives" class="text-lg tracking-tight"></div>
+      <div id="hudCombo" class="glass rounded-full px-3 py-1 text-sm font-extrabold hidden">🔥 <span id="comboVal">0</span></div>
+      <div class="ml-auto glass rounded-full px-3 py-1 text-sm font-extrabold">⭐ <span id="scoreVal">0</span></div>
+      <div class="glass rounded-full px-3 py-1 text-sm font-bold"><span id="lblRoundS">R</span><span id="roundVal">1</span></div>
+    </div>
+    <!-- dance -->
+    <div id="danceLayer">
+      <div class="text-white/95 text-sm font-bold uppercase tracking-[0.3em] mb-3" id="lblDance">Dance!</div>
+      <div id="beatDot" class="text-7xl mb-5">🕺</div>
+      <div class="flex items-end gap-2 h-16" id="waves"></div>
+      <div class="text-white/70 text-xs mt-5" id="lblTapAlong">Move &amp; tap along · freeze is coming…</div>
+    </div>
+    <!-- target cue (over dance) -->
+    <div id="targetCue">
+      <div class="text-white/80 text-sm font-bold uppercase tracking-[0.3em]" id="cueLabel">Freeze for</div>
+      <div class="text-white text-6xl font-extrabold tabular-nums" id="cueTime">6.0s</div>
+    </div>
+    <!-- freeze -->
+    <div id="freezeLayer">
+      <div id="breatheRing"></div>
+      <div id="freezeHint" class="absolute bottom-10 text-slate-500 text-xs" style="opacity:.5">tap when the time feels right</div>
+    </div>
+    <!-- inter-round flash -->
+    <div id="flash">
+      <div id="flEmoji" class="text-6xl fadein">❄️</div>
+      <div id="flRate" class="text-2xl font-extrabold fadein">PERFECT</div>
+      <div id="flPts" class="text-lg font-extrabold text-indigo-300 fadein">+100</div>
+      <div id="flTimes" class="text-xs text-indigo-200/70 fadein"></div>
+      <div id="flLife" class="text-sm font-bold text-rose-300 fadein" style="min-height:20px"></div>
+      <div id="flTap" class="text-[11px] text-indigo-200/40 mt-2 fadein">tap to continue</div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== GAME OVER =================== -->
+<div id="s-over" class="screen items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-4">
+    <div class="text-7xl floaty">🧊</div>
+    <div id="overTitle" class="text-3xl font-extrabold">Run Over</div>
+    <div id="newBest" class="text-sm font-extrabold text-amber-300 hidden">🏆 New Best Score!</div>
+    <div class="w-full grid grid-cols-2 gap-3">
+      <div class="glass rounded-2xl py-4"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="lblScore">Score</div><div id="ovScore" class="text-3xl font-extrabold text-indigo-300 tabular-nums">0</div></div>
+      <div class="glass rounded-2xl py-4"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="lblRounds">Rounds</div><div id="ovRounds" class="text-3xl font-extrabold text-emerald-300 tabular-nums">0</div></div>
+      <div class="glass rounded-2xl py-4"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="lblAvg">Avg error</div><div id="ovAvg" class="text-3xl font-extrabold text-sky-300 tabular-nums">0s</div></div>
+      <div class="glass rounded-2xl py-4"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="lblBestC">Best combo</div><div id="ovCombo" class="text-3xl font-extrabold text-pink-300 tabular-nums">0</div></div>
+    </div>
+    <div id="ovBestScore" class="text-xs text-indigo-200/50"></div>
+    <div class="flex gap-3 w-full mt-1">
+      <button id="btnAgain" class="btn flex-1 rounded-2xl py-3.5 font-extrabold flex items-center justify-center gap-2 text-slate-900"
+              style="background:linear-gradient(135deg,#a5b4fc,#818cf8)"><i data-lucide="rotate-ccw"></i><span id="lblAgain">Play Again</span></button>
+      <a href="index.html" class="btn glass flex-1 rounded-2xl py-3.5 font-bold flex items-center justify-center gap-2"><i data-lucide="home"></i><span id="lblHome">Home</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Freeze & Focus', sub:'Dance to the beat. Freeze in silence. Feel the time.', diff:'Difficulty',
+       easy:'Easy', medium:'Medium', hard:'Hard', start:'Start', dance:'Dance!', tapAlong:'Move & tap along · freeze is coming…',
+       freezeHint:'tap when the time feels right', freezeFor:'Freeze for', round:'R', tapNext:'tap to continue',
+       score:'Score', rounds:'Rounds', avg:'Avg error', bestCombo:'Best combo', again:'Play Again', home:'Home',
+       runOver:'Run Over', newBest:'🏆 New Best Score!', bestScoreL:(n)=>`Best score: ${n}`,
+       best:(e)=>`🏆 Best accuracy: ${e}s`, lifeLost:'-1 life',
+       descEasy:'Silence ~4-6s · breathing cue · 3 lives', descMed:'Silence ~5-8s · dim, no cue', descHard:'Silence ~6-11s · black-out, target flashes once',
+       perfect:'PERFECT', great:'GREAT', good:'GOOD', ok:'CLOSE', miss:'MISS',
+       early:(s)=>`${s}s early`, late:(s)=>`${s}s late`, spot:'dead on!' },
+  th:{ title:'นิ่งเหมือนหิน', sub:'เต้นตามจังหวะ แล้วนิ่งในความเงียบ กะเวลาในใจ', diff:'ระดับความยาก',
+       easy:'ง่าย', medium:'ปานกลาง', hard:'ยาก', start:'เริ่ม', dance:'เต้น!', tapAlong:'ขยับ & แตะตามจังหวะ · เดี๋ยวจะหยุด…',
+       freezeHint:'แตะเมื่อรู้สึกว่าถึงเวลา', freezeFor:'นิ่งให้ได้', round:'รอบ', tapNext:'แตะเพื่อไปต่อ',
+       score:'คะแนน', rounds:'รอบที่รอด', avg:'พลาดเฉลี่ย', bestCombo:'คอมโบสูงสุด', again:'เล่นอีกครั้ง', home:'หน้าหลัก',
+       runOver:'จบเกม', newBest:'🏆 คะแนนสูงสุดใหม่!', bestScoreL:(n)=>`คะแนนสูงสุด: ${n}`,
+       best:(e)=>`🏆 แม่นที่สุด: ${e}s`, lifeLost:'-1 ชีวิต',
+       descEasy:'เงียบ ~4-6 วิ · มีวงหายใจ · 3 ชีวิต', descMed:'เงียบ ~5-8 วิ · จอมืด ไม่มีตัวช่วย', descHard:'เงียบ ~6-11 วิ · จอดำ เป้าโชว์แว้บเดียว',
+       perfect:'เป๊ะมาก!', great:'เยี่ยม', good:'ดี', ok:'เฉียด', miss:'พลาด',
+       early:(s)=>`เร็วไป ${s} วิ`, late:(s)=>`ช้าไป ${s} วิ`, spot:'ตรงเป๊ะ!' },
+  lao:{ title:'ນິ້ງຄືກ້ອນຫີນ', sub:'ເຕັ້ນຕາມຈັງຫວະ ແລ້ວນິ້ງໃນຄວາມງຽບ ຄາດເວລາໃນໃຈ', diff:'ລະດັບຄວາມຫຍຸ້ງຍາກ',
+       easy:'ງ່າຍ', medium:'ປານກາງ', hard:'ຍາກ', start:'ເລີ່ມ', dance:'ເຕັ້ນ!', tapAlong:'ຂະຍັບ & ແຕະຕາມຈັງຫວະ · ຈະຢຸດແລ້ວ…',
+       freezeHint:'ແຕະເມື່ອຮູ້ສຶກວ່າຮອດເວລາ', freezeFor:'ນິ້ງໃຫ້ໄດ້', round:'ຮອບ', tapNext:'ແຕະເພື່ອໄປຕໍ່',
+       score:'ຄະແນນ', rounds:'ຮອບທີ່ລອດ', avg:'ພາດສະເລ່ຍ', bestCombo:'ຄອມໂບສູງສຸດ', again:'ຫຼິ້ນອີກຄັ້ງ', home:'ໜ້າຫຼັກ',
+       runOver:'ຈົບເກມ', newBest:'🏆 ຄະແນນສູງສຸດໃໝ່!', bestScoreL:(n)=>`ຄະແນນສູງສຸດ: ${n}`,
+       best:(e)=>`🏆 ແມ່ນທີ່ສຸດ: ${e}s`, lifeLost:'-1 ຊີວິດ',
+       descEasy:'ງຽບ ~4-6 ວິ · ມີວົງຫາຍໃຈ · 3 ຊີວິດ', descMed:'ງຽບ ~5-8 ວິ · ຈໍມືດ ບໍ່ມີຕົວຊ່ວຍ', descHard:'ງຽບ ~6-11 ວິ · ຈໍດຳ ເປົ້າໂຊວ໌ແວັບດຽວ',
+       perfect:'ເປັ໊ະ!', great:'ຍອດ', good:'ດີ', ok:'ເກືອບ', miss:'ພາດ',
+       early:(s)=>`ໄວໄປ ${s} ວິ`, late:(s)=>`ຊ້າໄປ ${s} ວິ`, spot:'ຕົງເປັ໊ະ!' },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio (procedural drums) ============================ */
+let audio=null, master=null, volume=0.8, playing=false;
+let schedTimer=null, nextNoteTime=0, step=0;
+const BPM=124;
+function ac(){ if(!audio){ audio=new (window.AudioContext||window.webkitAudioContext)();
+    master=audio.createGain(); master.gain.value=volume; master.connect(audio.destination); }
+  if(audio.state==='suspended') audio.resume(); return audio; }
+let _noise=null;
+function noiseBuf(){ if(!_noise){ const n=audio.sampleRate*1; _noise=audio.createBuffer(1,n,audio.sampleRate);
+  const d=_noise.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1; } return _noise; }
+function kick(t){ const o=audio.createOscillator(), g=audio.createGain();
+  o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+  g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.3); beatPulse(t); }
+function snare(t){ const nb=audio.createBufferSource(), nf=audio.createBiquadFilter(), ng=audio.createGain();
+  nb.buffer=noiseBuf(); nf.type='highpass'; nf.frequency.value=1400;
+  ng.gain.setValueAtTime(0.6,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  nb.connect(nf); nf.connect(ng); ng.connect(master); nb.start(t); nb.stop(t+0.2);
+  const o=audio.createOscillator(), g=audio.createGain(); o.type='triangle'; o.frequency.setValueAtTime(220,t);
+  g.gain.setValueAtTime(0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.14); }
+function hat(t,amp){ const nb=audio.createBufferSource(), nf=audio.createBiquadFilter(), ng=audio.createGain();
+  nb.buffer=noiseBuf(); nf.type='highpass'; nf.frequency.value=8000;
+  ng.gain.setValueAtTime(amp,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+  nb.connect(nf); nf.connect(ng); ng.connect(master); nb.start(t); nb.stop(t+0.06); }
+function bass(t,freq){ const o=audio.createOscillator(), g=audio.createGain(), f=audio.createBiquadFilter();
+  o.type='sawtooth'; f.type='lowpass'; f.frequency.value=600; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.28,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.22); }
+const BASSLINE=[55,0,55,0, 82.4,0,55,0, 49,0,49,0, 73.4,0,65.4,0];
+function playStep(s,t){ if(s%4===0) kick(t); if(s===4||s===12) snare(t); hat(t, s%2===0?0.22:0.12);
+  const b=BASSLINE[s]; if(b) bass(t,b); }
+function scheduler(){ const LOOK=0.12, spb=60/BPM;
+  while(nextNoteTime < audio.currentTime + LOOK){ playStep(step, nextNoteTime); nextNoteTime += spb/4; step=(step+1)%16; } }
+function startBeat(){ ac(); master.gain.cancelScheduledValues(audio.currentTime); master.gain.setValueAtTime(volume,audio.currentTime);
+  step=0; nextNoteTime=audio.currentTime+0.06; playing=true; schedTimer=setInterval(scheduler,25); }
+function stopBeatInstant(){ playing=false; if(schedTimer){ clearInterval(schedTimer); schedTimer=null; }
+  if(master){ const n=audio.currentTime; master.gain.cancelScheduledValues(n); master.gain.setValueAtTime(0.0001,n); } }
+function blip(freq,dur,type='sine',g=0.3){ const c=ac(); const o=c.createOscillator(),ga=c.createGain();
+  o.type=type; o.frequency.value=freq; ga.gain.setValueAtTime(0.0001,c.currentTime); ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.01);
+  ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+dur); o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+dur+0.02); }
+
+/* ============================ Visual beat pulse ============================ */
+function beatPulse(t){ const delay=Math.max(0,(t-audio.currentTime)*1000);
+  setTimeout(()=>{ if(state!=='dance')return; const d=document.getElementById('beatDot');
+    d.style.transform='scale(1.25)'; setTimeout(()=>d.style.transform='scale(1)',90); }, delay); }
+
+/* ============================ Game (Endless) ============================ */
+const DIFF={ easy:  {base:4.0, grow:0.22, vary:1.2, danceBase:3.6, cue:true,  hard:false, reveal:1.5, hideCue:false},
+             medium:{base:5.5, grow:0.28, vary:1.8, danceBase:3.3, cue:false, hard:false, reveal:1.5, hideCue:false},
+             hard:  {base:7.0, grow:0.33, vary:2.4, danceBase:3.0, cue:false, hard:true,  reveal:1.4, hideCue:true} };
+let difficulty='easy', state='lobby';
+let freezeStart=0, curTarget=0;
+let score=0, lives=3, combo=0, round=0, bestCombo=0, sumAbs=0, resolved=0;
+let danceTimer=null, cueTimer=null, hideCueTimer=null, safetyTimer=null, flashTimer=null;
+const arena=document.getElementById('arena');
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function clearTimers(){ [danceTimer,cueTimer,hideCueTimer,safetyTimer,flashTimer].forEach(t=>clearTimeout(t)); }
+function rand(a,b){ return a+Math.random()*(b-a); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+function newRun(){ score=0; lives=3; combo=0; round=0; bestCombo=0; sumAbs=0; resolved=0; nextRound(); }
+function nextRound(){
+  round++;
+  const cfg=DIFF[difficulty];
+  curTarget = Math.round(clamp(cfg.base + (round-1)*cfg.grow + rand(-cfg.vary,cfg.vary), 3, 13) * 10)/10;
+  state='dance';
+  show('s-arena');
+  arena.className='relative flex-1 state-dance';
+  document.getElementById('flash').classList.remove('show');
+  document.getElementById('targetCue').classList.remove('show');
+  document.getElementById('beatDot').textContent = Math.random()<0.5?'🕺':'💃';
+  updateHUD();
+  startBeat();
+  const danceDur = Math.max(2.0, cfg.danceBase - round*0.05 + rand(-0.5,0.5));
+  clearTimers();
+  cueTimer=setTimeout(showTargetCue, Math.max(200,(danceDur-cfg.reveal)*1000));
+  if(cfg.hideCue) hideCueTimer=setTimeout(()=>document.getElementById('targetCue').classList.remove('show'), Math.max(400,(danceDur-0.55)*1000));
+  danceTimer=setTimeout(freeze, danceDur*1000);
+}
+function showTargetCue(){
+  if(state!=='dance') return;
+  document.getElementById('cueLabel').textContent=T().freezeFor;
+  document.getElementById('cueTime').textContent=curTarget.toFixed(1)+'s';
+  const c=document.getElementById('targetCue'); c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
+  blip(1200,0.08,'sine',0.2);
+}
+function freeze(){
+  const cfg=DIFF[difficulty];
+  stopBeatInstant();
+  state='freeze'; freezeStart=performance.now();
+  document.getElementById('targetCue').classList.remove('show');
+  arena.className='relative flex-1 state-freeze'+(cfg.cue?' cue':'')+(cfg.hard?' hard':'');
+  clearTimeout(safetyTimer);
+  safetyTimer=setTimeout(()=>{ if(state==='freeze') unfreeze(); }, (curTarget*2+4)*1000);
+}
+function unfreeze(){
+  if(state!=='freeze') return;
+  state='flash'; clearTimeout(safetyTimer);
+  const elapsed=(performance.now()-freezeStart)/1000;
+  const err=elapsed-curTarget, abs=Math.abs(err);
+  let base, rate;
+  if(abs<=0.2){ base=100; rate='perfect'; } else if(abs<=0.5){ base=75; rate='great'; }
+  else if(abs<=1.0){ base=50; rate='good'; } else if(abs<=2.0){ base=25; rate='ok'; } else { base=0; rate='miss'; }
+  // combo & lives
+  let lostLife=false;
+  if(rate==='miss'){ combo=0; lives--; lostLife=true; }
+  else if(abs<=1.0){ combo++; if(combo>bestCombo) bestCombo=combo; }
+  // 'ok' keeps combo unchanged
+  const mult=Math.min(6, 1+Math.floor(combo/2));
+  const pts=base*mult;
+  score+=pts; sumAbs+=abs; resolved++;
+  const best=parseFloat(localStorage.getItem('freezeBest')||'99'); if(abs<best) localStorage.setItem('freezeBest', abs.toFixed(2));
+  if(rate==='perfect'||rate==='great'){ blip(880,0.12,'triangle',0.35); setTimeout(()=>blip(1320,0.16,'triangle',0.3),90); }
+  else if(rate==='miss'){ blip(200,0.32,'sawtooth',0.28); } else { blip(660,0.14,'sine',0.3); }
+  showFlash(elapsed,err,abs,base,mult,pts,rate,lostLife);
+}
+function showFlash(elapsed,err,abs,base,mult,pts,rate,lostLife){
+  const t=T();
+  const emo={perfect:'❄️',great:'🧊',good:'👍',ok:'😅',miss:'🌀'}[rate];
+  const col={perfect:'#a5b4fc',great:'#7dd3fc',good:'#86efac',ok:'#fcd34d',miss:'#fca5a5'}[rate];
+  document.getElementById('flEmoji').textContent=emo;
+  const fr=document.getElementById('flRate'); fr.textContent=t[rate]; fr.style.color=col;
+  document.getElementById('flPts').textContent = (pts>0?'+'+pts:'+0') + (mult>1?`  ×${mult}🔥`:'');
+  const rel = abs<0.05? t.spot : (err<0? t.early(abs.toFixed(2)) : t.late(abs.toFixed(2)));
+  document.getElementById('flTimes').textContent = `${elapsed.toFixed(2)}s / ${curTarget.toFixed(1)}s · ${rel}`;
+  document.getElementById('flLife').textContent = lostLife? '💔 '+t.lifeLost : '';
+  updateHUD();
+  // re-trigger fade-in
+  document.querySelectorAll('#flash .fadein').forEach(el=>{ el.style.animation='none'; void el.offsetWidth; el.style.animation=''; });
+  document.getElementById('flash').classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(advance, 1700);
+}
+function advance(){
+  if(state!=='flash') return;
+  document.getElementById('flash').classList.remove('show');
+  if(lives<=0){ gameOver(); } else { nextRound(); }
+}
+function gameOver(){
+  state='over'; clearTimers(); stopBeatInstant();
+  const t=T();
+  document.getElementById('overTitle').textContent=t.runOver;
+  document.getElementById('ovScore').textContent=score;
+  document.getElementById('ovRounds').textContent=resolved;
+  document.getElementById('ovAvg').textContent=(resolved?(sumAbs/resolved):0).toFixed(2)+'s';
+  document.getElementById('ovCombo').textContent=bestCombo;
+  const bestScore=parseInt(localStorage.getItem('freezeBestScore')||'0',10);
+  const isBest=score>bestScore; if(isBest) localStorage.setItem('freezeBestScore',String(score));
+  document.getElementById('newBest').classList.toggle('hidden',!isBest);
+  document.getElementById('ovBestScore').textContent=t.bestScoreL(Math.max(bestScore,score));
+  blip(523,0.15,'triangle',0.3); setTimeout(()=>blip(392,0.2,'triangle',0.28),150); setTimeout(()=>blip(330,0.3,'triangle',0.25),320);
+  show('s-over'); lucide.createIcons(); updateBest();
+}
+function updateHUD(){
+  document.getElementById('hudLives').textContent = '❤️'.repeat(Math.max(0,lives)) + '🤍'.repeat(Math.max(0,3-lives));
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('roundVal').textContent=round;
+  const cw=document.getElementById('hudCombo'); document.getElementById('comboVal').textContent=combo;
+  cw.classList.toggle('hidden', combo<2);
+}
+
+/* ============================ Input ============================ */
+arena.addEventListener('pointerdown',()=>{
+  if(state==='dance'){ const d=document.getElementById('beatDot'); d.style.transform='scale(1.18)'; setTimeout(()=>d.style.transform='scale(1)',90);
+    blip(1000+Math.random()*400,0.05,'square',0.12); }
+  else if(state==='freeze'){ unfreeze(); }
+  else if(state==='flash'){ clearTimeout(flashTimer); advance(); }
+});
+
+/* ============================ Lobby wiring ============================ */
+function renderDiff(){ const row=document.getElementById('diffRow'); row.innerHTML='';
+  [['easy','🟢'],['medium','🟡'],['hard','🔴']].forEach(([k,em])=>{ const b=document.createElement('button');
+    b.className='btn rounded-2xl py-3 font-extrabold text-sm '+(difficulty===k?'text-slate-900':'glass');
+    if(difficulty===k) b.style.background='linear-gradient(135deg,#a5b4fc,#818cf8)';
+    b.innerHTML=`<div class="text-lg">${em}</div><div class="mt-0.5">${T()[k]}</div>`;
+    b.addEventListener('click',()=>{ difficulty=k; localStorage.setItem('freezeDiff',k); renderDiff(); updateDesc(); });
+    row.appendChild(b); }); }
+function updateDesc(){ const t=T(); document.getElementById('diffDesc').textContent = difficulty==='easy'?t.descEasy:difficulty==='medium'?t.descMed:t.descHard; }
+function updateBest(){ const bs=localStorage.getItem('freezeBestScore'), ba=localStorage.getItem('freezeBest');
+  const parts=[]; if(bs) parts.push('⭐ '+bs); if(ba) parts.push('🎯 '+ba+'s');
+  document.getElementById('bestLine').textContent = parts.join('   '); }
+
+document.getElementById('btnStart').addEventListener('click',()=>{ ac(); newRun(); });
+document.getElementById('btnAgain').addEventListener('click',()=>{ newRun(); });
+const vol=document.getElementById('vol');
+vol.value=parseFloat(localStorage.getItem('freezeVol')||'0.8'); volume=parseFloat(vol.value);
+document.getElementById('volVal').textContent=Math.round(volume*100)+'%';
+vol.addEventListener('input',()=>{ volume=parseFloat(vol.value); if(master&&playing) master.gain.value=volume;
+  document.getElementById('volVal').textContent=Math.round(volume*100)+'%'; localStorage.setItem('freezeVol',vol.value); });
+
+/* build waves */
+(function(){ const w=document.getElementById('waves'); for(let i=0;i<9;i++){ const b=document.createElement('div');
+  b.className='wbar'; b.style.animation=`bar ${0.5+Math.random()*0.4}s ease-in-out ${(-Math.random()).toFixed(2)}s infinite`; w.appendChild(b); } })();
+
+/* ============================ i18n apply ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  set('ttl',t.title); set('subttl',t.sub); set('lblDiff',t.diff); set('lblStart',t.start);
+  set('lblDance',t.dance); set('lblTapAlong',t.tapAlong); document.getElementById('freezeHint').textContent=t.freezeHint;
+  set('cueLabel',t.freezeFor); set('lblRoundS',t.round+' '); set('flTap',t.tapNext);
+  set('lblScore',t.score); set('lblRounds',t.rounds); set('lblAvg',t.avg); set('lblBestC',t.bestCombo);
+  set('lblAgain',t.again); set('lblHome',t.home); set('newBest',t.newBest);
+  document.documentElement.lang=lang==='lao'?'lo':lang;
+}
+
+/* ============================ Boot ============================ */
+difficulty=localStorage.getItem('freezeDiff')||'easy'; if(!DIFF[difficulty])difficulty='easy';
+applyLang(); renderDiff(); updateDesc(); updateBest(); lucide.createIcons();
+</script>
+</body>
+</html>

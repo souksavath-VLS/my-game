@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Moving Differences</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    background:radial-gradient(ellipse at 50% -10%, #1b2440, #0d1424 60%, #080d18); color:#e6ecfb; }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .08s, background .2s, opacity .2s, box-shadow .2s; }
+  .btn:active{ transform:scale(.94); }
+  .glass{ background:rgba(255,255,255,.06); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 20px rgba(0,0,0,.3); }
+  [data-lucide]{ width:1em; height:1em; }
+  .panel{ position:relative; border-radius:16px; overflow:hidden; background:#0a1020;
+    box-shadow:0 6px 20px rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.06); }
+  .panel canvas{ display:block; width:100%; height:100%; touch-action:none; }
+  @media (min-width:680px){ #panels{ flex-direction:row !important; } }
+  .modal{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:rgba(8,13,24,.7); backdrop-filter:blur(5px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 2.4s ease-in-out infinite; }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .shake{ animation:shake .3s ease; }
+  #timeBar{ transition:width .12s linear; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Dashboard -->
+  <div class="px-3 pt-3 pb-1 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top))">
+    <a href="index.html" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="x"></i></a>
+    <div class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-extrabold text-sm shrink-0">
+      <i data-lucide="star" class="text-amber-300"></i><span id="score" class="tabular-nums">0</span>
+    </div>
+    <div class="glass rounded-full px-2.5 h-9 flex items-center gap-1 text-sm shrink-0" id="levelDots"></div>
+    <button id="btnHint" class="glass btn ml-auto w-9 h-9 rounded-full flex items-center justify-center shrink-0" title="Hint"><i data-lucide="lightbulb" class="text-amber-300"></i></button>
+    <button id="btnSound" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="volume-2"></i></button>
+  </div>
+  <!-- timer -->
+  <div class="px-3 pb-2 flex items-center gap-2">
+    <i data-lucide="timer" class="text-sky-300"></i>
+    <div class="flex-1 h-2.5 rounded-full bg-white/10 overflow-hidden">
+      <div id="timeBar" class="h-full rounded-full" style="width:100%;background:linear-gradient(90deg,#34d399,#22d3ee)"></div>
+    </div>
+    <span id="timeVal" class="text-sm font-extrabold tabular-nums w-10 text-right">30</span>
+  </div>
+
+  <!-- Panels -->
+  <div class="flex-1 min-h-0 px-3 pb-3 flex flex-col items-center justify-center">
+    <div id="panels" class="w-full max-w-3xl flex flex-col gap-3 items-center" style="flex-direction:column">
+      <div class="panel flex-1 w-full" style="aspect-ratio:1/1; max-width:min(92vw,440px)"><canvas id="cvL"></canvas>
+        <div class="absolute top-2 left-2 glass rounded-full px-2.5 py-0.5 text-[11px] font-bold">A</div></div>
+      <div class="panel flex-1 w-full" style="aspect-ratio:1/1; max-width:min(92vw,440px)"><canvas id="cvR"></canvas>
+        <div class="absolute top-2 left-2 glass rounded-full px-2.5 py-0.5 text-[11px] font-bold">B</div></div>
+    </div>
+    <div id="findInfo" class="text-xs text-sky-200/60 mt-2 font-semibold"></div>
+  </div>
+</div>
+
+<!-- feedback layer -->
+<div id="fx" class="pointer-events-none fixed inset-0 z-40"></div>
+
+<!-- Start / instructions -->
+<div id="startModal" class="modal">
+  <div class="card glass rounded-3xl p-6 w-full max-w-sm text-center border border-white/10">
+    <div class="floaty text-6xl mb-2">👀</div>
+    <h1 class="text-2xl font-extrabold" id="ttl">Moving Differences</h1>
+    <p class="text-sky-200/70 text-sm mt-1 mb-4" id="sub">Spot the difference — but everything is moving!</p>
+    <div class="text-left text-sm text-sky-100/80 space-y-2 mb-5" id="howto">
+      <div class="flex gap-2"><span>①</span><span>Two animated scenes <b>A</b> &amp; <b>B</b> look almost identical.</span></div>
+      <div class="flex gap-2"><span>②</span><span>One moving object in <b>B</b> is different — missing, recolored, resized, offset, or spinning the wrong way.</span></div>
+      <div class="flex gap-2"><span>③</span><span>Tap the odd object in <b>either</b> panel before time runs out. Wrong taps cost time!</span></div>
+      <div class="flex gap-2"><span>④</span><span>Find <b>3</b> per level. Clear <b>Level 5</b> to win. 💡 Hint costs time.</span></div>
+    </div>
+    <button id="btnStart" class="btn w-full rounded-2xl py-3.5 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#7dd3fc,#22d3ee)"><i data-lucide="play"></i><span id="lblStart">Start</span></button>
+    <div id="bestLine" class="text-xs text-sky-200/50 mt-3"></div>
+  </div>
+</div>
+
+<!-- End -->
+<div id="endModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-7 w-full max-w-xs text-center border border-white/10">
+    <div id="endEmoji" class="text-6xl mb-2 floaty">🏆</div>
+    <div id="endTitle" class="text-2xl font-extrabold mb-1">You Win!</div>
+    <div id="endSub" class="text-sky-200/70 text-sm mb-5"></div>
+    <div class="flex gap-3 mb-4">
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase" id="lblFinal">Score</div><div id="finalScore" class="text-2xl font-extrabold text-amber-300 tabular-nums">0</div></div>
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase" id="lblFound">Found</div><div id="finalFound" class="text-2xl font-extrabold text-emerald-300 tabular-nums">0</div></div>
+    </div>
+    <div class="flex gap-3">
+      <button id="btnRestart" class="btn flex-1 rounded-2xl py-3.5 font-extrabold flex items-center justify-center gap-2 text-slate-900"
+              style="background:linear-gradient(135deg,#7dd3fc,#22d3ee)"><i data-lucide="rotate-ccw"></i><span id="lblRestart">Play Again</span></button>
+      <a href="index.html" class="btn glass flex-1 rounded-2xl py-3.5 font-bold flex items-center justify-center gap-2"><i data-lucide="home"></i><span id="lblHome">Home</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Moving Differences', sub:'Spot the difference — but everything is moving!', start:'Start',
+       win:'You Win!', over:'Time Up!', winSub:'You cleared all 5 levels! 🎉', overSub:'The clock beat you this time.',
+       scoreL:'Score', found:'Found', again:'Play Again', home:'Home', level:'Level',
+       find:(a,b)=>`Find the difference · ${a}/${b} this level`, best:(s)=>`🏆 Best: ${s}`, correct:'Nice!', wrong:'Miss!' },
+  th:{ title:'จับผิดภาพเคลื่อนไหว', sub:'จับผิดภาพ — แต่ทุกอย่างขยับได้!', start:'เริ่ม',
+       win:'คุณชนะ!', over:'หมดเวลา!', winSub:'ผ่านครบ 5 ด่านแล้ว! 🎉', overSub:'เวลาหมดก่อนซะแล้ว',
+       scoreL:'คะแนน', found:'เจอแล้ว', again:'เล่นอีกครั้ง', home:'หน้าหลัก', level:'ด่าน',
+       find:(a,b)=>`หาจุดต่าง · ${a}/${b} ในด่านนี้`, best:(s)=>`🏆 สูงสุด: ${s}`, correct:'เยี่ยม!', wrong:'พลาด!' },
+  lao:{ title:'ຈັບຜິດພາບເຄື່ອນໄຫວ', sub:'ຈັບຜິດພາບ — ແຕ່ທຸກຢ່າງຂະຍັບໄດ້!', start:'ເລີ່ມ',
+       win:'ເຈົ້າຊະນະ!', over:'ໝົດເວລາ!', winSub:'ຜ່ານຄົບ 5 ດ່ານແລ້ວ! 🎉', overSub:'ເວລາໝົດກ່ອນແລ້ວ',
+       scoreL:'ຄະແນນ', found:'ພົບແລ້ວ', again:'ຫຼິ້ນອີກຄັ້ງ', home:'ໜ້າຫຼັກ', level:'ດ່ານ',
+       find:(a,b)=>`ຫາຈຸດຕ່າງ · ${a}/${b} ໃນດ່ານນີ້`, best:(s)=>`🏆 ສູງສຸດ: ${s}`, correct:'ຍອດ!', wrong:'ພາດ!' },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=localStorage.getItem('spotDynMuted')==='1', actx=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(actx&&actx.state==='suspended')actx.resume(); return actx; }
+function tone(f,d,type='sine',g=0.14,slide=null){ if(muted)return; const c=ac(); if(!c)return;
+  try{ const o=c.createOscillator(),ga=c.createGain(); o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide)o.frequency.exponentialRampToValueAtTime(slide,c.currentTime+d);
+    ga.gain.setValueAtTime(0.0001,c.currentTime); ga.gain.exponentialRampToValueAtTime(g,c.currentTime+0.01);
+    ga.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d); o.connect(ga); ga.connect(c.destination); o.start(); o.stop(c.currentTime+d+0.02);
+  }catch(e){} }
+const sGood=()=>{ tone(660,0.09,'sine',0.16,940); setTimeout(()=>tone(990,0.11,'sine',0.14),80); };
+const sBad =()=>tone(200,0.16,'sawtooth',0.14,130);
+const sLevel=()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,0.14,'triangle',0.14),i*90)); };
+const sWin =()=>{ [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,0.2,'triangle',0.16),i*120)); };
+const sOver=()=>{ [440,330,247].forEach((f,i)=>setTimeout(()=>tone(f,0.28,'sawtooth',0.14),i*140)); };
+
+/* ============================ Canvas ============================ */
+const SCENE=320;
+const cvL=document.getElementById('cvL'), ctxL=cvL.getContext('2d');
+const cvR=document.getElementById('cvR'), ctxR=cvR.getContext('2d');
+let dpr=1;
+function sizeCanvas(cv,ctx){ const r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  ctx.setTransform(cv.width/SCENE,0,0,cv.height/SCENE,0,0); }
+function sizeAll(){ sizeCanvas(cvL,ctxL); sizeCanvas(cvR,ctxR); }
+window.addEventListener('resize',()=>{ sizeAll(); });
+
+/* ============================ Scene generation ============================ */
+const TYPES=['circle','star','triangle','diamond','fish','ring'];
+let scene={objs:[]}, diff=null, t=0;
+let level=1, findsInLevel=0, findsNeeded=3, totalFound=0, score=0;
+let timeLeft=30, running=false, hintUntil=0;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[(Math.random()*a.length)|0];
+
+function makeObj(){
+  const type=pick(TYPES);
+  const size=rnd(11,20);
+  const hue=(Math.random()*360)|0;
+  const color=`hsl(${hue} 80% 62%)`;
+  const color2=`hsl(${(hue+ (110-level*12) + (Math.random()<.5?1:-1)*0)%360} 82% 60%)`; // shifted hue for color diff
+  const speed=rnd(0.5,1.4)*(1+level*0.12);
+  const mtype=pick(['orbit','liss','liss','orbit']);
+  const o={ type,size,color,
+    color2:`hsl(${(hue+(70-level*8))%360} 82% 60%)`,
+    rot0:rnd(0,6.28), spin:rnd(-1.6,1.6)*(1+level*0.1), mtype };
+  const m=40;
+  if(mtype==='orbit'){ o.mx=rnd(m+30,SCENE-m-30); o.my=rnd(m+30,SCENE-m-30); o.rad=rnd(16,52); o.ang0=rnd(0,6.28); o.spd=speed*rnd(.6,1.1)*(Math.random()<.5?1:-1); }
+  else { o.mx=rnd(m,SCENE-m); o.my=rnd(m,SCENE-m); o.ampx=rnd(24,SCENE/2-m); o.ampy=rnd(24,SCENE/2-m);
+    o.ax=speed*rnd(.3,.7); o.ay=speed*rnd(.3,.7); o.p1=rnd(0,6.28); o.p2=rnd(0,6.28); }
+  return o;
+}
+function baseCompute(o,rev){ const tt=rev?-t:t; let x,y;
+  if(o.mtype==='orbit'){ x=o.mx+Math.cos(o.ang0+o.spd*tt)*o.rad; y=o.my+Math.sin(o.ang0+o.spd*tt)*o.rad; }
+  else { x=o.mx+Math.sin(o.ax*tt+o.p1)*o.ampx*0.5; y=o.my+Math.sin(o.ay*tt+o.p2)*o.ampy*0.5; }
+  return {x:Math.max(10,Math.min(SCENE-10,x)), y:Math.max(10,Math.min(SCENE-10,y))};
+}
+function propsFor(k,side){
+  const o=scene.objs[k]; const isDiff=diff && k===diff.i && side==='R';
+  let rev=false, color=o.color, size=o.size, ox=0, oy=0, rot=o.rot0+o.spin*t;
+  if(isDiff){
+    if(diff.type==='color') color=o.color2;
+    else if(diff.type==='scale') size=o.size*diff.scaleMul;
+    else if(diff.type==='offset'){ ox=diff.off.x; oy=diff.off.y; }
+    else if(diff.type==='reverse') rev=true;
+    else if(diff.type==='spin') rot=o.rot0 - o.spin*t;
+  }
+  const p=baseCompute(o,rev);
+  return { x:p.x+ox, y:p.y+oy, size, rot, color, type:o.type };
+}
+
+const DIFF_TYPES=['missing','color','scale','offset','reverse','spin','extra'];
+function newRound(){
+  const count=6+level*2;
+  scene.objs=[]; for(let i=0;i<count;i++) scene.objs.push(makeObj());
+  let type=pick(DIFF_TYPES);
+  diff={ type, i:(Math.random()*count)|0 };
+  // a reversed spin is invisible on a symmetric circle → pick an object that shows rotation
+  if(type==='spin'){
+    const spinnable=scene.objs.map((o,idx)=>({o,idx})).filter(x=>x.o.type!=='circle');
+    if(spinnable.length) diff.i=pick(spinnable).idx; else { type='color'; diff.type='color'; }
+  }
+  if(type==='scale'){ const up=Math.random()<.5; const amt=(0.42-level*0.05); diff.scaleMul= up? 1+amt : 1-amt*0.7; }
+  if(type==='offset'){ const a=rnd(0,6.28), d=(16-level*1.6); diff.off={x:Math.cos(a)*d, y:Math.sin(a)*d}; }
+  if(type==='extra'){ diff.extra=makeObj(); }
+  hintUntil=0;
+}
+function diffPos(side){
+  if(!diff) return null;
+  if(diff.type==='extra'){ return baseCompute(diff.extra,false); }
+  const p=propsFor(diff.i, side);   // for 'missing', propsFor(R) still returns base pos (ghost)
+  return {x:p.x,y:p.y};
+}
+function diffHitSize(){ const o=scene.objs[diff.i]; return diff.type==='extra'?diff.extra.size:(o?o.size:14); }
+
+/* ============================ Drawing ============================ */
+function drawShape(ctx,type,x,y,size,rot,color){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+  ctx.fillStyle=color; ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1.2;
+  ctx.beginPath();
+  if(type==='circle'){ ctx.arc(0,0,size,0,6.2832); }
+  else if(type==='ring'){ ctx.arc(0,0,size,0,6.2832); ctx.fill(); ctx.beginPath(); ctx.arc(0,0,size*0.5,0,6.2832);
+    ctx.fillStyle='rgba(10,16,32,.85)'; ctx.fill(); ctx.beginPath(); ctx.ellipse(0,0,size*1.5,size*0.5,0.5,0,6.2832);
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke(); ctx.restore(); return; }
+  else if(type==='triangle'){ for(let i=0;i<3;i++){ const a=-1.5708+i*2.0944; const px=Math.cos(a)*size, py=Math.sin(a)*size; i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.closePath(); }
+  else if(type==='diamond'){ ctx.moveTo(0,-size); ctx.lineTo(size*0.7,0); ctx.lineTo(0,size); ctx.lineTo(-size*0.7,0); ctx.closePath(); }
+  else if(type==='star'){ for(let i=0;i<10;i++){ const a=-1.5708+i*0.6283; const r=i%2?size*0.45:size; const px=Math.cos(a)*r, py=Math.sin(a)*r; i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.closePath(); }
+  else if(type==='fish'){ ctx.ellipse(0,0,size,size*0.6,0,0,6.2832); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-size,0); ctx.lineTo(-size*1.7,-size*0.6); ctx.lineTo(-size*1.7,size*0.6); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(size*0.5,-size*0.15,size*0.12,0,6.2832); ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fill(); ctx.restore(); return; }
+  ctx.fill(); ctx.stroke(); ctx.restore();
+}
+function renderPanel(ctx,cv,side){
+  ctx.clearRect(0,0,SCENE,SCENE);
+  // background
+  const g=ctx.createLinearGradient(0,0,0,SCENE); g.addColorStop(0,'#101b33'); g.addColorStop(1,'#0a1120');
+  ctx.fillStyle=g; ctx.fillRect(0,0,SCENE,SCENE);
+  // faint stars
+  ctx.fillStyle='rgba(255,255,255,.06)';
+  for(let i=0;i<26;i++){ const sx=(i*97%SCENE), sy=(i*53%SCENE); ctx.fillRect(sx,sy,1.5,1.5); }
+  for(let k=0;k<scene.objs.length;k++){
+    if(side==='R' && diff && diff.type==='missing' && k===diff.i) continue;
+    const p=propsFor(k,side);
+    drawShape(ctx,p.type,p.x,p.y,p.size,p.rot,p.color);
+  }
+  if(side==='R' && diff && diff.type==='extra'){ const pp=baseCompute(diff.extra,false);
+    drawShape(ctx,diff.extra.type,pp.x,pp.y,diff.extra.size,diff.extra.rot0+diff.extra.spin*t,diff.extra.color); }
+  // hint pulse
+  if(performance.now()<hintUntil){ const dp=diffPos(side); if(dp){ const a=(Math.sin(t*8)*0.5+0.5);
+    ctx.strokeStyle=`rgba(253,224,71,${0.4+a*0.5})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(dp.x,dp.y,diffHitSize()+14,0,6.2832); ctx.stroke(); } }
+}
+
+/* ============================ Loop ============================ */
+let lastTs=0;
+function loop(ts){ if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05)dt=0.05;
+  if(running){ t+=dt; timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; endGame(false); } updateTimer(); }
+  renderPanel(ctxL,cvL,'L'); renderPanel(ctxR,cvR,'R');
+  requestAnimationFrame(loop);
+}
+function updateTimer(){ document.getElementById('timeVal').textContent=Math.ceil(timeLeft);
+  const maxT=timeCap(); const pct=Math.max(0,Math.min(1,timeLeft/maxT))*100;
+  const bar=document.getElementById('timeBar'); bar.style.width=pct+'%';
+  bar.style.background = timeLeft<6?'linear-gradient(90deg,#f87171,#fb923c)':'linear-gradient(90deg,#34d399,#22d3ee)'; }
+function timeCap(){ return 34-(level-1)*3; }
+
+/* ============================ Interaction ============================ */
+function onClick(side,cv,e){
+  if(!running) return; ac();
+  const r=cv.getBoundingClientRect();
+  const sx=(e.clientX-r.left)/r.width*SCENE, sy=(e.clientY-r.top)/r.height*SCENE;
+  const dp=diffPos(side); if(!dp) return;
+  const hitR=Math.max(24, diffHitSize()+16);
+  const dist=Math.hypot(sx-dp.x, sy-dp.y);
+  if(dist<hitR){ correct(cv,r,dp,side); }
+  else { wrong(e.clientX,e.clientY); }
+}
+function correct(cv,r,dp,side){
+  score += 100*level; totalFound++; findsInLevel++;
+  timeLeft=Math.min(timeCap(), timeLeft+3);
+  sGood();
+  // ripple at object screen pos
+  const scx=r.left+dp.x/SCENE*r.width, scy=r.top+dp.y/SCENE*r.height;
+  ripple(scx,scy,true);
+  updateHUD();
+  if(findsInLevel>=findsNeeded){
+    if(level>=5){ endGame(true); return; }
+    level++; findsInLevel=0; sLevel(); flashLevel();
+    timeLeft=timeCap();
+  }
+  newRound();
+  updateHUD();
+}
+function wrong(cx,cy){ score=Math.max(0,score-30); timeLeft=Math.max(0,timeLeft-4); sBad();
+  ripple(cx,cy,false); document.getElementById('panels').classList.remove('shake'); void 0;
+  const pn=document.getElementById('panels'); pn.classList.add('shake'); setTimeout(()=>pn.classList.remove('shake'),320);
+  updateHUD(); if(timeLeft<=0){ timeLeft=0; endGame(false); } }
+function ripple(x,y,good){
+  const fx=document.getElementById('fx');
+  const d=document.createElement('div'); d.style.cssText=`position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);`;
+  if(good){ d.innerHTML=`<div style="width:14px;height:14px;border-radius:50%;border:3px solid #34d399;animation:rp .6s ease-out forwards"></div>`; }
+  else { d.innerHTML=`<div style="color:#f87171;font-size:30px;font-weight:900;animation:xf .6s ease-out forwards">✕</div>`; }
+  fx.appendChild(d); setTimeout(()=>d.remove(),650);
+}
+const st=document.createElement('style'); st.textContent=`@keyframes rp{to{width:70px;height:70px;opacity:0}}@keyframes xf{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.4);opacity:0}}`; document.head.appendChild(st);
+cvL.addEventListener('pointerdown',e=>{ e.preventDefault(); onClick('L',cvL,e); });
+cvR.addEventListener('pointerdown',e=>{ e.preventDefault(); onClick('R',cvR,e); });
+
+/* ============================ HUD ============================ */
+function updateHUD(){ document.getElementById('score').textContent=score;
+  document.getElementById('findInfo').textContent=T().find(findsInLevel,findsNeeded);
+  renderDots(); }
+function renderDots(){ const el=document.getElementById('levelDots'); el.innerHTML='';
+  for(let i=1;i<=5;i++){ const d=document.createElement('span');
+    d.style.cssText='width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 1px;';
+    d.style.background = i<level?'#34d399' : i===level?'#7dd3fc' : 'rgba(255,255,255,.18)';
+    if(i===level) d.style.boxShadow='0 0 8px #7dd3fc';
+    el.appendChild(d); }
+  const lab=document.createElement('span'); lab.className='text-xs font-extrabold ml-1'; lab.textContent=T().level+' '+level; el.appendChild(lab);
+}
+function flashLevel(){ const fx=document.getElementById('fx'); const d=document.createElement('div');
+  d.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;';
+  d.innerHTML=`<div style="font-size:2rem;font-weight:900;color:#7dd3fc;text-shadow:0 4px 20px rgba(0,0,0,.6);animation:xf 1s ease-out forwards">${T().level} ${level} ▲</div>`;
+  fx.appendChild(d); setTimeout(()=>d.remove(),1000); }
+
+/* ============================ Flow ============================ */
+function startGame(){ ac(); sizeAll(); level=1; findsInLevel=0; totalFound=0; score=0; timeLeft=timeCap();
+  running=true; document.getElementById('startModal').style.display='none'; document.getElementById('endModal').style.display='none';
+  newRound(); updateHUD(); updateTimer(); }
+function endGame(win){ running=false; const t=T();
+  document.getElementById('endEmoji').textContent=win?'🏆':'⏰';
+  document.getElementById('endTitle').textContent=win?t.win:t.over;
+  document.getElementById('endSub').textContent=win?t.winSub:t.overSub;
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('finalFound').textContent=totalFound;
+  const best=parseInt(localStorage.getItem('spotDynBest')||'0',10); if(score>best) localStorage.setItem('spotDynBest',String(score));
+  win?sWin():sOver(); document.getElementById('endModal').style.display='flex'; lucide.createIcons(); updateBest();
+}
+function updateBest(){ const b=localStorage.getItem('spotDynBest'); document.getElementById('bestLine').textContent=b?T().best(b):''; }
+
+document.getElementById('btnStart').addEventListener('click',startGame);
+document.getElementById('btnRestart').addEventListener('click',startGame);
+document.getElementById('btnHint').addEventListener('click',()=>{ if(!running)return; timeLeft=Math.max(0,timeLeft-3); hintUntil=performance.now()+900; tone(700,0.08,'sine',0.1); });
+document.getElementById('btnSound').addEventListener('click',()=>{ muted=!muted; localStorage.setItem('spotDynMuted',muted?'1':'0');
+  document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; lucide.createIcons(); if(!muted)tone(660,0.08,'sine',0.12); });
+
+/* ============================ i18n ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  set('ttl',t.title); set('sub',t.sub); set('lblStart',t.start); set('lblFinal',t.scoreL); set('lblFound',t.found);
+  set('lblRestart',t.again); set('lblHome',t.home);
+  document.documentElement.lang=lang==='lao'?'lo':lang; }
+
+/* ============================ Boot ============================ */
+applyLang(); sizeAll(); renderDots(); updateBest();
+document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -6,6 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EQ Game · เກມຝຶກສະຫມອງເດັກ</title>
   <meta name="theme-color" content="#7c3aed">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EQ Game">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     * {
@@ -1190,6 +1197,11 @@
       { key: 'mahjong',    file: 'mahjong-solitaire.html',     icon: '🀄', cat: 'classic' },
       { key: 'zen',        file: 'zen-garden.html',            icon: '🎍', cat: 'classic' },
       { key: 'traffic',    file: 'traffic-roads.html',         icon: '🛣️', cat: 'classic' },
+      { key: 'animalEars', file: 'animal-sounds.html',         icon: '🔊', cat: 'skill' },
+      { key: 'freeze',     file: 'freeze-focus.html',          icon: '🧊', cat: 'skill' },
+      { key: 'spotDyn',    file: 'dynamic-spot.html',          icon: '👀', cat: 'skill' },
+      { key: 'breath',     file: 'breathing-bubble.html',      icon: '🫧', cat: 'skill' },
+      { key: 'aura',       file: 'aura-noise.html',            icon: '🎧', cat: 'skill' },
 
       // 🛠️ Tools
       { key: 'freeDraw', file: 'free-draw.html', icon: '🎨', cat: 'tools' },
@@ -1276,7 +1288,7 @@
           findObject: 'ຫາສິ່ງຂອງ', humanBody: 'ຮ່າງກາຍ', solar: 'ລະບົບສຸລິຍະ',
           sound: 'ຟັງສຽງ', matchIcon: 'Match Icon', memory: 'ຈັບຄູ່ພາບ', hideSeek: 'ຊ່ອນຫາ', tower: 'ຫໍຄອຍ', maze: 'ເຂົາວົງກົດ', whack: 'ຕີໜູ', luckyAnimal: 'ສຸ່ມສັດນຳໂຊກ',
           tetris: 'ເທັດຣິສ', pacman: 'Pac-Man', snake: 'ງູ', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'ຍິງປູມເປົ້າ', piano: 'ເປຍໂນ', towerDef: 'ປ້ອງກັນຖານ', candy: 'ລູກກວາດ', platformer: 'ຜະຈົນໄພ', survival: 'ເອົາຕົວລອດ', worldbox: 'ພະເຈົ້າສ້າງໂລກ', waterSort: 'ແຍກສີນ້ຳ', spotDiff: 'ຈັບຜິດພາບ', jenga: 'ຕຶກຖະລົ່ມ', jigsaw: 'ຕໍ່ພາບ', sudoku: 'ຊູໂດກຸ', settlement: 'ສ້າງບ້ານແປງເມືອງ', mahjong: 'ໄພ່ນົກກະຈອກ', zen: 'ສວນເຊນ', traffic: 'ຈັດການຈະລາຈອນ',
+          spaceInv: 'Space Invaders', fps: 'ຍິງປູມເປົ້າ', piano: 'ເປຍໂນ', towerDef: 'ປ້ອງກັນຖານ', candy: 'ລູກກວາດ', platformer: 'ຜະຈົນໄພ', survival: 'ເອົາຕົວລອດ', worldbox: 'ພະເຈົ້າສ້າງໂລກ', waterSort: 'ແຍກສີນ້ຳ', spotDiff: 'ຈັບຜິດພາບ', jenga: 'ຕຶກຖະລົ່ມ', jigsaw: 'ຕໍ່ພາບ', sudoku: 'ຊູໂດກຸ', settlement: 'ສ້າງບ້ານແປງເມືອງ', mahjong: 'ໄພ່ນົກກະຈອກ', zen: 'ສວນເຊນ', traffic: 'ຈັດການຈະລາຈອນ', animalEars: 'ນັບສຽງສັດ', freeze: 'ນິ້ງຄືກ້ອນຫີນ', spotDyn: 'ຈັບຜິດພາບເຄື່ອນໄຫວ', breath: 'ຝຶກຫາຍໃຈ', aura: 'ສຽງຜ່ອນຄາຍ',
           freeDraw: 'ແຕ້ມຮູບອິດສະຫຼະ', stickerChart: 'ສະຕິກເກີຮາງວັນ', gpsTracker: 'ຕິດຕາມ GPS', imgPdf: 'ຮູບເປັນ PDF', pdfMerge: 'ລວມ PDF', pdfSplit: 'ແຍກ PDF', pdfWord: 'PDF → Word'
         }
       },
@@ -1353,7 +1365,7 @@
           findObject: 'หาสิ่งของ', humanBody: 'ร่างกาย', solar: 'ระบบสุริยะ',
           sound: 'ฟังเสียง', matchIcon: 'Match Icon', memory: 'จับคู่ภาพ', hideSeek: 'ซ่อนหา', tower: 'หอคอย', maze: 'เขาวงกต', whack: 'ตีตัวตุ่น', luckyAnimal: 'สุ่มสัตว์นำโชค',
           tetris: 'เททริส', pacman: 'Pac-Man', snake: 'งู', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'ยิงลูกโป่ง', piano: 'เปียโน', towerDef: 'ป้องกันฐาน', candy: 'แคนดี้', platformer: 'ผจญภัย', survival: 'เอาตัวรอด', worldbox: 'พระเจ้าสร้างโลก', waterSort: 'แยกสีน้ำ', spotDiff: 'จับผิดภาพ', jenga: 'ตึกถล่ม', jigsaw: 'ต่อภาพจิ๊กซอว์', sudoku: 'ซูโดกุ', settlement: 'สร้างหมู่บ้าน', mahjong: 'จับคู่ไพ่นกกระจอก', zen: 'สวนเซนญี่ปุ่น', traffic: 'จัดการจราจร',
+          spaceInv: 'Space Invaders', fps: 'ยิงลูกโป่ง', piano: 'เปียโน', towerDef: 'ป้องกันฐาน', candy: 'แคนดี้', platformer: 'ผจญภัย', survival: 'เอาตัวรอด', worldbox: 'พระเจ้าสร้างโลก', waterSort: 'แยกสีน้ำ', spotDiff: 'จับผิดภาพ', jenga: 'ตึกถล่ม', jigsaw: 'ต่อภาพจิ๊กซอว์', sudoku: 'ซูโดกุ', settlement: 'สร้างหมู่บ้าน', mahjong: 'จับคู่ไพ่นกกระจอก', zen: 'สวนเซนญี่ปุ่น', traffic: 'จัดการจราจร', animalEars: 'นับเสียงสัตว์', freeze: 'นิ่งเหมือนหิน', spotDyn: 'จับผิดภาพเคลื่อนไหว', breath: 'ฝึกหายใจ', aura: 'เสียงผ่อนคลาย',
           freeDraw: 'วาดอิสระ', stickerChart: 'สติกเกอร์รางวัล', gpsTracker: 'ติดตาม GPS', imgPdf: 'รูปเป็น PDF', pdfMerge: 'รวม PDF', pdfSplit: 'แยก PDF', pdfWord: 'PDF → Word'
         }
       },
@@ -1430,7 +1442,7 @@
           findObject: 'Find Objects', humanBody: 'Human Body', solar: 'Solar System',
           sound: 'Animal Sounds', matchIcon: 'Match Icon', memory: 'Memory Match', hideSeek: 'Hide & Seek', tower: 'Tower Stack', maze: 'Maze', whack: 'Whack-a-Mole', luckyAnimal: 'Lucky Animal',
           tetris: 'Tetris', pacman: 'Pac-Man', snake: 'Snake', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'Balloon Shooter', piano: 'Piano', towerDef: 'Tower Defense', candy: 'Candy Crush', platformer: 'Platformer', survival: 'Survival', worldbox: 'God Sandbox', waterSort: 'Water Sort', spotDiff: 'Spot the Difference', jenga: 'Jenga Tower', jigsaw: 'Jigsaw Puzzle', sudoku: 'Sudoku', settlement: 'Settlement Builder', mahjong: 'Mahjong Solitaire', zen: 'Zen Garden', traffic: 'Traffic Roads',
+          spaceInv: 'Space Invaders', fps: 'Balloon Shooter', piano: 'Piano', towerDef: 'Tower Defense', candy: 'Candy Crush', platformer: 'Platformer', survival: 'Survival', worldbox: 'God Sandbox', waterSort: 'Water Sort', spotDiff: 'Spot the Difference', jenga: 'Jenga Tower', jigsaw: 'Jigsaw Puzzle', sudoku: 'Sudoku', settlement: 'Settlement Builder', mahjong: 'Mahjong Solitaire', zen: 'Zen Garden', traffic: 'Traffic Roads', animalEars: 'Animal Ears', freeze: 'Freeze & Focus', spotDyn: 'Moving Differences', breath: 'Breathing Bubble', aura: 'AuraNoise',
           freeDraw: 'Free Draw', stickerChart: 'Sticker Chart', gpsTracker: 'GPS Tracker', imgPdf: 'Image → PDF', pdfMerge: 'PDF Merge', pdfSplit: 'PDF Split', pdfWord: 'PDF → Word'
         }
       }
@@ -1638,6 +1650,98 @@
     });
 
     applyLang();
+
+    /* ================= PWA: install button + update banner ================= */
+    (function () {
+      const PWA_T = {
+        th: { installT: 'ติดตั้งแอป EQ Game', installM: 'ติดตั้งไว้เล่นออฟไลน์ได้ทุกที่', install: 'ติดตั้ง',
+              updateT: 'มีเวอร์ชันใหม่!', updateM: 'อัปเดตเพื่อรับเกมและฟีเจอร์ล่าสุด', update: 'อัปเดต',
+              iosT: 'เพิ่มลงหน้าจอโฮม', iosM: 'แตะปุ่ม “แชร์” แล้วเลือก “เพิ่มไปยังหน้าจอโฮม”' },
+        en: { installT: 'Install EQ Game', installM: 'Install it to play offline anywhere', install: 'Install',
+              updateT: 'New version available!', updateM: 'Update to get the latest games & features', update: 'Update',
+              iosT: 'Add to Home Screen', iosM: 'Tap the Share button, then “Add to Home Screen”' },
+        lao: { installT: 'ຕິດຕັ້ງແອັບ EQ Game', installM: 'ຕິດຕັ້ງໄວ້ຫຼິ້ນອອບລາຍໄດ້ທຸກບ່ອນ', install: 'ຕິດຕັ້ງ',
+               updateT: 'ມີເວີຊັນໃໝ່!', updateM: 'ອັບເດດເພື່ອຮັບເກມ ແລະ ຄຸນສົມບັດຫຼ້າສຸດ', update: 'ອັບເດດ',
+               iosT: 'ເພີ່ມລົງໜ້າຈໍໂຮມ', iosM: 'ແຕະປຸ່ມ “ແຊร์” ແລ້ວເລືອກ “ເພີ່ມໄປໜ້າຈໍໂຮມ”' },
+      };
+      const pt = () => PWA_T[(typeof lang !== 'undefined' && PWA_T[lang]) ? lang : 'en'];
+
+      // ---- inject banner UI + styles ----
+      const style = document.createElement('style');
+      style.textContent =
+        '#pwaBanners{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));pointer-events:none}' +
+        '.pwa-card{pointer-events:auto;width:100%;max-width:520px;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7c3aed,#be185d);color:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);animation:pwaUp .3s ease}' +
+        '@keyframes pwaUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}' +
+        '.pwa-ic{font-size:24px;flex-shrink:0}.pwa-txt{display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}' +
+        '.pwa-txt b{font-size:14px;font-weight:900}.pwa-txt span{font-size:11px;opacity:.85}' +
+        '.pwa-btn{background:#fff;color:#7c3aed;font-weight:900;border:none;border-radius:11px;padding:9px 15px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit}' +
+        '.pwa-btn:active{transform:scale(.94)}' +
+        '.pwa-x{background:rgba(255,255,255,.2);color:#fff;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:12px;flex-shrink:0}';
+      document.head.appendChild(style);
+
+      const wrap = document.createElement('div'); wrap.id = 'pwaBanners';
+      wrap.innerHTML =
+        '<div id="pwaInstall" class="pwa-card" style="display:none"><span class="pwa-ic">📲</span><div class="pwa-txt"><b id="piT"></b><span id="piM"></span></div><button id="piBtn" class="pwa-btn"></button><button id="piX" class="pwa-x">✕</button></div>' +
+        '<div id="pwaUpdate" class="pwa-card" style="display:none;background:linear-gradient(135deg,#0ea5e9,#7c3aed)"><span class="pwa-ic">✨</span><div class="pwa-txt"><b id="puT"></b><span id="puM"></span></div><button id="puBtn" class="pwa-btn" style="color:#0ea5e9"></button><button id="puX" class="pwa-x">✕</button></div>' +
+        '<div id="pwaIos" class="pwa-card" style="display:none"><span class="pwa-ic">📲</span><div class="pwa-txt"><b id="pxT"></b><span id="pxM"></span></div><button id="pxX" class="pwa-x">✕</button></div>';
+      document.body.appendChild(wrap);
+      const $ = (id) => document.getElementById(id);
+      const hide = (id) => { $(id).style.display = 'none'; };
+
+      // ---- install prompt (Android / Chromium) ----
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); deferredPrompt = e;
+        if (localStorage.getItem('pwaInstallDismissed') !== '1') {
+          const t = pt(); $('piT').textContent = t.installT; $('piM').textContent = t.installM; $('piBtn').textContent = t.install;
+          $('pwaInstall').style.display = 'flex';
+        }
+      });
+      $('piBtn').addEventListener('click', async () => {
+        if (!deferredPrompt) return; hide('pwaInstall');
+        deferredPrompt.prompt();
+        try { const { outcome } = await deferredPrompt.userChoice; if (outcome !== 'accepted') localStorage.setItem('pwaInstallDismissed', '1'); } catch (_) {}
+        deferredPrompt = null;
+      });
+      $('piX').addEventListener('click', () => { hide('pwaInstall'); localStorage.setItem('pwaInstallDismissed', '1'); });
+      window.addEventListener('appinstalled', () => { hide('pwaInstall'); deferredPrompt = null; });
+
+      // ---- iOS hint (Safari has no beforeinstallprompt) ----
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      if (isIOS && !standalone && localStorage.getItem('pwaIosHint') !== '1') {
+        const t = pt(); $('pxT').textContent = t.iosT; $('pxM').textContent = t.iosM; $('pwaIos').style.display = 'flex';
+      }
+      $('pxX').addEventListener('click', () => { hide('pwaIos'); localStorage.setItem('pwaIosHint', '1'); });
+
+      // ---- update banner ----
+      function offerUpdate(worker) {
+        if (!worker) return;
+        const t = pt(); $('puT').textContent = t.updateT; $('puM').textContent = t.updateM; $('puBtn').textContent = t.update;
+        $('pwaUpdate').style.display = 'flex';
+        $('puBtn').onclick = () => { updating = true; hide('pwaUpdate'); worker.postMessage({ type: 'SKIP_WAITING' }); };
+      }
+      $('puX').addEventListener('click', () => hide('pwaUpdate'));
+
+      // ---- register SW + wiring ----
+      let updating = false;
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => { if (updating) { updating = false; location.reload(); } });
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('service-worker.js').then((reg) => {
+            // hand the SW the full list of games to precache for offline play
+            const pushList = () => { const w = reg.active || navigator.serviceWorker.controller;
+              if (w) w.postMessage({ type: 'PRECACHE', urls: ['./', 'index.html', 'manifest.json', 'icon.svg', 'icon-maskable.svg'].concat(GAMES.map((g) => g.file)) }); };
+            if (reg.active) pushList(); else navigator.serviceWorker.ready.then(pushList);
+            // an update was already downloaded in a previous visit
+            if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+            // an update downloads now
+            reg.addEventListener('updatefound', () => { const nw = reg.installing; if (!nw) return;
+              nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(reg.waiting || nw); }); });
+          }).catch(() => {});
+        });
+      }
+    })();
   </script>
 </body>
 

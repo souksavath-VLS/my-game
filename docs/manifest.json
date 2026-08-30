@@ -1,0 +1,20 @@
+{
+  "name": "EQ Game · เกมฝึกสมองเด็ก",
+  "short_name": "EQ Game",
+  "description": "รวมเกมฝึกสมอง สมาธิ และกิจกรรมสร้างสรรค์สำหรับเด็ก · เล่นได้แม้ไม่มีอินเทอร์เน็ต",
+  "lang": "lo",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#fef3c7",
+  "theme_color": "#7c3aed",
+  "categories": ["education", "games", "kids"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

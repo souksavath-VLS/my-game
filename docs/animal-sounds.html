@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Animal Ears · Sound Counting</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    background:radial-gradient(ellipse at 50% 0%, #1e3a5f 0%, #14233d 55%, #0d1626 100%); color:#e8eefc; }
+  *{ box-sizing:border-box; }
+  .screen{ position:absolute; inset:0; display:flex; flex-direction:column; padding:20px;
+    opacity:0; transform:translateY(12px) scale(.99); pointer-events:none;
+    transition:opacity .4s ease, transform .4s ease; overflow-y:auto; }
+  .screen.active{ opacity:1; transform:none; pointer-events:auto; }
+  .btn{ transition:transform .08s ease, box-shadow .2s, background .2s, opacity .2s; }
+  .btn:active{ transform:scale(.94); }
+  .btn:disabled{ opacity:.45; pointer-events:none; }
+  .glass{ background:rgba(255,255,255,.07); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 8px 26px rgba(0,0,0,.3); }
+  input[type=range]{ -webkit-appearance:none; appearance:none; height:8px; border-radius:99px;
+    background:rgba(255,255,255,.16); outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:22px; height:22px; border-radius:50%;
+    background:#7dd3fc; box-shadow:0 2px 8px rgba(0,0,0,.4); cursor:pointer; }
+  input[type=range]::-moz-range-thumb{ width:22px; height:22px; border:none; border-radius:50%; background:#7dd3fc; cursor:pointer; }
+  [data-lucide]{ width:1em; height:1em; }
+
+  /* pulse ring during playback */
+  #pulseCore{ transition:transform .12s ease-out, box-shadow .12s ease-out; }
+  @keyframes ringOut{ 0%{ transform:scale(.7); opacity:.7 } 100%{ transform:scale(2.4); opacity:0 } }
+  .ring{ position:absolute; inset:0; border-radius:50%; border:2px solid rgba(125,211,252,.7); animation:ringOut 1s ease-out forwards; }
+  @keyframes bar{ 0%,100%{ transform:scaleY(.3) } 50%{ transform:scaleY(1) } }
+  .wbar{ transform-origin:center; animation:bar 1.1s ease-in-out infinite; }
+  @keyframes floaty{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-8px) } }
+  .floaty{ animation:floaty 2.6s ease-in-out infinite; }
+  .fadein{ animation:fi .5s ease both; } @keyframes fi{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+</style>
+</head>
+<body>
+
+<!-- =================== MENU =================== -->
+<div id="s-menu" class="screen active items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-6">
+    <a href="index.html" class="btn glass w-10 h-10 rounded-full flex items-center justify-center absolute top-4 left-4"><i data-lucide="x"></i></a>
+    <div class="floaty text-7xl mt-6">🦻</div>
+    <div>
+      <h1 class="text-3xl font-extrabold tracking-tight" id="ttl">Animal Ears</h1>
+      <p class="text-sky-200/70 text-sm mt-1" id="subttl">Close your eyes. Count with your ears.</p>
+    </div>
+
+    <!-- difficulty -->
+    <div class="w-full">
+      <div class="text-xs font-bold uppercase tracking-widest text-sky-200/60 mb-2 text-left" id="lblDiff">Difficulty</div>
+      <div class="grid grid-cols-3 gap-2" id="diffRow"></div>
+    </div>
+
+    <!-- volume -->
+    <div class="w-full glass rounded-2xl p-4">
+      <div class="flex items-center gap-3">
+        <i data-lucide="volume-2" class="text-sky-200 text-xl"></i>
+        <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" class="flex-1">
+        <span id="volVal" class="text-sm font-bold tabular-nums w-9 text-right">80%</span>
+      </div>
+    </div>
+
+    <button id="btnStart" class="btn w-full rounded-2xl py-4 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#7dd3fc,#38bdf8)">
+      <i data-lucide="play"></i><span id="lblStart">Start Game</span>
+    </button>
+    <p class="text-xs text-sky-200/40" id="lblTip">Best with headphones 🎧</p>
+  </div>
+</div>
+
+<!-- =================== PREP =================== -->
+<div id="s-prep" class="screen items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-5">
+    <div class="text-xs font-bold uppercase tracking-widest text-sky-200/60" id="lblRound">Round 1</div>
+    <div class="text-sky-200/80" id="lblListen">Listen for the</div>
+    <div class="glass rounded-3xl px-8 py-6 flex flex-col items-center gap-2 floaty">
+      <div id="targetEmoji" class="text-7xl">🐱</div>
+      <div id="targetName" class="text-2xl font-extrabold uppercase tracking-wide">Cat</div>
+    </div>
+    <button id="btnPreview" class="btn glass rounded-2xl px-6 py-3 font-bold flex items-center gap-2">
+      <i data-lucide="ear"></i><span id="lblPreview">Preview Sound</span>
+    </button>
+    <p class="text-sm text-sky-200/60 max-w-xs" id="lblPrepHint">Count how many times you hear it. Other animals will try to distract you.</p>
+    <button id="btnBegin" class="btn w-full rounded-2xl py-4 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#86efac,#4ade80)">
+      <i data-lucide="headphones"></i><span id="lblBegin">I'm Ready — Play</span>
+    </button>
+  </div>
+</div>
+
+<!-- =================== PLAYBACK =================== -->
+<div id="s-play" class="screen items-center justify-center text-center">
+  <div class="flex flex-col items-center gap-8">
+    <div class="text-sky-200/60 text-sm font-bold uppercase tracking-widest" id="lblFocus">Focus · Listen</div>
+    <!-- pulse -->
+    <div class="relative w-52 h-52 flex items-center justify-center">
+      <div id="ringHost" class="absolute inset-0"></div>
+      <div id="pulseCore" class="w-32 h-32 rounded-full flex items-center justify-center"
+           style="background:radial-gradient(circle at 40% 35%, #7dd3fc, #0ea5e9 70%); box-shadow:0 0 40px rgba(56,189,248,.5)">
+        <div class="flex items-end gap-1.5 h-12">
+          <div class="wbar w-1.5 h-full bg-white/90 rounded" style="animation-delay:0s"></div>
+          <div class="wbar w-1.5 h-full bg-white/90 rounded" style="animation-delay:.15s"></div>
+          <div class="wbar w-1.5 h-full bg-white/90 rounded" style="animation-delay:.3s"></div>
+          <div class="wbar w-1.5 h-full bg-white/90 rounded" style="animation-delay:.45s"></div>
+          <div class="wbar w-1.5 h-full bg-white/90 rounded" style="animation-delay:.6s"></div>
+        </div>
+      </div>
+    </div>
+    <div class="w-56 h-1.5 rounded-full bg-white/10 overflow-hidden">
+      <div id="progBar" class="h-full rounded-full" style="width:0%;background:linear-gradient(90deg,#7dd3fc,#38bdf8);transition:width .2s linear"></div>
+    </div>
+    <div class="text-sky-200/40 text-xs" id="lblEyes">You can close your eyes 🙈</div>
+  </div>
+</div>
+
+<!-- =================== ANSWER =================== -->
+<div id="s-answer" class="screen items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-6">
+    <div class="text-6xl floaty" id="answerEmoji">🐱</div>
+    <div class="text-xl font-extrabold" id="lblQuestion">How many times did the Cat sound?</div>
+    <div id="answerRow" class="grid grid-cols-3 gap-3 w-full"></div>
+  </div>
+</div>
+
+<!-- =================== SCORE =================== -->
+<div id="s-score" class="screen items-center justify-center text-center">
+  <div class="w-full max-w-sm mx-auto flex flex-col items-center gap-4">
+    <div id="scoreEmoji" class="text-7xl floaty">🎉</div>
+    <div id="scoreTitle" class="text-2xl font-extrabold">Correct!</div>
+    <div id="scoreLine" class="text-sky-200/80 text-sm"></div>
+    <div class="w-full glass rounded-2xl p-4">
+      <div class="text-xs font-bold uppercase tracking-widest text-sky-200/50 mb-2" id="lblBreak">Sound Breakdown</div>
+      <div id="breakdown" class="flex flex-col gap-1.5"></div>
+    </div>
+    <div class="flex gap-3 w-full">
+      <button id="btnRetry" class="btn flex-1 glass rounded-2xl py-3.5 font-bold flex items-center justify-center gap-2">
+        <i data-lucide="rotate-ccw"></i><span id="lblRetry">Retry</span>
+      </button>
+      <button id="btnNext" class="btn flex-1 rounded-2xl py-3.5 font-extrabold flex items-center justify-center gap-2 text-slate-900"
+              style="background:linear-gradient(135deg,#7dd3fc,#38bdf8)">
+        <span id="lblNext">Next</span><i data-lucide="arrow-right"></i>
+      </button>
+    </div>
+    <div class="text-xs text-sky-200/50" id="streakLine"></div>
+    <a href="index.html" class="text-xs text-sky-200/40 mt-1 flex items-center gap-1"><i data-lucide="home" style="width:14px;height:14px"></i><span id="lblHome">Home</span></a>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Animal Ears', sub:'Close your eyes. Count with your ears.', diff:'Difficulty',
+       easy:'Easy', medium:'Medium', hard:'Hard', start:'Start Game', tip:'Best with headphones 🎧',
+       round:'Round', listen:'Listen for the', preview:'Preview Sound',
+       prepHint:'Count how many times you hear it. Other animals will try to distract you.',
+       begin:"I'm Ready — Play", focus:'Focus · Listen', eyes:'You can close your eyes 🙈',
+       question:(a)=>`How many times did the ${a} sound?`, correct:'Correct!', wrong:'Not quite!',
+       youSaid:(g,t)=>`You said ${g} · the answer was ${t}`, breakdown:'Sound Breakdown',
+       retry:'Retry', next:'Next', home:'Home', streak:(n)=>`🔥 Streak: ${n}`, target:'TARGET' },
+  th:{ title:'นับเสียงสัตว์', sub:'หลับตา แล้วนับด้วยหู', diff:'ระดับความยาก',
+       easy:'ง่าย', medium:'ปานกลาง', hard:'ยาก', start:'เริ่มเกม', tip:'ฟังด้วยหูฟังจะดีที่สุด 🎧',
+       round:'รอบ', listen:'ตั้งใจฟังเสียง', preview:'ลองฟังเสียง',
+       prepHint:'นับว่าได้ยินกี่ครั้ง สัตว์อื่นจะคอยหลอกล่อ',
+       begin:'พร้อมแล้ว — เล่น', focus:'ตั้งสมาธิ · ฟัง', eyes:'หลับตาฟังได้เลย 🙈',
+       question:(a)=>`ได้ยินเสียง${a}กี่ครั้ง?`, correct:'ถูกต้อง!', wrong:'ยังไม่ถูก!',
+       youSaid:(g,t)=>`คุณตอบ ${g} · คำตอบคือ ${t}`, breakdown:'สรุปเสียงที่เล่น',
+       retry:'ลองใหม่', next:'ต่อไป', home:'หน้าหลัก', streak:(n)=>`🔥 ต่อเนื่อง: ${n}`, target:'เป้าหมาย' },
+  lao:{ title:'ນັບສຽງສັດ', sub:'ຫຼັບຕາ ແລ້ວນັບດ້ວຍຫູ', diff:'ລະດັບຄວາມຫຍຸ້ງຍາກ',
+       easy:'ງ່າຍ', medium:'ປານກາງ', hard:'ຍາກ', start:'ເລີ່ມເກມ', tip:'ຟັງດ້ວຍຫູຟັງຈະດີທີ່ສຸດ 🎧',
+       round:'ຮອບ', listen:'ຕັ້ງໃຈຟັງສຽງ', preview:'ລອງຟັງສຽງ',
+       prepHint:'ນັບວ່າໄດ້ຍິນຈັກເທື່ອ ສັດອື່ນຈະຄອຍຫຼອກ',
+       begin:'ພ້ອມແລ້ວ — ຫຼິ້ນ', focus:'ຕັ້ງສະມາທິ · ຟັງ', eyes:'ຫຼັບຕາຟັງໄດ້ເລີຍ 🙈',
+       question:(a)=>`ໄດ້ຍິນສຽງ${a}ຈັກເທື່ອ?`, correct:'ຖືກຕ້ອງ!', wrong:'ຍັງບໍ່ຖືກ!',
+       youSaid:(g,t)=>`ເຈົ້າຕອບ ${g} · ຄຳຕອບຄື ${t}`, breakdown:'ສະຫຼຸບສຽງທີ່ຫຼິ້ນ',
+       retry:'ລອງໃໝ່', next:'ຕໍ່ໄປ', home:'ໜ້າຫຼັກ', streak:(n)=>`🔥 ຕໍ່ເນື່ອງ: ${n}`, target:'ເປົ້າໝາຍ' },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio engine ============================ */
+let actx=null, master=null, volume=0.8;
+function ac(){
+  if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)();
+    master=actx.createGain(); master.gain.value=volume; master.connect(actx.destination); }
+  if(actx.state==='suspended') actx.resume();
+  return actx;
+}
+let noiseBuf=null;
+function noise(){ const c=ac(); if(!noiseBuf){ const n=c.sampleRate*1; noiseBuf=c.createBuffer(1,n,c.sampleRate);
+  const d=noiseBuf.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1; } return noiseBuf; }
+function env(g,t0,a,peak,d){ g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(peak,t0+a);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+a+d); }
+
+/* --- each animal is a synth function scheduled at absolute time t0 --- */
+const ANIMALS=[
+  { id:'cat', name:{en:'Cat',th:'แมว',lao:'ແມວ'}, emoji:'🐱', play(t0){
+      const c=ac(); const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+      o.type='sawtooth'; f.type='lowpass'; f.frequency.value=1400;
+      o.frequency.setValueAtTime(560,t0); o.frequency.exponentialRampToValueAtTime(860,t0+0.18);
+      o.frequency.exponentialRampToValueAtTime(430,t0+0.5);
+      const lfo=c.createOscillator(), lg=c.createGain(); lfo.frequency.value=16; lg.gain.value=22;
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t0); lfo.stop(t0+0.55);
+      env(g,t0,0.05,0.5,0.42); o.connect(f); f.connect(g); g.connect(master); o.start(t0); o.stop(t0+0.6);
+  }},
+  { id:'dog', name:{en:'Dog',th:'หมา',lao:'ໝາ'}, emoji:'🐶', play(t0){
+      const c=ac();
+      [0,0.22].forEach(off=>{ const tt=t0+off;
+        const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+        o.type='square'; f.type='lowpass'; f.frequency.value=900;
+        o.frequency.setValueAtTime(210,tt); o.frequency.exponentialRampToValueAtTime(120,tt+0.12);
+        env(g,tt,0.008,0.5,0.11); o.connect(f); f.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.16);
+        const nb=c.createBufferSource(), ng=c.createGain(), nf=c.createBiquadFilter();
+        nb.buffer=noise(); nf.type='bandpass'; nf.frequency.value=500; ng.gain.value=0.001;
+        env(ng,tt,0.006,0.22,0.08); nb.connect(nf); nf.connect(ng); ng.connect(master); nb.start(tt); nb.stop(tt+0.12);
+      });
+  }},
+  { id:'bird', name:{en:'Bird',th:'นก',lao:'ນົກ'}, emoji:'🐦', play(t0){
+      const c=ac();
+      [0,0.09,0.18].forEach((off,i)=>{ const tt=t0+off; const o=c.createOscillator(), g=c.createGain();
+        o.type='sine'; const base=2000+i*180;
+        o.frequency.setValueAtTime(base,tt); o.frequency.exponentialRampToValueAtTime(base+700,tt+0.05);
+        o.frequency.exponentialRampToValueAtTime(base+120,tt+0.08);
+        env(g,tt,0.006,0.35,0.06); o.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.09);
+      });
+  }},
+  { id:'frog', name:{en:'Frog',th:'กบ',lao:'ກົບ'}, emoji:'🐸', play(t0){
+      const c=ac();
+      [0,0.17].forEach(off=>{ const tt=t0+off;
+        const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+        o.type='sawtooth'; f.type='lowpass'; f.frequency.value=650; o.frequency.setValueAtTime(120,tt);
+        const lfo=c.createOscillator(), lg=c.createGain(); lfo.type='square'; lfo.frequency.value=30; lg.gain.value=0.4;
+        lfo.connect(lg); lg.connect(g.gain); lfo.start(tt); lfo.stop(tt+0.14);
+        env(g,tt,0.01,0.5,0.12); o.connect(f); f.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.16);
+      });
+  }},
+  { id:'duck', name:{en:'Duck',th:'เป็ด',lao:'ເປັດ'}, emoji:'🦆', play(t0){
+      const c=ac();
+      [0,0.15].forEach(off=>{ const tt=t0+off;
+        const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+        o.type='sawtooth'; f.type='bandpass'; f.frequency.value=900; f.Q.value=6;
+        o.frequency.setValueAtTime(320,tt); o.frequency.exponentialRampToValueAtTime(200,tt+0.11);
+        env(g,tt,0.006,0.45,0.1); o.connect(f); f.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.13);
+      });
+  }},
+  { id:'owl', name:{en:'Owl',th:'นกฮูก',lao:'ນົກເຄົ້າ'}, emoji:'🦉', play(t0){
+      const c=ac();
+      [0,0.34].forEach(off=>{ const tt=t0+off; const o=c.createOscillator(), g=c.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(430,tt); o.frequency.exponentialRampToValueAtTime(360,tt+0.22);
+        const lfo=c.createOscillator(), lg=c.createGain(); lfo.frequency.value=7; lg.gain.value=8;
+        lfo.connect(lg); lg.connect(o.frequency); lfo.start(tt); lfo.stop(tt+0.25);
+        env(g,tt,0.04,0.42,0.2); o.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.28);
+      });
+  }},
+  { id:'sheep', name:{en:'Sheep',th:'แกะ',lao:'ແກະ'}, emoji:'🐑', play(t0){
+      const c=ac(); const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+      o.type='sawtooth'; f.type='lowpass'; f.frequency.value=1100;
+      o.frequency.setValueAtTime(420,t0); o.frequency.linearRampToValueAtTime(360,t0+0.5);
+      const lfo=c.createOscillator(), lg=c.createGain(); lfo.type='sine'; lfo.frequency.value=13; lg.gain.value=30;
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t0); lfo.stop(t0+0.5);
+      env(g,t0,0.05,0.45,0.42); o.connect(f); f.connect(g); g.connect(master); o.start(t0); o.stop(t0+0.55);
+  }},
+];
+const byId=Object.fromEntries(ANIMALS.map(a=>[a.id,a]));
+function animName(a){ return a.name[lang]||a.name.en; }
+
+/* ============================ Game state ============================ */
+const DIFF={
+  easy:  { pool:3, count:[6,8],   gap:[1.0,1.35], overlap:0.0 },
+  medium:{ pool:4, count:[10,13], gap:[0.68,0.95],overlap:0.18 },
+  hard:  { pool:5, count:[15,19], gap:[0.42,0.62],overlap:0.4 },
+};
+let difficulty='easy', round=1, streak=0;
+let target=null, roundPool=[], schedule=[], trueCount=0, counts={};
+let playTimers=[];
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function rand(a,b){ return a+Math.random()*(b-a); }
+function randInt(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
+
+function buildRound(){
+  const cfg=DIFF[difficulty];
+  roundPool=shuffle(ANIMALS.slice()).slice(0,cfg.pool);
+  target=roundPool[Math.floor(Math.random()*roundPool.length)];
+  const n=randInt(cfg.count[0],cfg.count[1]);
+  schedule=[]; let t=0.4;
+  for(let i=0;i<n;i++){
+    const a=roundPool[Math.floor(Math.random()*roundPool.length)];
+    schedule.push({t, a});
+    // occasional overlap: a second, different animal at (almost) the same time
+    if(Math.random()<cfg.overlap){
+      let b=roundPool[Math.floor(Math.random()*roundPool.length)];
+      let tries=0; while(b===a && tries++<4) b=roundPool[Math.floor(Math.random()*roundPool.length)];
+      schedule.push({t:t+rand(0.02,0.09), b:true, a:b});
+    }
+    t+=rand(cfg.gap[0],cfg.gap[1]);
+  }
+  schedule.sort((x,y)=>x.t-y.t);
+  const recount=()=>{ counts={}; roundPool.forEach(a=>counts[a.id]=0); schedule.forEach(ev=>counts[ev.a.id]++); trueCount=counts[target.id]; };
+  recount();
+  // guarantee the target is heard at least once
+  if(trueCount===0 && schedule.length){ schedule[Math.floor(Math.random()*schedule.length)].a=target; recount(); }
+}
+
+/* ============================ Screens ============================ */
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); }
+
+function toPrep(){
+  document.getElementById('lblRound').textContent=`${T().round} ${round}`;
+  document.getElementById('targetEmoji').textContent=target.emoji;
+  document.getElementById('targetName').textContent=animName(target);
+  show('s-prep');
+}
+
+/* --- playback --- */
+function pulse(){
+  const core=document.getElementById('pulseCore');
+  core.style.transform='scale(1.16)'; core.style.boxShadow='0 0 60px rgba(56,189,248,.85)';
+  setTimeout(()=>{ core.style.transform='scale(1)'; core.style.boxShadow='0 0 40px rgba(56,189,248,.5)'; },130);
+  const host=document.getElementById('ringHost'); const ring=document.createElement('div');
+  ring.className='ring'; host.appendChild(ring); setTimeout(()=>ring.remove(),1000);
+}
+function startPlayback(){
+  show('s-play');
+  const c=ac();
+  const lead=0.5, t0=c.currentTime+lead;
+  const startPerf=performance.now()+lead*1000;
+  const totalDur=schedule[schedule.length-1].t + 1.2;
+  playTimers.forEach(clearTimeout); playTimers=[];
+  // schedule audio + visual pulses
+  schedule.forEach(ev=>{
+    ev.a.play(t0+ev.t);
+    playTimers.push(setTimeout(pulse, Math.max(0,startPerf-performance.now()+ev.t*1000)));
+  });
+  // progress bar
+  const bar=document.getElementById('progBar'); bar.style.transition='none'; bar.style.width='0%';
+  requestAnimationFrame(()=>{ bar.style.transition=`width ${totalDur}s linear`; bar.style.width='100%'; });
+  // move to answer
+  playTimers.push(setTimeout(toAnswer, (lead+totalDur)*1000));
+}
+
+/* --- answer --- */
+function toAnswer(){
+  document.getElementById('answerEmoji').textContent=target.emoji;
+  document.getElementById('lblQuestion').textContent=T().question(animName(target));
+  // options: a tidy contiguous window of 6 choices centred on the answer
+  const set=new Set([trueCount]); let lo=trueCount, hi=trueCount;
+  while(set.size<6){
+    if(lo>0 && (Math.random()<0.5 || hi>=trueCount+4)){ lo--; set.add(lo); }
+    else { hi++; set.add(hi); }
+  }
+  const opts=[...set].sort((a,b)=>a-b);
+  const row=document.getElementById('answerRow'); row.innerHTML='';
+  opts.forEach(v=>{
+    const b=document.createElement('button');
+    b.className='btn glass rounded-2xl py-5 text-2xl font-extrabold';
+    b.textContent=v;
+    b.addEventListener('click',()=>submit(v));
+    row.appendChild(b);
+  });
+  show('s-answer');
+}
+
+/* --- score --- */
+function submit(guess){
+  const correct = guess===trueCount;
+  if(correct){ streak++; } else { streak=0; }
+  document.getElementById('scoreEmoji').textContent = correct?'🎉':'🙉';
+  document.getElementById('scoreTitle').textContent = correct?T().correct:T().wrong;
+  document.getElementById('scoreTitle').style.color = correct?'#4ade80':'#fca5a5';
+  document.getElementById('scoreLine').textContent = T().youSaid(guess,trueCount);
+  // breakdown
+  const bd=document.getElementById('breakdown'); bd.innerHTML='';
+  roundPool.slice().sort((a,b)=>counts[b.id]-counts[a.id]).forEach(a=>{
+    const isT=a.id===target.id;
+    const row=document.createElement('div');
+    row.className='flex items-center gap-2 rounded-xl px-3 py-1.5 '+(isT?'bg-sky-400/20 ring-1 ring-sky-300/40':'');
+    row.innerHTML=`<span class="text-xl">${a.emoji}</span>
+      <span class="font-bold text-sm">${animName(a)}</span>
+      ${isT?`<span class="text-[10px] font-extrabold text-sky-300 border border-sky-300/50 rounded px-1.5 py-0.5">${T().target}</span>`:''}
+      <span class="ml-auto font-extrabold tabular-nums text-lg">${counts[a.id]}</span>`;
+    bd.appendChild(row);
+  });
+  document.getElementById('streakLine').textContent = streak>1 ? T().streak(streak) : '';
+  if(correct) sJingle(true); else sJingle(false);
+  show('s-score');
+  lucide.createIcons();
+}
+function sJingle(win){ const c=ac();
+  const seq = win?[523,659,784,1046]:[440,330];
+  seq.forEach((f,i)=>{ const t=c.currentTime+i*0.1; const o=c.createOscillator(),g=c.createGain();
+    o.type='triangle'; o.frequency.value=f; env(g,t,0.02,0.4,0.18); o.connect(g); g.connect(master); o.start(t); o.stop(t+0.22); });
+}
+
+/* ============================ Wiring ============================ */
+function renderDiff(){
+  const row=document.getElementById('diffRow'); row.innerHTML='';
+  [['easy','😌'],['medium','🙂'],['hard','🔥']].forEach(([k,em])=>{
+    const b=document.createElement('button');
+    b.className='btn rounded-2xl py-3 font-extrabold text-sm '+(difficulty===k?'text-slate-900':'glass');
+    if(difficulty===k) b.style.background='linear-gradient(135deg,#7dd3fc,#38bdf8)';
+    b.innerHTML=`<div class="text-xl">${em}</div><div class="mt-0.5">${T()[k]}</div>`;
+    b.addEventListener('click',()=>{ difficulty=k; localStorage.setItem('animalDiff',k); renderDiff(); });
+    row.appendChild(b);
+  });
+}
+document.getElementById('btnStart').addEventListener('click',()=>{ ac(); round=1; streak=0; buildRound(); toPrep(); });
+document.getElementById('btnPreview').addEventListener('click',()=>{ ac(); target.play(actx.currentTime+0.05); pulse(); });
+document.getElementById('btnBegin').addEventListener('click',startPlayback);
+document.getElementById('btnRetry').addEventListener('click',()=>{ buildRound(); toPrep(); });
+document.getElementById('btnNext').addEventListener('click',()=>{ round++; buildRound(); toPrep(); });
+const vol=document.getElementById('vol');
+vol.value=parseFloat(localStorage.getItem('animalVol')||'0.8'); volume=parseFloat(vol.value);
+document.getElementById('volVal').textContent=Math.round(volume*100)+'%';
+vol.addEventListener('input',()=>{ volume=parseFloat(vol.value); if(master) master.gain.value=volume;
+  document.getElementById('volVal').textContent=Math.round(volume*100)+'%'; localStorage.setItem('animalVol',vol.value); });
+
+/* ============================ i18n apply ============================ */
+function applyLang(){
+  const t=T();
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  set('ttl',t.title); set('subttl',t.sub); set('lblDiff',t.diff); set('lblStart',t.start); set('lblTip',t.tip);
+  set('lblListen',t.listen); set('lblPreview',t.preview); set('lblPrepHint',t.prepHint); set('lblBegin',t.begin);
+  set('lblFocus',t.focus); set('lblEyes',t.eyes); set('lblBreak',t.breakdown); set('lblRetry',t.retry);
+  set('lblNext',t.next); set('lblHome',t.home);
+  document.documentElement.lang = lang==='lao'?'lo':lang;
+}
+
+/* ============================ Boot ============================ */
+difficulty=localStorage.getItem('animalDiff')||'easy'; if(!DIFF[difficulty])difficulty='easy';
+applyLang();
+renderDiff();
+lucide.createIcons();
+</script>
+</body>
+</html>

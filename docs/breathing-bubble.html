@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Breathing Bubble</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    color:#dbe4ff;
+    background:radial-gradient(ellipse at 50% 30%, #1e2a52 0%, #131a34 45%, #0a0e1e 100%); }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .1s, background .2s, opacity .2s, box-shadow .2s, color .2s; }
+  .btn:active{ transform:scale(.93); }
+  .glass{ background:rgba(255,255,255,.06); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 20px rgba(0,0,0,.28); }
+  [data-lucide]{ width:1em; height:1em; }
+  .chip{ transition:background .25s, color .25s, box-shadow .25s; }
+  .chip.on{ background:linear-gradient(135deg,#7dd3fc,#a5b4fc); color:#0b1020; box-shadow:0 4px 14px rgba(125,211,252,.4); }
+
+  /* ---- bubble ---- */
+  #stage{ position:relative; display:flex; align-items:center; justify-content:center; }
+  #ring{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; }
+  #bubbleWrap{ display:flex; align-items:center; justify-content:center; will-change:transform; }
+  #bubble{ position:relative; width:100%; height:100%; border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #bfe9ff 0%, #7cc4f7 30%, #6a8ff0 62%, #6d76e0 100%);
+    box-shadow:0 0 60px 10px rgba(124,196,247,.35), inset 0 -18px 40px rgba(50,60,140,.5), inset 0 12px 30px rgba(255,255,255,.35);
+    overflow:hidden; }
+  @keyframes blobSpin{ to{ transform:rotate(360deg) } }
+  #bubble::before{ content:''; position:absolute; inset:-25%; border-radius:45%;
+    background:radial-gradient(circle at 60% 40%, rgba(255,255,255,.45), transparent 45%),
+               radial-gradient(circle at 30% 70%, rgba(120,220,255,.5), transparent 50%);
+    animation:blobSpin 14s linear infinite; filter:blur(6px); mix-blend-mode:screen; }
+  #bubble::after{ content:''; position:absolute; width:26%; height:26%; left:20%; top:16%; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,.85), transparent 70%); filter:blur(2px); }
+  #phaseText{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; text-align:center; pointer-events:none; }
+
+  #hint{ transition:opacity .6s; }
+  .fadein{ animation:fi .5s ease both; } @keyframes fi{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  .modal{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(10,14,30,.72); backdrop-filter:blur(6px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 3.4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <div class="px-4 pt-4 flex items-center gap-2" style="padding-top:max(0.7rem,env(safe-area-inset-top))">
+    <a href="index.html" class="glass btn w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="x"></i></a>
+    <div class="glass rounded-full px-4 h-10 flex items-center gap-2 text-sm font-bold"><span>🫧</span><span id="ttl">Breathing Bubble</span></div>
+    <button id="btnSound" class="glass btn ml-auto w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="volume-2"></i></button>
+  </div>
+
+  <!-- Bubble stage -->
+  <div id="stage" class="flex-1 min-h-0">
+    <svg id="ring" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/>
+      <circle id="ringProg" cx="50" cy="50" r="47" fill="none" stroke="#7dd3fc" stroke-width="2.5"
+        stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="295.3" stroke-dashoffset="295.3"/>
+    </svg>
+    <div id="bubbleWrap"><div id="bubble"></div></div>
+    <div id="phaseText">
+      <div id="phaseLabel" class="text-2xl font-extrabold tracking-wide"></div>
+      <div id="phaseCount" class="text-5xl font-extrabold tabular-nums mt-1" style="text-shadow:0 2px 12px rgba(0,0,0,.4)"></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="px-4 flex items-center justify-center gap-3 text-sm">
+    <div class="glass rounded-full px-4 py-1.5 font-bold flex items-center gap-1.5"><i data-lucide="repeat" class="text-sky-300"></i><span id="cycleVal">0</span> <span class="opacity-60" id="lblCycles">cycles</span></div>
+    <div class="glass rounded-full px-4 py-1.5 font-bold flex items-center gap-1.5"><i data-lucide="clock" class="text-indigo-300"></i><span id="timeVal">0:00</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="px-4 pb-4 pt-3" style="padding-bottom:max(0.9rem,env(safe-area-inset-bottom))">
+    <div class="max-w-md mx-auto flex flex-col gap-3">
+      <div class="grid grid-cols-3 gap-2" id="patternRow"></div>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 grid grid-cols-3 gap-2" id="durRow"></div>
+        <button id="btnStop" class="glass btn w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"><i data-lucide="square"></i></button>
+        <button id="btnPlay" class="btn w-14 h-12 rounded-2xl flex items-center justify-center shrink-0 text-slate-900 text-xl"
+                style="background:linear-gradient(135deg,#7dd3fc,#a5b4fc)"><i data-lucide="play"></i></button>
+      </div>
+      <div id="hint" class="text-center text-xs text-indigo-200/50">Tap the bubble or ▶ to begin · follow it in and out</div>
+    </div>
+  </div>
+</div>
+
+<!-- Instructions -->
+<div id="startModal" class="modal">
+  <div class="card glass rounded-3xl p-6 w-full max-w-sm text-center border border-white/10">
+    <div class="floaty text-6xl mb-2">🫧</div>
+    <h1 class="text-2xl font-extrabold" id="s_ttl">Breathing Bubble</h1>
+    <p class="text-indigo-200/70 text-sm mt-1 mb-4" id="s_sub">A calm space to slow down and breathe.</p>
+    <div class="text-left text-sm text-indigo-100/85 space-y-2 mb-5" id="s_how">
+      <div class="flex gap-2"><span>①</span><span>Pick a <b>technique</b> and a <b>session length</b>.</span></div>
+      <div class="flex gap-2"><span>②</span><span>When the bubble <b>grows</b>, breathe in. When it <b>shrinks</b>, breathe out. Hold when it pauses.</span></div>
+      <div class="flex gap-2"><span>③</span><span>Follow the words &amp; the countdown. Let the soft sound guide you 🎧.</span></div>
+      <div class="flex gap-2"><span>④</span><span>Sit back, relax your shoulders, and just follow along.</span></div>
+    </div>
+    <button id="btnBegin" class="btn w-full rounded-2xl py-3.5 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#7dd3fc,#a5b4fc)"><i data-lucide="play"></i><span id="lblBegin">Begin</span></button>
+  </div>
+</div>
+
+<!-- Completion -->
+<div id="doneModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-7 w-full max-w-xs text-center border border-white/10">
+    <div class="text-6xl mb-2 floaty">🙏</div>
+    <div id="d_ttl" class="text-2xl font-extrabold mb-1">Well done</div>
+    <div id="d_sub" class="text-indigo-200/70 text-sm mb-5"></div>
+    <div class="flex gap-3 mb-4">
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="d_lblCycles">Cycles</div><div id="d_cycles" class="text-2xl font-extrabold text-sky-300 tabular-nums">0</div></div>
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-indigo-200/50 uppercase" id="d_lblTime">Time</div><div id="d_time" class="text-2xl font-extrabold text-indigo-300 tabular-nums">0:00</div></div>
+    </div>
+    <div class="flex gap-3">
+      <button id="btnAgain" class="btn flex-1 rounded-2xl py-3.5 font-extrabold flex items-center justify-center gap-2 text-slate-900"
+              style="background:linear-gradient(135deg,#7dd3fc,#a5b4fc)"><i data-lucide="rotate-ccw"></i><span id="lblAgain">Again</span></button>
+      <a href="index.html" class="btn glass flex-1 rounded-2xl py-3.5 font-bold flex items-center justify-center gap-2"><i data-lucide="home"></i><span id="lblHome">Home</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Breathing Bubble', sub:'A calm space to slow down and breathe.', begin:'Begin', again:'Again', home:'Home',
+       cycles:'cycles', inhale:'Breathe in', hold:'Hold', exhale:'Breathe out', holdOut:'Hold',
+       tapBegin:'Tap the bubble or ▶ to begin · follow it in and out', paused:'Paused · tap to resume',
+       box:'Box', b478:'4-7-8', equal:'Equal', boxD:'4·4·4·4', b478D:'4·7·8', equalD:'5·5',
+       min2:'2 min', min5:'5 min', inf:'∞', done:'Well done', doneSub:(c)=>`You completed ${c} calm breaths 🌿` },
+  th:{ title:'ฝึกหายใจ', sub:'พื้นที่สงบ ให้ช้าลงและหายใจ', begin:'เริ่ม', again:'อีกครั้ง', home:'หน้าหลัก',
+       cycles:'รอบ', inhale:'หายใจเข้า', hold:'กลั้นหายใจ', exhale:'หายใจออก', holdOut:'กลั้นหายใจ',
+       tapBegin:'แตะฟองอากาศหรือ ▶ เพื่อเริ่ม · หายใจตามมัน', paused:'หยุดชั่วคราว · แตะเพื่อไปต่อ',
+       box:'กล่อง', b478:'4-7-8', equal:'สมดุล', boxD:'4·4·4·4', b478D:'4·7·8', equalD:'5·5',
+       min2:'2 นาที', min5:'5 นาที', inf:'∞', done:'เยี่ยมมาก', doneSub:(c)=>`คุณหายใจอย่างสงบครบ ${c} รอบ 🌿` },
+  lao:{ title:'ຝຶກຫາຍໃຈ', sub:'ພື້ນທີ່ສະຫງົບ ໃຫ້ຊ້າລົງແລະຫາຍໃຈ', begin:'ເລີ່ມ', again:'ອີກຄັ້ງ', home:'ໜ້າຫຼັກ',
+       cycles:'ຮອບ', inhale:'ຫາຍໃຈເຂົ້າ', hold:'ກັ້ນຫາຍໃຈ', exhale:'ຫາຍໃຈອອກ', holdOut:'ກັ້ນຫາຍໃຈ',
+       tapBegin:'ແຕະຟອງອາກາດ ຫຼື ▶ ເພື່ອເລີ່ມ · ຫາຍໃຈຕາມ', paused:'ຢຸດຊົ່ວຄາວ · ແຕະເພື່ອໄປຕໍ່',
+       box:'ກ່ອງ', b478:'4-7-8', equal:'ສົມດຸນ', boxD:'4·4·4·4', b478D:'4·7·8', equalD:'5·5',
+       min2:'2 ນາທີ', min5:'5 ນາທີ', inf:'∞', done:'ຍອດຢ້ຽມ', doneSub:(c)=>`ເຈົ້າຫາຍໃຈຢ່າງສະຫງົບຄົບ ${c} ຮອບ 🌿` },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Patterns ============================ */
+// from/to are breath levels 0(min)..1(max)
+const PATTERNS={
+  box:  [ {k:'inhale',d:4,from:0,to:1},{k:'hold',d:4,from:1,to:1},{k:'exhale',d:4,from:1,to:0},{k:'holdOut',d:4,from:0,to:0} ],
+  b478: [ {k:'inhale',d:4,from:0,to:1},{k:'hold',d:7,from:1,to:1},{k:'exhale',d:8,from:1,to:0} ],
+  equal:[ {k:'inhale',d:5,from:0,to:1},{k:'exhale',d:5,from:1,to:0} ],
+};
+let patternKey='box', durationSec=300; // default 5 min
+let phases=PATTERNS.box;
+
+/* ============================ Audio ============================ */
+let soundOn=localStorage.getItem('breathMuted')!=='1';
+let actx=null, master=null, droneGain=null, droneFilter=null, oscs=[], audioReady=false;
+function ensureAudio(){
+  if(audioReady){ if(actx.state==='suspended')actx.resume(); return; }
+  try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+  master=actx.createGain(); master.gain.value=soundOn?0.9:0.0; master.connect(actx.destination);
+  droneFilter=actx.createBiquadFilter(); droneFilter.type='lowpass'; droneFilter.frequency.value=300; droneFilter.Q.value=0.6;
+  droneGain=actx.createGain(); droneGain.gain.value=0.0;
+  droneGain.connect(droneFilter); droneFilter.connect(master);
+  [110,164.81,220].forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sine'; o.frequency.value=f; o.detune.value=(i-1)*3; g.gain.value=i===0?0.6:0.32;
+    o.connect(g); g.connect(droneGain); o.start(); oscs.push(o); });
+  // gentle ambient shimmer
+  const lfo=actx.createOscillator(), lg=actx.createGain(); lfo.frequency.value=0.08; lg.gain.value=0.03;
+  lfo.connect(lg); lg.connect(droneGain.gain); lfo.start();
+  audioReady=true;
+}
+function setBreathAudio(level,active){
+  if(!audioReady) return; const n=actx.currentTime;
+  const tgt = active ? 0.06+level*0.16 : 0.0;
+  droneGain.gain.setTargetAtTime(tgt, n, 0.12);
+  droneFilter.frequency.setTargetAtTime(240+level*820, n, 0.12);
+}
+function chime(dir){ if(!audioReady||!soundOn) return; const n=actx.currentTime;
+  const o=actx.createOscillator(), g=actx.createGain(); o.type='sine';
+  const f=dir==='in'?528:396; o.frequency.setValueAtTime(f,n);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.16,n+0.04); g.gain.exponentialRampToValueAtTime(0.0001,n+1.3);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+1.35); }
+function applyMute(){ if(master) master.gain.setTargetAtTime(soundOn?0.9:0.0, actx.currentTime, 0.1); }
+
+/* ============================ State ============================ */
+let running=false, phaseIdx=0, phaseElapsed=0, level=0, cycles=0, sessionElapsed=0, endedFlag=false;
+let idleT=0;
+
+/* ============================ Layout ============================ */
+const stage=document.getElementById('stage'), bubbleWrap=document.getElementById('bubbleWrap'), ring=document.getElementById('ring');
+let baseD=280, MINS=0.5, MAXS=1.0;
+function layout(){
+  const w=stage.clientWidth, h=stage.clientHeight;
+  baseD=Math.max(150, Math.min(w*0.82, h*0.82, 360));
+  bubbleWrap.style.width=baseD+'px'; bubbleWrap.style.height=baseD+'px';
+  const ringD=baseD*1.16;
+  ring.style.width=ringD+'px'; ring.style.height=ringD+'px';
+  // phase text sizing stays; done
+}
+window.addEventListener('resize',layout);
+
+/* ============================ Easing / loop ============================ */
+function easeInOut(p){ return 0.5-0.5*Math.cos(Math.PI*Math.min(1,Math.max(0,p))); }
+const RING_C=2*Math.PI*47;
+let lastTs=0;
+function loop(ts){
+  if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.06)dt=0.06;
+  if(running){
+    phaseElapsed+=dt; sessionElapsed+=dt;
+    const ph=phases[phaseIdx];
+    let p=phaseElapsed/ph.d;
+    if(p>=1){
+      // advance phase
+      phaseIdx++;
+      if(phaseIdx>=phases.length){ phaseIdx=0; cycles++; document.getElementById('cycleVal').textContent=cycles;
+        if(durationSec!==Infinity && sessionElapsed>=durationSec){ finishSession(); }
+      }
+      phaseElapsed=0; p=0;
+      const np=phases[phaseIdx];
+      if(np.k==='inhale') chime('in'); else if(np.k==='exhale') chime('out');
+      updatePhaseLabel();
+    }
+    const ph2=phases[phaseIdx];
+    level = ph2.from + (ph2.to-ph2.from)*easeInOut(phaseElapsed/ph2.d);
+    // countdown
+    document.getElementById('phaseCount').textContent = Math.max(1,Math.ceil(ph2.d - phaseElapsed));
+    // ring progress for this phase
+    document.getElementById('ringProg').style.strokeDashoffset = RING_C*(1-(phaseElapsed/ph2.d));
+    setBreathAudio(level,true);
+  } else {
+    idleT+=dt;
+    level = 0.12 + 0.08*(0.5-0.5*Math.cos(idleT*0.7));
+    document.getElementById('ringProg').style.strokeDashoffset = RING_C;
+    setBreathAudio(0,false);
+  }
+  const scale = MINS + (MAXS-MINS)*level;
+  bubbleWrap.style.transform=`scale(${scale})`;
+  document.getElementById('bubble').style.filter=`brightness(${0.85+level*0.4}) saturate(${0.9+level*0.3})`;
+  requestAnimationFrame(loop);
+}
+function updatePhaseLabel(){ const ph=phases[phaseIdx]; document.getElementById('phaseLabel').textContent = running? T()[ph.k] : ''; }
+
+/* ============================ Controls ============================ */
+function fmtTime(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateTimeDisplay(){ const el=document.getElementById('timeVal');
+  el.textContent = durationSec===Infinity? fmtTime(sessionElapsed) : fmtTime(Math.max(0,durationSec-sessionElapsed)); }
+setInterval(updateTimeDisplay, 250);
+
+function startSession(){ ensureAudio(); phases=PATTERNS[patternKey]; phaseIdx=0; phaseElapsed=0; running=true; endedFlag=false;
+  document.getElementById('hint').style.opacity='0';
+  setPlayIcon(); updatePhaseLabel(); }
+function pauseSession(){ running=false; setPlayIcon(); document.getElementById('phaseLabel').textContent=T().paused; document.getElementById('phaseCount').textContent=''; }
+function resumeSession(){ ensureAudio(); running=true; setPlayIcon(); updatePhaseLabel(); }
+function togglePlay(){ if(!running){ (sessionElapsed>0 && !endedFlag)? resumeSession() : (resetSession(),startSession()); } else pauseSession(); }
+function resetSession(){ running=false; phaseIdx=0; phaseElapsed=0; sessionElapsed=0; cycles=0; endedFlag=false; idleT=0;
+  document.getElementById('cycleVal').textContent='0'; document.getElementById('phaseLabel').textContent=''; document.getElementById('phaseCount').textContent='';
+  document.getElementById('hint').style.opacity='1'; setPlayIcon(); updateTimeDisplay(); }
+function finishSession(){ running=false; endedFlag=true; setPlayIcon();
+  document.getElementById('d_sub').textContent=T().doneSub(cycles);
+  document.getElementById('d_cycles').textContent=cycles;
+  document.getElementById('d_time').textContent=fmtTime(sessionElapsed);
+  document.getElementById('doneModal').style.display='flex'; lucide.createIcons(); }
+function setPlayIcon(){ document.getElementById('btnPlay').innerHTML=`<i data-lucide="${running?'pause':'play'}"></i>`; lucide.createIcons(); }
+
+document.getElementById('btnPlay').addEventListener('click',togglePlay);
+document.getElementById('btnStop').addEventListener('click',resetSession);
+bubbleWrap.addEventListener('click',togglePlay);
+document.getElementById('btnBegin').addEventListener('click',()=>{ document.getElementById('startModal').style.display='none'; resetSession(); startSession(); });
+document.getElementById('btnAgain').addEventListener('click',()=>{ document.getElementById('doneModal').style.display='none'; resetSession(); startSession(); });
+document.getElementById('btnSound').addEventListener('click',()=>{ soundOn=!soundOn; localStorage.setItem('breathMuted',soundOn?'0':'1');
+  document.getElementById('btnSound').innerHTML=`<i data-lucide="${soundOn?'volume-2':'volume-x'}"></i>`; lucide.createIcons(); if(audioReady)applyMute(); });
+
+/* pattern & duration chips */
+function renderPatterns(){ const row=document.getElementById('patternRow'); row.innerHTML='';
+  [['box',T().box,T().boxD],['b478',T().b478,T().b478D],['equal',T().equal,T().equalD]].forEach(([k,name,sub])=>{
+    const b=document.createElement('button'); b.className='chip glass btn rounded-2xl py-2.5 font-extrabold text-sm'+(patternKey===k?' on':'');
+    b.innerHTML=`<div>${name}</div><div class="text-[10px] font-bold opacity-70 mt-0.5">${sub}</div>`;
+    b.addEventListener('click',()=>{ patternKey=k; phases=PATTERNS[k]; localStorage.setItem('breathPat',k);
+      if(running){ phaseIdx=0; phaseElapsed=0; } renderPatterns(); updatePhaseLabel(); });
+    row.appendChild(b); }); }
+function renderDurations(){ const row=document.getElementById('durRow'); row.innerHTML='';
+  [[120,T().min2],[300,T().min5],[Infinity,T().inf]].forEach(([sec,lab])=>{
+    const b=document.createElement('button'); b.className='chip glass btn rounded-2xl py-2.5 font-extrabold text-sm'+(durationSec===sec?' on':'');
+    b.textContent=lab; b.addEventListener('click',()=>{ durationSec=sec; localStorage.setItem('breathDur',String(sec)); renderDurations(); updateTimeDisplay(); });
+    row.appendChild(b); }); }
+
+/* ============================ i18n apply ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  set('ttl',t.title); set('s_ttl',t.title); set('s_sub',t.sub); set('lblBegin',t.begin);
+  set('lblCycles',t.cycles); set('lblAgain',t.again); set('lblHome',t.home);
+  set('d_lblCycles',t.cycles); document.getElementById('hint').textContent=t.tapBegin;
+  document.documentElement.lang=lang==='lao'?'lo':lang;
+  renderPatterns(); renderDurations(); }
+
+/* ============================ Boot ============================ */
+patternKey=localStorage.getItem('breathPat')||'box'; if(!PATTERNS[patternKey])patternKey='box'; phases=PATTERNS[patternKey];
+const savedDur=localStorage.getItem('breathDur'); if(savedDur) durationSec = savedDur==='Infinity'?Infinity:parseInt(savedDur,10);
+applyLang(); layout(); updateTimeDisplay();
+document.getElementById('btnSound').innerHTML=`<i data-lucide="${soundOn?'volume-2':'volume-x'}"></i>`;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
