@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Steady Hand Maze</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif; color:#e7eef7;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:none;
+    background:#0c1224; }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .1s, background .2s, opacity .2s, box-shadow .2s; }
+  .btn:active{ transform:scale(.94); }
+  .glass{ background:rgba(255,255,255,.07); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 22px rgba(0,0,0,.3); }
+  [data-lucide]{ width:1em; height:1em; }
+  #cv{ display:block; touch-action:none; }
+  .modal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(8,12,26,.62); backdrop-filter:blur(5px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 3s ease-in-out infinite; }
+  #splash{ position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center; pointer-events:none; }
+  #splash.show{ display:flex; animation:rise .3s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HUD -->
+  <div id="hud" class="px-3 pt-3 pb-2 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top));display:none">
+    <a href="index.html" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="x"></i></a>
+    <div id="levelDots" class="glass rounded-full px-3 h-9 flex items-center gap-1.5 shrink-0"></div>
+    <div id="timerWrap" class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-extrabold text-sm shrink-0 tabular-nums" style="display:none">
+      <i data-lucide="timer" class="text-rose-300"></i><span id="timer">0:00</span>
+    </div>
+    <div id="resetWrap" class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-bold text-sm shrink-0 tabular-nums" style="display:none">
+      <i data-lucide="rotate-ccw" class="text-amber-300"></i><span id="resets">0</span>
+    </div>
+    <button id="btnSound" class="glass btn ml-auto w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="volume-2"></i></button>
+    <button id="btnPause" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="pause"></i></button>
+  </div>
+  <div id="wrap" class="flex-1 min-h-0 relative">
+    <canvas id="cv"></canvas>
+    <div id="splash"><div id="splashText" class="text-3xl font-extrabold" style="text-shadow:0 3px 16px rgba(0,0,0,.6)"></div></div>
+  </div>
+</div>
+
+<!-- Mode select -->
+<div id="menu" class="modal">
+  <div class="card w-full max-w-sm text-center">
+    <div class="floaty text-7xl mb-2">🌀</div>
+    <h1 class="text-3xl font-extrabold" id="ttl">Steady Hand Maze</h1>
+    <p class="text-sky-200/70 text-sm mt-1 mb-5" id="sub">Guide the ball to the goal without touching the walls.</p>
+    <div class="flex flex-col gap-3">
+      <button id="modeKids" class="btn glass rounded-3xl p-4 text-left flex items-center gap-3 border border-white/10">
+        <span class="text-4xl">👶</span>
+        <span><span class="block font-extrabold text-lg" id="kidsT">Kids · 3–5</span><span class="block text-xs text-sky-200/60" id="kidsD">Wide paths · gentle · walls just stop you</span></span>
+      </button>
+      <button id="modeAdult" class="btn glass rounded-3xl p-4 text-left flex items-center gap-3 border border-white/10">
+        <span class="text-4xl">🧑</span>
+        <span><span class="block font-extrabold text-lg" id="adultT">Adult Focus</span><span class="block text-xs text-sky-200/60" id="adultD">Narrow mazes · barriers · timer · strict</span></span>
+      </button>
+    </div>
+    <div class="flex items-center justify-center gap-3 mt-5">
+      <a href="index.html" class="btn glass w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="home"></i></a>
+      <button id="btnSoundM" class="btn glass w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="volume-2"></i></button>
+    </div>
+    <p class="text-xs text-sky-200/40 mt-3" id="tip">Press &amp; hold the ball, then drag it slowly to the ⭐</p>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pauseModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-6 w-full max-w-xs text-center border border-white/10">
+    <div class="text-5xl mb-2">⏸️</div>
+    <div class="text-xl font-extrabold mb-4" id="pausedT">Paused</div>
+    <div class="flex flex-col gap-2">
+      <button id="btnResume" class="btn rounded-2xl py-3 font-extrabold text-slate-900" style="background:linear-gradient(135deg,#7dd3fc,#5eead4)"><span id="resumeT">Resume</span></button>
+      <button id="btnRestart" class="btn glass rounded-2xl py-3 font-bold"><span id="restartT">Restart Level</span></button>
+      <button id="btnMenu" class="btn glass rounded-2xl py-3 font-bold"><span id="menuT">Change Mode</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Result -->
+<div id="overModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-7 w-full max-w-xs text-center border border-white/10">
+    <div id="overEmoji" class="text-6xl mb-2 floaty">🏆</div>
+    <div id="overT" class="text-2xl font-extrabold mb-1">Complete!</div>
+    <div id="overSub" class="text-sky-200/70 text-sm mb-4"></div>
+    <div id="overStats" class="flex gap-3 mb-4"></div>
+    <div class="flex gap-3">
+      <button id="btnAgain" class="btn flex-1 rounded-2xl py-3 font-extrabold text-slate-900" style="background:linear-gradient(135deg,#7dd3fc,#5eead4)"><span id="againT">Again</span></button>
+      <button id="btnMenu2" class="btn glass flex-1 rounded-2xl py-3 font-bold"><span id="menuT2">Modes</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Steady Hand Maze', sub:'Guide the ball to the goal without touching the walls.',
+       kidsT:'Kids · 3–5', kidsD:'Wide paths · gentle · walls just stop you', adultT:'Adult Focus', adultD:'Narrow mazes · barriers · timer · strict',
+       tip:'Press & hold the ball, then drag it slowly to the ⭐', paused:'Paused', resume:'Resume', restart:'Restart Level', menu:'Change Mode', modes:'Modes', again:'Again',
+       level:'Level', time:'Time', resets:'Resets', score:'Score', best:'Best', win:'You did it! 🎉', winSub:'All 3 mazes cleared with a steady hand.',
+       timeUp:'Time Up!', timeUpSub:'So close — breathe and try again.', levelClear:(n)=>`Level ${n} ✓` },
+  th:{ title:'เขาวงกตลากเส้นนิ่ง', sub:'พาลูกบอลไปให้ถึงเป้าโดยไม่แตะกำแพง',
+       kidsT:'เด็ก · 3–5 ขวบ', kidsD:'ทางกว้าง · อ่อนโยน · ชนกำแพงแค่หยุด', adultT:'ผู้ใหญ่ ฝึกสมาธิ', adultD:'ทางแคบ · สิ่งกีดขวาง · จับเวลา · เข้มงวด',
+       tip:'กดค้างที่ลูกบอล แล้วลากช้าๆ ไปที่ ⭐', paused:'พักก่อน', resume:'เล่นต่อ', restart:'เริ่มด่านใหม่', menu:'เปลี่ยนโหมด', modes:'เลือกโหมด', again:'อีกครั้ง',
+       level:'ด่าน', time:'เวลา', resets:'รีเซ็ต', score:'คะแนน', best:'สถิติ', win:'สำเร็จ! 🎉', winSub:'ผ่านครบ 3 เขาวงกตด้วยมือที่นิ่ง',
+       timeUp:'หมดเวลา!', timeUpSub:'เกือบแล้ว — หายใจลึกๆ ลองใหม่', levelClear:(n)=>`ด่าน ${n} ✓` },
+  lao:{ title:'ເຂົາວົງກົດລາກເສັ້ນ', sub:'ພາລູກບານໄປໃຫ້ຮອດເປົ້າໂດຍບໍ່ແຕະກຳແພງ',
+       kidsT:'ເດັກ · 3–5 ປີ', kidsD:'ທາງກວ້າງ · ອ່ອນໂຍນ · ຕຳກຳແພງແຄ່ຢຸດ', adultT:'ຜູ້ໃຫຍ່ ຝຶກສະມາທິ', adultD:'ທາງແຄບ · ສິ່ງກີດຂວາງ · ຈັບເວລາ · ເຂັ້ມງວດ',
+       tip:'ກົດຄ້າງໃສ່ລູກບານ ແລ້ວລາກຊ້າໆ ໄປທີ່ ⭐', paused:'ພັກກ່ອນ', resume:'ຫຼິ້ນຕໍ່', restart:'ເລີ່ມດ່ານໃໝ່', menu:'ປ່ຽນໂໝດ', modes:'ເລືອກໂໝດ', again:'ອີກຄັ້ງ',
+       level:'ດ່ານ', time:'ເວລາ', resets:'ຣີເຊັດ', score:'ຄະແນນ', best:'ສະຖິຕິ', win:'ສຳເລັດ! 🎉', winSub:'ຜ່ານຄົບ 3 ເຂົາວົງກົດດ້ວຍມືທີ່ນິ້ງ',
+       timeUp:'ໝົດເວລາ!', timeUpSub:'ເກືອບແລ້ວ — ຫາຍໃຈເລິກໆ ລອງໃໝ່', levelClear:(n)=>`ດ່ານ ${n} ✓` },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=localStorage.getItem('steadyMuted')==='1';
+let actx=null, master=null, ambientOn=false, droneGain=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} master=actx.createGain(); master.gain.value=muted?0:0.9; master.connect(actx.destination); } if(actx.state==='suspended')actx.resume(); return actx; }
+function stopAmbient(){ ambientOn=false; if(droneGain&&actx) droneGain.gain.setTargetAtTime(0,actx.currentTime,0.5); }
+function buzzer(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime;
+  const o=c.createOscillator(), g=c.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(200,n); o.frequency.exponentialRampToValueAtTime(70,n+0.22);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.3,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.28);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+0.3);
+  const nb=c.createBufferSource(), nf=c.createBiquadFilter(), ng=c.createGain(); const len=c.sampleRate*0.2, b=c.createBuffer(1,len,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.5); nb.buffer=b; nf.type='bandpass'; nf.frequency.value=900;
+  ng.gain.setValueAtTime(0.18,n); ng.gain.exponentialRampToValueAtTime(0.0001,n+0.2); nb.connect(nf); nf.connect(ng); ng.connect(master); nb.start(n); nb.stop(n+0.22); }
+function bump(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime; const o=c.createOscillator(), g=c.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(240,n); o.frequency.exponentialRampToValueAtTime(150,n+0.1);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.16,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.14);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+0.16); }
+function win(){ if(muted)return; const c=ac(); if(!c)return; [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>{ const t=c.currentTime+i*0.11;
+  const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.28,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.32); }); }
+function applyMute(){ if(master) master.gain.setTargetAtTime(muted?0:0.9, actx.currentTime, 0.1); }
+
+/* ============================ Canvas / coords ============================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), wrap=document.getElementById('wrap');
+let W=0,H=0,DPR=1, scale=1, offX=0, offY=0;
+function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  scale=Math.min(W,H)*0.96/100; offX=(W-100*scale)/2; offY=(H-100*scale)/2; }
+window.addEventListener('resize',resize);
+const vx2px=(x)=>offX+x*scale, vy2px=(y)=>offY+y*scale;
+const px2vx=(x)=>(x-offX)/scale, px2vy=(y)=>(y-offY)/scale;
+
+/* ============================ Maze / levels ============================ */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function distSeg(px,py,ax,ay,bx,by){ const dx=bx-ax, dy=by-ay; const l2=dx*dx+dy*dy; let t=l2? ((px-ax)*dx+(py-ay)*dy)/l2 : 0; t=Math.max(0,Math.min(1,t));
+  const cx=ax+t*dx, cy=ay+t*dy; return Math.hypot(px-cx,py-cy); }
+
+const KID_PATHS=[
+  [[15,15],[15,62],[52,62],[52,26],[86,26],[86,84]],
+  [[13,20],[87,20],[87,44],[13,44],[13,68],[87,68]],
+  [[16,16],[84,16],[84,84],[30,84],[30,40],[66,40],[66,64],[46,64]],
+];
+const KID_DECOS=['⭐','🎈','🐰','🌸','🦋','🍭'];
+
+let mode='kids', levelIdx=0, level=null;
+let advLevel=1, score=0, resetsLevel=0;   // adult endless run
+let ball={x:0,y:0}, grabbed=false, timeLeft=0, resets=0, running=false, gameT=0, over=false;
+
+function buildKids(idx){
+  const pts=KID_PATHS[idx]; const segs=[]; for(let i=0;i<pts.length-1;i++) segs.push([pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]]);
+  const half=8, rb=2.6;
+  const decos=[]; for(let i=1;i<pts.length-1;i++) decos.push({x:pts[i][0],y:pts[i][1],e:KID_DECOS[i%KID_DECOS.length]});
+  return { segs, start:{x:pts[0][0],y:pts[0][1]}, end:{x:pts[pts.length-1][0],y:pts[pts.length-1][1]}, half, rb, obstacles:[], decos };
+}
+function buildAdult(lv){
+  const n=Math.min(11, 5+Math.floor((lv-1)*0.6)); const rng=mulberry32(9001+lv*131);
+  const visited=new Array(n*n).fill(false); const conn=[]; const key=(a,b)=>a<b?a+'-'+b:b+'-'+a; const seen=new Set();
+  const idxf=(i,j)=>i*n+j; const stack=[[0,0]]; visited[idxf(0,0)]=true;
+  while(stack.length){ const [i,j]=stack[stack.length-1]; const nb=[];
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([di,dj])=>{ const ni=i+di,nj=j+dj; if(ni>=0&&nj>=0&&ni<n&&nj<n&&!visited[idxf(ni,nj)]) nb.push([ni,nj]); });
+    if(nb.length){ const [ni,nj]=nb[(rng()*nb.length)|0]; visited[idxf(ni,nj)]=true; const k=key(idxf(i,j),idxf(ni,nj)); if(!seen.has(k)){seen.add(k);conn.push([[i,j],[ni,nj]]);} stack.push([ni,nj]); }
+    else stack.pop(); }
+  const m=11, step=(100-2*m)/(n-1); const ctr=(i,j)=>({x:m+j*step, y:m+i*step});
+  const segs=conn.map(([A,B])=>{ const a=ctr(A[0],A[1]), b=ctr(B[0],B[1]); return [a.x,a.y,b.x,b.y]; });
+  const half=step*0.22, rb=half*0.52;
+  const start=ctr(0,0), end=ctr(n-1,n-1);
+  // obstacles: pulsing barriers + patrolling blocks — grow with the level
+  const nPulse = Math.min(5, Math.floor(lv/2));
+  const nSlide = Math.max(0, Math.min(4, Math.floor((lv-2)/2)));
+  const obstacles=[];
+  const cand=segs.map(s=>({s,mx:(s[0]+s[2])/2,my:(s[1]+s[3])/2}))
+    .filter(o=>Math.hypot(o.mx-start.x,o.my-start.y)>step*1.4 && Math.hypot(o.mx-end.x,o.my-end.y)>step*1.2);
+  for(let i=cand.length-1;i>0;i--){ const j=(rng()*(i+1))|0; [cand[i],cand[j]]=[cand[j],cand[i]]; }
+  let ci=0;
+  for(let i=0;i<nPulse && ci<cand.length;i++,ci++){ const c=cand[ci];
+    obstacles.push({type:'pulse', x:c.mx, y:c.my, rad:half*0.95, phase:rng()*6.28, period:Math.max(1.5,2.4-lv*0.05)}); }
+  for(let i=0;i<nSlide && ci<cand.length;i++,ci++){ const s=cand[ci].s;
+    obstacles.push({type:'slide', ax:s[0],ay:s[1], bx:s[2],by:s[3], rad:half*0.82, phase:rng()*6.28, speed:1.1+rng()*1.0+lv*0.04}); }
+  const time = Math.max(26, Math.round(28 + n*3 - lv*0.6));
+  return { segs, start, end, half, rb, obstacles, decos:[], time };
+}
+function barrierActive(b){ return Math.sin(gameT*2*Math.PI/b.period + b.phase) > 0.05; }
+function obsPos(o){ if(o.type!=='slide') return {x:o.x,y:o.y};
+  const t=Math.sin(gameT*o.speed+o.phase)*0.5+0.5; return { x:o.ax+(o.bx-o.ax)*t, y:o.ay+(o.by-o.ay)*t }; }
+
+/* ============================ Collision / drag ============================ */
+function distToSegs(x,y){ let m=1e9; for(const s of level.segs){ const d=distSeg(x,y,s[0],s[1],s[2],s[3]); if(d<m)m=d; } return m; }
+function barrierHit(x,y){ for(const o of level.obstacles){
+    if(o.type==='pulse'){ if(barrierActive(o) && Math.hypot(x-o.x,y-o.y)<o.rad*0.85+level.rb) return true; }
+    else { const p=obsPos(o); if(Math.hypot(x-p.x,y-p.y)<o.rad*0.9+level.rb) return true; }
+  } return false; }
+let lastBump=0;
+function moveBall(tx,ty){
+  const safe=level.half-level.rb;
+  const dx=tx-ball.x, dy=ty-ball.y, dist=Math.hypot(dx,dy);
+  const stepLen=Math.max(0.35, safe*0.5), steps=Math.max(1,Math.ceil(dist/stepLen));
+  let last={x:ball.x,y:ball.y};
+  for(let s=1;s<=steps;s++){ const px=ball.x+dx*s/steps, py=ball.y+dy*s/steps;
+    const bad = distToSegs(px,py)>safe || barrierHit(px,py);
+    if(bad){
+      if(mode==='adult'){ collideReset(); return; }
+      else { ball.x=last.x; ball.y=last.y; const now=performance.now(); if(now-lastBump>180){ bump(); lastBump=now; } return; }
+    }
+    last={x:px,y:py};
+  }
+  ball.x=tx; ball.y=ty;
+  if(Math.hypot(ball.x-level.end.x,ball.y-level.end.y) < level.half*0.9) completeLevel();
+}
+function collideReset(){ buzzer(); resets++; resetsLevel++; grabbed=false; ball.x=level.start.x; ball.y=level.start.y; updateHUD();
+  flashRed=0.4; }
+let flashRed=0;
+
+/* ============================ Render ============================ */
+function drawStar(x,y,r,rot){ ctx.beginPath(); for(let i=0;i<10;i++){ const a=rot-Math.PI/2+i*Math.PI/5; const rr=i%2?r*0.45:r; const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr; i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.closePath(); }
+function render(){
+  ctx.clearRect(0,0,W,H);
+  if(!level){ return; }
+  const kid = mode==='kids';
+  // background inside maze area (wall)
+  ctx.fillStyle = kid ? '#bfe6ff' : '#0e1730';
+  ctx.fillRect(0,0,W,H);
+  // subtle vignette for adult
+  if(!kid){ const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.2,W/2,H/2,Math.max(W,H)*0.7); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.35)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+  // floor corridors
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=level.half*2*scale;
+  ctx.strokeStyle = kid ? '#ffffff' : '#26365c';
+  ctx.beginPath(); for(const s of level.segs){ ctx.moveTo(vx2px(s[0]),vy2px(s[1])); ctx.lineTo(vx2px(s[2]),vy2px(s[3])); } ctx.stroke();
+  // floor inner highlight
+  ctx.lineWidth=level.half*2*scale*0.7; ctx.strokeStyle = kid ? '#fffdf5' : '#2e4372';
+  ctx.beginPath(); for(const s of level.segs){ ctx.moveTo(vx2px(s[0]),vy2px(s[1])); ctx.lineTo(vx2px(s[2]),vy2px(s[3])); } ctx.stroke();
+  // decorations (kids)
+  if(kid){ ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=(level.half*1.3*scale)+'px serif';
+    for(const d of level.decos) ctx.fillText(d.e, vx2px(d.x), vy2px(d.y)); }
+  // obstacles
+  for(const o of level.obstacles){
+    if(o.type==='slide'){
+      // patrol track
+      ctx.strokeStyle='rgba(251,146,60,.25)'; ctx.setLineDash([3,4]); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(vx2px(o.ax),vy2px(o.ay)); ctx.lineTo(vx2px(o.bx),vy2px(o.by)); ctx.stroke(); ctx.setLineDash([]);
+      const p=obsPos(o), px=vx2px(p.x), py=vy2px(p.y), r=o.rad*scale;
+      ctx.beginPath(); ctx.arc(px,py,r,0,6.2832); ctx.fillStyle='rgba(251,146,60,.9)'; ctx.shadowColor='#fb923c'; ctx.shadowBlur=16; ctx.fill(); ctx.shadowBlur=0;
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    } else {
+      const act=barrierActive(o); const px=vx2px(o.x), py=vy2px(o.y), r=o.rad*scale;
+      ctx.beginPath(); ctx.arc(px,py,r,0,6.2832);
+      if(act){ ctx.fillStyle='rgba(248,80,80,.85)'; ctx.shadowColor='#f87171'; ctx.shadowBlur=18; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); }
+      else { ctx.fillStyle='rgba(248,80,80,.16)'; ctx.fill(); ctx.strokeStyle='rgba(248,80,80,.4)'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5; ctx.stroke(); ctx.setLineDash([]); }
+    }
+  }
+  // start marker
+  const sx=vx2px(level.start.x), sy=vy2px(level.start.y);
+  ctx.beginPath(); ctx.arc(sx,sy,level.half*0.7*scale,0,6.2832); ctx.fillStyle='#34d399'; ctx.fill();
+  ctx.fillStyle='#053b2a'; ctx.font='800 '+(level.half*0.8*scale)+'px Nunito'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('S',sx,sy);
+  // end marker (star)
+  const ex=vx2px(level.end.x), ey=vy2px(level.end.y);
+  ctx.save(); ctx.shadowColor='#fbbf24'; ctx.shadowBlur=16; drawStar(ex,ey,level.half*0.95*scale, gameT*1.2); ctx.fillStyle='#fbbf24'; ctx.fill(); ctx.restore();
+  // ball
+  const bx=vx2px(ball.x), by=vy2px(ball.y), br=level.rb*scale;
+  ctx.save(); if(grabbed){ ctx.shadowColor= kid?'#fb923c':'#22d3ee'; ctx.shadowBlur=16; }
+  const g=ctx.createRadialGradient(bx-br*0.35,by-br*0.4,1,bx,by,br*1.2);
+  g.addColorStop(0,'#ffffff'); g.addColorStop(0.3, kid?'#fdba74':'#67e8f9'); g.addColorStop(1, kid?'#ea7a1e':'#0891b2');
+  ctx.beginPath(); ctx.arc(bx,by,br,0,6.2832); ctx.fillStyle=g; ctx.fill(); ctx.restore();
+  // red flash on reset
+  if(flashRed>0){ ctx.fillStyle=`rgba(248,80,80,${flashRed*0.5})`; ctx.fillRect(0,0,W,H); }
+}
+
+/* ============================ Loop ============================ */
+let lastTs=0;
+function loop(ts){ if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05)dt=0.05;
+  if(running && !over){ gameT+=dt; if(flashRed>0) flashRed=Math.max(0,flashRed-dt*2);
+    if(mode==='adult'){ timeLeft-=dt; if(timeLeft<=0){ timeLeft=0; timeUp(); } updateTimer(); } }
+  render(); requestAnimationFrame(loop);
+}
+
+/* ============================ HUD ============================ */
+function fmt(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateTimer(){ document.getElementById('timer').textContent=fmt(timeLeft);
+  document.getElementById('timerWrap').style.color = timeLeft<8 ? '#fca5a5' : ''; }
+function updateHUD(){ document.getElementById('resets').textContent=resets; renderDots(); }
+function renderDots(){ const el=document.getElementById('levelDots');
+  if(mode==='adult'){ el.innerHTML=`<span class="text-xs font-extrabold">${T().level} ${advLevel}</span><span class="text-amber-300 font-extrabold text-sm ml-2 tabular-nums">⭐ ${score}</span>`; return; }
+  el.innerHTML='';
+  for(let i=0;i<3;i++){ const d=document.createElement('span'); d.style.cssText='width:9px;height:9px;border-radius:50%;display:inline-block;margin:0 1px;';
+    d.style.background = i<levelIdx?'#34d399' : i===levelIdx?'#7dd3fc' : 'rgba(255,255,255,.2)'; if(i===levelIdx)d.style.boxShadow='0 0 8px #7dd3fc'; el.appendChild(d); }
+  const lab=document.createElement('span'); lab.className='text-xs font-extrabold ml-1'; lab.textContent=T().level+' '+(levelIdx+1); el.appendChild(lab); }
+
+/* ============================ Flow ============================ */
+function startLevel(){ level = mode==='kids' ? buildKids(levelIdx) : buildAdult(advLevel);
+  ball={x:level.start.x, y:level.start.y}; grabbed=false; gameT=0; flashRed=0; over=false; running=true; resetsLevel=0;
+  if(mode==='adult'){ timeLeft=level.time; document.getElementById('timerWrap').style.display='flex'; document.getElementById('resetWrap').style.display='flex'; updateTimer(); }
+  else { document.getElementById('timerWrap').style.display='none'; document.getElementById('resetWrap').style.display='none'; }
+  updateHUD(); }
+function startGame(m){ ac(); mode=m; levelIdx=0; advLevel=1; score=0; resets=0;
+  document.body.style.background = m==='adult'?'#0c1224':'#153a52';
+  document.getElementById('menu').style.display='none'; document.getElementById('hud').style.display='flex';
+  document.getElementById('pauseModal').style.display='none'; document.getElementById('overModal').style.display='none';
+  resize(); startLevel(); startAmbientProper(m); lucide.createIcons(); }
+function completeLevel(){ running=false; win();
+  const lvNum = mode==='adult'?advLevel:(levelIdx+1);
+  if(mode==='adult'){
+    const bonus=Math.round(timeLeft*3); score = Math.max(0, score + 100*advLevel + bonus - resetsLevel*10);
+    if(score > (+localStorage.getItem('steadyBestScore')||0)) localStorage.setItem('steadyBestScore', score);
+    if(advLevel > (+localStorage.getItem('steadyBestLv')||0)) localStorage.setItem('steadyBestLv', advLevel);
+  }
+  const sp=document.getElementById('splash'); document.getElementById('splashText').textContent=T().levelClear(lvNum);
+  document.getElementById('splashText').style.color='#5eead4'; sp.classList.add('show');
+  setTimeout(()=>{ sp.classList.remove('show');
+    if(mode==='adult'){ advLevel++; startLevel(); }                 // endless — keeps getting harder
+    else if(levelIdx>=2){ finish(true); } else { levelIdx++; startLevel(); }
+  }, 1200); }
+function timeUp(){ running=false; over=true; buzzer(); finish(false); }
+function finish(won){ over=true; running=false; stopAmbient();
+  const st=document.getElementById('overStats');
+  if(mode==='adult'){
+    // adult is an endless run — "finish" always means the timer ran out
+    document.getElementById('overEmoji').textContent='⏰';
+    document.getElementById('overT').textContent=T().timeUp;
+    document.getElementById('overSub').textContent=T().timeUpSub;
+    const bestS=+localStorage.getItem('steadyBestScore')||0;
+    st.style.display='flex';
+    st.innerHTML=`<div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase">${T().score}</div><div class="text-2xl font-extrabold text-amber-300 tabular-nums">${score}</div></div>`
+      + `<div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase">${T().level}</div><div class="text-2xl font-extrabold text-sky-300 tabular-nums">${advLevel}</div></div>`;
+    document.getElementById('overSub').textContent = `${T().timeUpSub}  ·  ${T().best} ⭐ ${bestS}`;
+  } else {
+    document.getElementById('overEmoji').textContent = won?'🏆':'⏰';
+    document.getElementById('overT').textContent = won?T().win:T().timeUp;
+    document.getElementById('overSub').textContent = won?T().winSub:T().timeUpSub;
+    st.style.display='none';
+  }
+  document.getElementById('overModal').style.display='flex'; lucide.createIcons(); }
+function toMenu(){ running=false; over=false; stopAmbient();
+  document.getElementById('menu').style.display='flex'; document.getElementById('hud').style.display='none';
+  document.getElementById('pauseModal').style.display='none'; document.getElementById('overModal').style.display='none'; }
+
+/* ---- ambient (proper start with oscillator.start) ---- */
+function startAmbientProper(mode){ const c=ac(); if(!c||ambientOn) return;
+  droneGain=c.createGain(); droneGain.gain.value=0.0; droneGain.connect(master);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=mode==='adult'?260:420; lp.connect(droneGain);
+  const chord = mode==='adult' ? [58,87,116] : [98,147,196];
+  chord.forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f; o.detune.value=(i-1)*3;
+    g.gain.value=i===0?0.5:0.28; o.connect(g); g.connect(lp); o.start(); });
+  droneGain.gain.setTargetAtTime(mode==='adult'?0.12:0.08, c.currentTime, 1.0);
+  const lfo=c.createOscillator(), lg=c.createGain(); lfo.frequency.value=mode==='adult'?0.18:0.09; lg.gain.value=0.035; lfo.connect(lg); lg.connect(droneGain.gain); lfo.start();
+  ambientOn=true; }
+
+/* ============================ Input ============================ */
+function ptrV(e){ const r=cv.getBoundingClientRect(); return { x:px2vx(e.clientX-r.left), y:px2vy(e.clientY-r.top) }; }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!running||over) return; const p=ptrV(e);
+  if(Math.hypot(p.x-ball.x,p.y-ball.y) < level.rb*3.2){ grabbed=true; try{cv.setPointerCapture(e.pointerId);}catch(_){}} });
+cv.addEventListener('pointermove',e=>{ if(!grabbed||!running||over) return; e.preventDefault(); const p=ptrV(e); moveBall(p.x,p.y); });
+cv.addEventListener('pointerup',e=>{ grabbed=false; });
+cv.addEventListener('pointercancel',()=>{ grabbed=false; });
+
+document.getElementById('btnPause').addEventListener('click',()=>{ if(over)return; running=false; document.getElementById('pauseModal').style.display='flex'; });
+document.getElementById('btnResume').addEventListener('click',()=>{ document.getElementById('pauseModal').style.display='none'; running=true; lastTs=0; });
+document.getElementById('btnRestart').addEventListener('click',()=>{ document.getElementById('pauseModal').style.display='none'; startLevel(); });
+document.getElementById('btnMenu').addEventListener('click',toMenu);
+document.getElementById('btnMenu2').addEventListener('click',toMenu);
+document.getElementById('btnAgain').addEventListener('click',()=>{ document.getElementById('overModal').style.display='none'; levelIdx=0; advLevel=1; score=0; resets=0; startLevel(); });
+document.getElementById('modeKids').addEventListener('click',()=>startGame('kids'));
+document.getElementById('modeAdult').addEventListener('click',()=>startGame('adult'));
+function toggleSound(){ muted=!muted; localStorage.setItem('steadyMuted',muted?'1':'0');
+  const ic=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; document.getElementById('btnSound').innerHTML=ic; document.getElementById('btnSoundM').innerHTML=ic; lucide.createIcons(); if(actx)applyMute(); }
+document.getElementById('btnSound').addEventListener('click',toggleSound);
+document.getElementById('btnSoundM').addEventListener('click',toggleSound);
+
+/* ============================ i18n ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('ttl',t.title); set('sub',t.sub); set('kidsT',t.kidsT); set('kidsD',t.kidsD); set('adultT',t.adultT); set('adultD',t.adultD); set('tip',t.tip);
+  set('pausedT',t.paused); set('resumeT',t.resume); set('restartT',t.restart); set('menuT',t.menu); set('menuT2',t.modes); set('againT',t.again);
+  document.documentElement.lang=lang==='lao'?'lo':lang; }
+
+/* ============================ Boot ============================ */
+applyLang(); resize();
+const ic=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; document.getElementById('btnSound').innerHTML=ic; document.getElementById('btnSoundM').innerHTML=ic;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

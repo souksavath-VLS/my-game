@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Mindful Rain</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif; color:#e7eef7;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:none;
+    background:linear-gradient(180deg,#1a2740 0%,#16233b 55%,#0e1830 100%); }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .1s, background .2s, opacity .2s, box-shadow .2s; }
+  .btn:active{ transform:scale(.94); }
+  .glass{ background:rgba(255,255,255,.07); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 22px rgba(0,0,0,.3); }
+  [data-lucide]{ width:1em; height:1em; }
+  #cv{ display:block; touch-action:none; }
+  .modal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(8,14,28,.6); backdrop-filter:blur(5px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 3s ease-in-out infinite; }
+  #banner{ position:absolute; left:50%; top:84px; transform:translateX(-50%); z-index:15; pointer-events:none;
+    opacity:0; transition:opacity .4s; text-align:center; }
+  #banner.show{ opacity:1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Dashboard -->
+  <div id="hud" class="px-3 pt-3 pb-2 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top));display:none">
+    <a href="index.html" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="x"></i></a>
+    <div class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-extrabold text-sm shrink-0">
+      <i data-lucide="star" class="text-amber-300"></i><span id="score" class="tabular-nums">0</span>
+    </div>
+    <div class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-bold text-sm shrink-0 tabular-nums">
+      <i data-lucide="clock" class="text-sky-300"></i><span id="time">0:00</span>
+    </div>
+    <div id="livesWrap" class="glass rounded-full px-3 h-9 flex items-center gap-0.5 shrink-0"><span id="lives"></span></div>
+    <button id="btnPause" class="glass btn ml-auto w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="pause"></i></button>
+  </div>
+  <!-- Target indicator -->
+  <div id="targetBar" class="px-3 pb-1 flex justify-center" style="display:none">
+    <div class="glass rounded-full px-4 py-1.5 flex items-center gap-2 font-extrabold text-sm">
+      <span id="tLabel" class="opacity-80"></span>
+      <span id="tDot" class="w-5 h-5 rounded-full shadow-lg" style="box-shadow:0 0 12px 2px currentColor"></span>
+      <span id="tName"></span>
+    </div>
+  </div>
+  <!-- Canvas -->
+  <div id="wrap" class="flex-1 min-h-0 relative">
+    <canvas id="cv"></canvas>
+    <div id="banner"><div id="bannerText" class="text-2xl font-extrabold" style="text-shadow:0 3px 16px rgba(0,0,0,.6)"></div></div>
+  </div>
+</div>
+
+<!-- Mode select -->
+<div id="menu" class="modal">
+  <div class="card w-full max-w-sm text-center">
+    <div class="floaty text-7xl mb-2">🪷</div>
+    <h1 class="text-3xl font-extrabold" id="ttl">Mindful Rain</h1>
+    <p class="text-sky-200/70 text-sm mt-1 mb-5" id="sub">Catch the right raindrops. Breathe. Focus.</p>
+    <div class="flex flex-col gap-3">
+      <button id="modeKids" class="btn glass rounded-3xl p-4 text-left flex items-center gap-3 border border-white/10">
+        <span class="text-4xl">👶</span>
+        <span><span class="block font-extrabold text-lg" id="kidsT">Kids · 3–5</span><span class="block text-xs text-sky-200/60" id="kidsD">Very slow · 2 colors · gentle · no game over</span></span>
+      </button>
+      <button id="modeAdult" class="btn glass rounded-3xl p-4 text-left flex items-center gap-3 border border-white/10">
+        <span class="text-4xl">🧑</span>
+        <span><span class="block font-extrabold text-lg" id="adultT">Adult Focus</span><span class="block text-xs text-sky-200/60" id="adultD">Zen · speeds up · 5 colors · 3 lives</span></span>
+      </button>
+    </div>
+    <div class="flex items-center justify-center gap-3 mt-5">
+      <a href="index.html" class="btn glass w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="home"></i></a>
+      <button id="btnSound" class="btn glass w-10 h-10 rounded-full flex items-center justify-center"><i data-lucide="volume-2"></i></button>
+    </div>
+    <p class="text-xs text-sky-200/40 mt-3" id="tip">Move your finger / mouse to slide the lotus leaf 🎧</p>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pauseModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-6 w-full max-w-xs text-center border border-white/10">
+    <div class="text-5xl mb-2">⏸️</div>
+    <div class="text-xl font-extrabold mb-4" id="pausedT">Paused</div>
+    <div class="flex flex-col gap-2">
+      <button id="btnResume" class="btn rounded-2xl py-3 font-extrabold text-slate-900" style="background:linear-gradient(135deg,#7dd3fc,#5eead4)"><span id="resumeT">Resume</span></button>
+      <button id="btnMenu" class="btn glass rounded-2xl py-3 font-bold"><span id="menuT">Change Mode</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="overModal" class="modal" style="display:none">
+  <div class="card glass rounded-3xl p-7 w-full max-w-xs text-center border border-white/10">
+    <div class="text-6xl mb-2 floaty">🪷</div>
+    <div id="overT" class="text-2xl font-extrabold mb-1">Well done</div>
+    <div class="flex gap-3 my-4">
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase" id="ovScoreL">Score</div><div id="ovScore" class="text-2xl font-extrabold text-amber-300 tabular-nums">0</div></div>
+      <div class="glass rounded-2xl py-3 flex-1"><div class="text-[10px] font-bold text-sky-200/50 uppercase" id="ovTimeL">Time</div><div id="ovTime" class="text-2xl font-extrabold text-sky-300 tabular-nums">0:00</div></div>
+    </div>
+    <div class="flex gap-3">
+      <button id="btnAgain" class="btn flex-1 rounded-2xl py-3 font-extrabold text-slate-900" style="background:linear-gradient(135deg,#7dd3fc,#5eead4)"><span id="againT">Again</span></button>
+      <button id="btnMenu2" class="btn glass flex-1 rounded-2xl py-3 font-bold"><span id="menuT2">Modes</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Mindful Rain', sub:'Catch the right raindrops. Breathe. Focus.', kidsT:'Kids · 3–5', kidsD:'Very slow · 2 colors · gentle · no game over',
+       adultT:'Adult Focus', adultD:'Zen · speeds up · 5 colors · 3 lives', tip:'Move your finger / mouse to slide the lotus leaf 🎧',
+       catch:'Catch only', paused:'Paused', resume:'Resume', menu:'Change Mode', modes:'Modes', again:'Again',
+       score:'Score', time:'Time', wellDone:'Well done', over:'Take a breath 🌿',
+       announce:(n)=>`Catch only ${n}!`,
+       colors:{ blue:'blue', pink:'pink', yellow:'yellow', green:'green', purple:'purple', orange:'orange', teal:'teal' } },
+  th:{ title:'สายฝนแห่งสมาธิ', sub:'เก็บหยดน้ำให้ถูกสี · หายใจ · มีสมาธิ', kidsT:'เด็ก · 3–5 ขวบ', kidsD:'ช้ามาก · 2 สี · อ่อนโยน · ไม่มีแพ้',
+       adultT:'ผู้ใหญ่ ฝึกสมาธิ', adultD:'เซน · เร็วขึ้นเรื่อยๆ · 5 สี · 3 ชีวิต', tip:'เลื่อนนิ้ว/เมาส์เพื่อขยับใบบัว 🎧',
+       catch:'เก็บเฉพาะสี', paused:'พักก่อน', resume:'เล่นต่อ', menu:'เปลี่ยนโหมด', modes:'เลือกโหมด', again:'อีกครั้ง',
+       score:'คะแนน', time:'เวลา', wellDone:'เยี่ยมมาก', over:'พักหายใจสักครู่ 🌿',
+       announce:(n)=>`เก็บเฉพาะหยดสี${n}!`,
+       colors:{ blue:'ฟ้า', pink:'ชมพู', yellow:'เหลือง', green:'เขียว', purple:'ม่วง', orange:'ส้ม', teal:'เขียวน้ำทะเล' } },
+  lao:{ title:'ສາຍຝົນແຫ່ງສະມາທິ', sub:'ເກັບຢອດນ້ຳໃຫ້ຖືກສີ · ຫາຍໃຈ · ມີສະມາທິ', kidsT:'ເດັກ · 3–5 ປີ', kidsD:'ຊ້າຫຼາຍ · 2 ສີ · ອ່ອນໂຍນ · ບໍ່ມີແພ້',
+       adultT:'ຜູ້ໃຫຍ່ ຝຶກສະມາທິ', adultD:'ເຊນ · ໄວຂຶ້ນເລື້ອຍໆ · 5 ສີ · 3 ຊີວິດ', tip:'ເລື່ອນນິ້ວ/ເມົາສ໌ເພື່ອຂະຍັບໃບບົວ 🎧',
+       catch:'ເກັບສະເພາະສີ', paused:'ພັກກ່ອນ', resume:'ຫຼິ້ນຕໍ່', menu:'ປ່ຽນໂໝດ', modes:'ເລືອກໂໝດ', again:'ອີກຄັ້ງ',
+       score:'ຄະແນນ', time:'ເວລາ', wellDone:'ຍອດຢ້ຽມ', over:'ພັກຫາຍໃຈບຶດໜຶ່ງ 🌿',
+       announce:(n)=>`ເກັບສະເພາະຢອດສີ${n}!`,
+       colors:{ blue:'ຟ້າ', pink:'ບົວ', yellow:'ເຫຼືອງ', green:'ຂຽວ', purple:'ມ່ວງ', orange:'ສົ້ມ', teal:'ຂຽວທະເລ' } },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+const COLORS=[
+  { id:'blue',   hex:'#38bdf8' }, { id:'pink',  hex:'#f472b6' }, { id:'yellow', hex:'#facc15' },
+  { id:'green',  hex:'#4ade80' }, { id:'purple',hex:'#a78bfa' }, { id:'orange', hex:'#fb923c' }, { id:'teal', hex:'#2dd4bf' },
+];
+const colName=(id)=>T().colors[id]||id;
+const colHex=(id)=>COLORS.find(c=>c.id===id).hex;
+
+/* ============================ Audio ============================ */
+let muted=localStorage.getItem('mindRainMuted')==='1';
+let actx=null, master=null, ambientOn=false, droneGain=null, rainGain=null, bellTimer=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} master=actx.createGain(); master.gain.value=muted?0:0.9; master.connect(actx.destination); } if(actx.state==='suspended')actx.resume(); return actx; }
+function noiseBuf(){ const n=actx.sampleRate*2, b=actx.createBuffer(1,n,actx.sampleRate), d=b.getChannelData(0);
+  let last=0; for(let i=0;i<n;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=(w*0.4+last*2); } return b; }
+function startAmbient(mode){
+  const c=ac(); if(!c||ambientOn) return;
+  // meditation drone (soft chord)
+  droneGain=c.createGain(); droneGain.gain.value=0.0;
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; droneGain.connect(lp); lp.connect(master);
+  [196,261.63,329.63].forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f; o.detune.value=(i-1)*2;
+    g.gain.value=i===0?0.5:0.3; o.connect(g); g.connect(droneGain); o.start(); });
+  droneGain.gain.setTargetAtTime(0.09, c.currentTime, 1.2);
+  // rain soundscape
+  const src=c.createBufferSource(); src.buffer=noiseBuf(); src.loop=true;
+  const rf=c.createBiquadFilter(); rf.type='lowpass'; rf.frequency.value=1400;
+  rainGain=c.createGain(); rainGain.gain.value=0.0; src.connect(rf); rf.connect(rainGain); rainGain.connect(master); src.start();
+  rainGain.gain.setTargetAtTime(mode==='adult'?0.14:0.07, c.currentTime, 1.5);
+  // occasional soft bell
+  const bell=()=>{ if(!ambientOn) return; const n=c.currentTime; const f=[523.25,587.33,659.25,784][(Math.random()*4)|0];
+    [[1,0.09],[2.01,0.03]].forEach(([m,lv])=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f*m;
+      g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(lv,n+0.05); g.gain.exponentialRampToValueAtTime(0.0001,n+4);
+      o.connect(g); g.connect(master); o.start(n); o.stop(n+4.2); });
+    bellTimer=setTimeout(bell, 9000+Math.random()*9000); };
+  bellTimer=setTimeout(bell, 4000);
+  ambientOn=true;
+}
+function stopAmbient(){ ambientOn=false; if(bellTimer)clearTimeout(bellTimer);
+  if(droneGain) droneGain.gain.setTargetAtTime(0,actx.currentTime,0.6); if(rainGain) rainGain.gain.setTargetAtTime(0,actx.currentTime,0.6); }
+function plop(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime; const o=c.createOscillator(), g=c.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(940,n); o.frequency.exponentialRampToValueAtTime(300,n+0.12);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.32,n+0.008); g.gain.exponentialRampToValueAtTime(0.0001,n+0.2);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+0.22); }
+function thud(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime; const o=c.createOscillator(), g=c.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(150,n); o.frequency.exponentialRampToValueAtTime(70,n+0.18);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.22,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.28);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+0.3); }
+function applyMute(){ if(master) master.gain.setTargetAtTime(muted?0:0.9, actx.currentTime, 0.1); }
+
+/* ============================ Canvas ============================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), wrap=document.getElementById('wrap');
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(leaf){ leaf.y=H-58; leaf.x=Math.min(leaf.x,W-10); } }
+window.addEventListener('resize',resize);
+
+/* ============================ Config ============================ */
+const MODES={
+  kids:  { nColors:2, baseSpeed:60,  spawn:1.5, speedRamp:0,    spawnRamp:0,    lives:Infinity, switchEvery:22, drop:22, leafW:150, targetW:0.46, angles:false, glowTarget:true },
+  adult: { nColors:5, baseSpeed:120, spawn:0.95,speedRamp:0.010,spawnRamp:0.006,lives:3,        switchEvery:14, drop:15, leafW:112, targetW:0.42, angles:true,  glowTarget:false },
+};
+let mode='kids', cfg=MODES.kids;
+let palette=[], target='blue';
+let drops=[], ripples=[], particles=[], floats=[], streaks=[];
+let leaf=null;
+let score=0, lives=3, elapsed=0, spawnAcc=0, switchAcc=0, running=false, over=false;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[(Math.random()*a.length)|0];
+
+function newTarget(first){
+  const prev=target;
+  do { target=pick(palette); } while(!first && palette.length>1 && target===prev);
+  updateTargetBar(); announce();
+}
+function setupRound(){
+  palette=[]; const pool=[...COLORS]; for(let i=0;i<cfg.nColors;i++){ palette.push(pool.splice((Math.random()*pool.length)|0,1)[0].id); }
+  target=pick(palette);
+  drops=[]; ripples=[]; particles=[]; floats=[];
+  score=0; lives=cfg.lives; elapsed=0; spawnAcc=0; switchAcc=0; over=false;
+  leaf={ x:W/2, tx:W/2, y:H-58, w:cfg.leafW };
+  // decorative background rain
+  streaks=[]; for(let i=0;i<50;i++) streaks.push({ x:Math.random()*W, y:Math.random()*H, len:rnd(8,20), sp:rnd(120,260) });
+  updateHUD(); updateTargetBar();
+}
+
+/* ============================ Spawning ============================ */
+function spawnDrop(){
+  const speedMul = 1 + cfg.speedRamp*elapsed;
+  const c = Math.random()<0.42 ? target : pick(palette);
+  const r = cfg.drop*rnd(0.9,1.15);
+  const d={ x:rnd(r+6,W-r-6), y:-r-4, r, color:c,
+            vy:cfg.baseSpeed*speedMul*rnd(0.85,1.15),
+            vx:cfg.angles ? rnd(-46,46)*speedMul : 0, caught:false };
+  drops.push(d);
+}
+
+/* ============================ Update ============================ */
+function update(dt){
+  elapsed+=dt;
+  // difficulty ramp
+  const spawnMul = 1 + cfg.spawnRamp*elapsed;
+  const interval = Math.max(0.35, cfg.spawn/spawnMul);
+  spawnAcc+=dt; while(spawnAcc>=interval){ spawnAcc-=interval; spawnDrop(); }
+  // target switching
+  switchAcc+=dt; if(switchAcc>=cfg.switchEvery){ switchAcc=0; newTarget(false); }
+  // leaf follow
+  leaf.x += (leaf.tx-leaf.x)*Math.min(1,dt*15);
+  leaf.x = Math.max(leaf.w*0.4, Math.min(W-leaf.w*0.4, leaf.x));
+  // drops
+  const catchY=leaf.y-6;
+  for(let i=drops.length-1;i>=0;i--){ const d=drops[i];
+    d.y+=d.vy*dt; d.x+=d.vx*dt;
+    if(d.x<d.r){ d.x=d.r; d.vx=Math.abs(d.vx); } else if(d.x>W-d.r){ d.x=W-d.r; d.vx=-Math.abs(d.vx); }
+    if(!d.caught && d.y+d.r>=catchY && d.y<leaf.y+18 && Math.abs(d.x-leaf.x)<leaf.w*cfg.targetW){
+      d.caught=true; drops.splice(i,1); onCatch(d); continue;
+    }
+    if(d.y-d.r>H+10) drops.splice(i,1);
+  }
+  // effects
+  for(let i=ripples.length-1;i>=0;i--){ const rp=ripples[i]; rp.r+=rp.sp*dt; rp.a-=dt*1.6; if(rp.a<=0) ripples.splice(i,1); }
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.vy+=520*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; if(p.life<=0) particles.splice(i,1); }
+  for(let i=floats.length-1;i>=0;i--){ const f=floats[i]; f.y-=34*dt; f.life-=dt; if(f.life<=0) floats.splice(i,1); }
+  // decorative rain
+  for(const s of streaks){ s.y+=s.sp*dt; if(s.y>H){ s.y=-s.len; s.x=Math.random()*W; } }
+}
+function onCatch(d){
+  const correct = d.color===target;
+  ripples.push({ x:leaf.x, y:leaf.y-4, r:6, sp:150, a:1, color:colHex(d.color) });
+  for(let k=0;k<8;k++){ const a=rnd(-2.5,-0.6); particles.push({ x:d.x, y:leaf.y-6, vx:Math.cos(a)*rnd(60,150)*(Math.random()<.5?1:-1), vy:Math.sin(a)*rnd(120,240), life:rnd(0.4,0.8), color:colHex(d.color) }); }
+  if(correct){ score+=10; floats.push({ x:d.x, y:leaf.y-20, text:'+10', color:'#86efac', life:1 }); plop(); }
+  else { thud(); floats.push({ x:d.x, y:leaf.y-20, text: cfg.lives===Infinity?'·':'-5', color:'#fca5a5', life:1 });
+    if(cfg.lives!==Infinity){ score=Math.max(0,score-5); lives--; if(lives<=0){ gameOver(); } } }
+  updateHUD();
+}
+
+/* ============================ Render ============================ */
+function drawLeaf(){
+  const x=leaf.x, y=leaf.y, w=leaf.w, h=w*0.34;
+  ctx.save(); ctx.translate(x,y);
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0,h*0.5,w*0.5,h*0.4,0,0,6.2832); ctx.fill();
+  // leaf body
+  const g=ctx.createRadialGradient(0,-h*0.2,4,0,0,w*0.55); g.addColorStop(0,'#7ee08a'); g.addColorStop(0.6,'#43b45f'); g.addColorStop(1,'#2f8a48');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,w*0.5,h,0,0,6.2832); ctx.fill();
+  // rim
+  ctx.strokeStyle='rgba(20,80,40,.5)'; ctx.lineWidth=2; ctx.stroke();
+  // notch (lotus leaf cut)
+  ctx.fillStyle='#16233b'; ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(w*0.14,-h*0.9); ctx.lineTo(-w*0.14,-h*0.9); ctx.closePath(); ctx.fill();
+  // veins
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.2;
+  for(let i=-3;i<=3;i++){ if(i===0)continue; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.sin(i*0.4)*w*0.46, Math.cos(i*0.4)*h*0.9); ctx.stroke(); }
+  // sheen
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.ellipse(-w*0.14,-h*0.3,w*0.16,h*0.4,0,0,6.2832); ctx.fill();
+  ctx.restore();
+}
+function drawDrop(d){
+  ctx.save(); ctx.translate(d.x,d.y); const r=d.r;
+  if(cfg.glowTarget && d.color===target){ ctx.shadowColor='#ffffff'; ctx.shadowBlur=16; }
+  ctx.beginPath(); ctx.moveTo(0,-r*1.35); ctx.bezierCurveTo(r*1.05,-r*0.2,r,r,0,r); ctx.bezierCurveTo(-r,r,-r*1.05,-r*0.2,0,-r*1.35); ctx.closePath();
+  const g=ctx.createRadialGradient(-r*0.3,-r*0.4,1,0,0,r*1.3); g.addColorStop(0,'#ffffff'); g.addColorStop(0.25,d.hex||colHex(d.color)); g.addColorStop(1,shade(colHex(d.color),-24));
+  ctx.fillStyle=g; ctx.fill(); ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(-r*0.3,-r*0.4,r*0.18,r*0.26,0,0,6.2832); ctx.fill();
+  ctx.restore();
+}
+function shade(hex,amt){ const n=parseInt(hex.slice(1),16); let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;
+  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b)); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+function render(){
+  ctx.clearRect(0,0,W,H);
+  // decorative rain streaks
+  ctx.strokeStyle='rgba(160,200,240,.12)'; ctx.lineWidth=1.4;
+  for(const s of streaks){ ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(s.x,s.y+s.len); ctx.stroke(); }
+  // drops
+  for(const d of drops) drawDrop(d);
+  // ripples
+  for(const rp of ripples){ ctx.strokeStyle=rp.color; ctx.globalAlpha=Math.max(0,rp.a); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(rp.x,rp.y,rp.r,0,6.2832); ctx.stroke(); ctx.globalAlpha=1; }
+  // particles
+  for(const p of particles){ ctx.globalAlpha=Math.max(0,p.life*1.3); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,2.4,0,6.2832); ctx.fill(); ctx.globalAlpha=1; }
+  // leaf
+  if(leaf) drawLeaf();
+  // floating text
+  ctx.textAlign='center'; ctx.font='800 18px Nunito';
+  for(const f of floats){ ctx.globalAlpha=Math.max(0,f.life); ctx.fillStyle=f.color; ctx.fillText(f.text,f.x,f.y); ctx.globalAlpha=1; }
+}
+
+/* ============================ Loop ============================ */
+let lastTs=0;
+function loop(ts){ if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05)dt=0.05;
+  if(running && !over){ update(dt); updateTime(); }
+  render(); requestAnimationFrame(loop);
+}
+
+/* ============================ HUD ============================ */
+function fmt(s){ s=Math.floor(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateTime(){ document.getElementById('time').textContent=fmt(elapsed); }
+function updateHUD(){ document.getElementById('score').textContent=score;
+  const lw=document.getElementById('livesWrap');
+  if(cfg.lives===Infinity){ lw.style.display='none'; }
+  else { lw.style.display='flex'; document.getElementById('lives').textContent='❤️'.repeat(Math.max(0,lives))+'🤍'.repeat(Math.max(0,cfg.lives-lives)); } }
+function updateTargetBar(){ document.getElementById('tLabel').textContent=T().catch;
+  const dot=document.getElementById('tDot'); dot.style.background=colHex(target); dot.style.color=colHex(target);
+  document.getElementById('tName').textContent=colName(target); document.getElementById('tName').style.color=colHex(target); }
+function announce(){ const b=document.getElementById('banner'), txt=document.getElementById('bannerText');
+  txt.textContent=T().announce(colName(target)); txt.style.color=colHex(target);
+  b.classList.add('show'); clearTimeout(announce._t); announce._t=setTimeout(()=>b.classList.remove('show'),2000); }
+
+/* ============================ Flow ============================ */
+function startGame(m){ ac(); mode=m; cfg=MODES[m]; document.body.style.background = m==='adult'
+    ? 'linear-gradient(180deg,#0f1830 0%,#0c1428 60%,#080f22)' : 'linear-gradient(180deg,#20304e 0%,#1a2946 55%,#132038)';
+  // reveal HUD first so the canvas is measured at its real play size
+  document.getElementById('menu').style.display='none';
+  document.getElementById('hud').style.display='flex'; document.getElementById('targetBar').style.display='flex';
+  document.getElementById('overModal').style.display='none'; document.getElementById('pauseModal').style.display='none';
+  resize(); setupRound(); running=true; over=false; lastTs=0;
+  startAmbient(m); announce(); lucide.createIcons();
+}
+function gameOver(){ over=true; running=false;
+  document.getElementById('ovScore').textContent=score; document.getElementById('ovTime').textContent=fmt(elapsed);
+  document.getElementById('overT').textContent=T().over;
+  document.getElementById('overModal').style.display='flex'; lucide.createIcons();
+}
+function toMenu(){ running=false; over=false; stopAmbient();
+  document.getElementById('menu').style.display='flex'; document.getElementById('hud').style.display='none';
+  document.getElementById('targetBar').style.display='none'; document.getElementById('pauseModal').style.display='none';
+  document.getElementById('overModal').style.display='none'; }
+
+/* ============================ Input ============================ */
+function ptr(e){ const r=cv.getBoundingClientRect(); if(leaf) leaf.tx=(e.clientX-r.left); }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); ptr(e); });
+cv.addEventListener('pointermove',e=>{ e.preventDefault(); ptr(e); });  // follow mouse hover & touch drag
+document.getElementById('btnPause').addEventListener('click',()=>{ if(over)return; running=false; document.getElementById('pauseModal').style.display='flex'; });
+document.getElementById('btnResume').addEventListener('click',()=>{ document.getElementById('pauseModal').style.display='none'; running=true; lastTs=0; });
+document.getElementById('btnMenu').addEventListener('click',toMenu);
+document.getElementById('btnMenu2').addEventListener('click',toMenu);
+document.getElementById('btnAgain').addEventListener('click',()=>startGame(mode));
+document.getElementById('modeKids').addEventListener('click',()=>startGame('kids'));
+document.getElementById('modeAdult').addEventListener('click',()=>startGame('adult'));
+document.getElementById('btnSound').addEventListener('click',()=>{ muted=!muted; localStorage.setItem('mindRainMuted',muted?'1':'0');
+  document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; lucide.createIcons(); if(actx)applyMute(); });
+
+/* ============================ i18n apply ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('ttl',t.title); set('sub',t.sub); set('kidsT',t.kidsT); set('kidsD',t.kidsD); set('adultT',t.adultT); set('adultD',t.adultD); set('tip',t.tip);
+  set('pausedT',t.paused); set('resumeT',t.resume); set('menuT',t.menu); set('menuT2',t.modes); set('againT',t.again);
+  set('ovScoreL',t.score); set('ovTimeL',t.time);
+  document.documentElement.lang=lang==='lao'?'lo':lang; }
+
+/* ============================ Boot ============================ */
+applyLang(); resize();
+document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

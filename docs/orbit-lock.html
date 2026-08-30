@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Orbit Lock</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif; color:#dbe7ff;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:none;
+    background:#05060f; }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .1s, background .2s, opacity .2s, box-shadow .2s; }
+  .btn:active{ transform:scale(.94); }
+  .glass{ background:rgba(255,255,255,.06); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 6px 22px rgba(0,0,0,.4); }
+  [data-lucide]{ width:1em; height:1em; }
+  #cv{ display:block; touch-action:none; }
+  #lvSel{ scrollbar-width:none; } #lvSel::-webkit-scrollbar{ display:none; }
+  .lvchip{ flex:0 0 auto; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:13px; background:rgba(255,255,255,.06); color:#9fb4e6; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+  .lvchip.on{ background:linear-gradient(135deg,#22d3ee,#a855f7); color:#05060f; box-shadow:0 0 12px rgba(34,211,238,.5); }
+  .modal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(5,6,15,.7); backdrop-filter:blur(6px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 3s ease-in-out infinite; }
+  #splash{ position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center; pointer-events:none; }
+  #splash.show{ display:flex; animation:rise .3s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HUD -->
+  <div id="hud" class="px-3 pt-3 pb-1 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top));display:none">
+    <a href="index.html" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="x"></i></a>
+    <div class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-extrabold text-sm shrink-0"><i data-lucide="zap" class="text-cyan-300"></i><span id="score" class="tabular-nums">0</span></div>
+    <div class="glass rounded-full px-3 h-9 flex items-center gap-1.5 font-bold text-sm shrink-0 tabular-nums"><i data-lucide="target" class="text-fuchsia-300"></i><span id="attempts">0</span></div>
+    <div id="lvSel" class="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 justify-end"></div>
+    <button id="btnRestart" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="rotate-ccw"></i></button>
+    <button id="btnSound" class="glass btn w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i data-lucide="volume-2"></i></button>
+  </div>
+  <div id="wrap" class="flex-1 min-h-0 relative">
+    <canvas id="cv"></canvas>
+    <div id="splash"><div id="splashText" class="text-3xl font-extrabold" style="text-shadow:0 0 20px rgba(34,211,238,.6)"></div></div>
+    <div id="hint" class="absolute left-1/2 -translate-x-1/2 bottom-4 text-sm font-bold text-cyan-200/60 pointer-events-none"></div>
+  </div>
+</div>
+
+<!-- Start -->
+<div id="startModal" class="modal">
+  <div class="card glass rounded-3xl p-6 w-full max-w-sm text-center border border-white/10">
+    <div class="floaty text-7xl mb-2">🎯</div>
+    <h1 class="text-3xl font-extrabold" id="ttl">Orbit Lock</h1>
+    <p class="text-cyan-200/70 text-sm mt-1 mb-4" id="sub">Wait for the gaps to align. Then fire.</p>
+    <div class="text-left text-sm text-cyan-100/85 space-y-2 mb-5" id="how">
+      <div class="flex gap-2"><span>①</span><span>Rings spin with a small <b>gap</b> in each. Watch them turn.</span></div>
+      <div class="flex gap-2"><span>②</span><span><b>Tap anywhere</b> to launch the energy ball straight up 🔺.</span></div>
+      <div class="flex gap-2"><span>③</span><span>Fire the instant <b>every gap lines up at the top</b>. Hit a ring &amp; it shatters — resist rushing!</span></div>
+    </div>
+    <button id="btnBegin" class="btn w-full rounded-2xl py-3.5 font-extrabold text-lg flex items-center justify-center gap-2 text-slate-900"
+            style="background:linear-gradient(135deg,#22d3ee,#a855f7)"><i data-lucide="play"></i><span id="beginT">Begin</span></button>
+    <div id="bestLine" class="text-xs text-cyan-200/50 mt-3"></div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Orbit Lock', sub:'Wait for the gaps to align. Then fire.', begin:'Begin', level:'Level',
+       tapFire:'Tap to fire ▲', aligning:'…wait for alignment…', clear:(n)=>`Level ${n} ✓`, shatter:'Shattered!', best:(n)=>`🏆 Reached level ${n}` },
+  th:{ title:'วงล้อสะกดจิต', sub:'รอให้ช่องเปิดตรงกัน แล้วค่อยยิง', begin:'เริ่ม', level:'ด่าน',
+       tapFire:'แตะเพื่อยิง ▲', aligning:'…รอจังหวะช่องตรงกัน…', clear:(n)=>`ด่าน ${n} ✓`, shatter:'แตกสลาย!', best:(n)=>`🏆 ไปถึงด่าน ${n}` },
+  lao:{ title:'ວົງລໍ້ສະກົດຈິດ', sub:'ລໍຖ້າໃຫ້ຊ່ອງເປີດຊື່ກັນ ແລ້ວຄ່ອຍຍິງ', begin:'ເລີ່ມ', level:'ດ່ານ',
+       tapFire:'ແຕະເພື່ອຍິງ ▲', aligning:'…ລໍຖ້າຊ່ອງຊື່ກັນ…', clear:(n)=>`ດ່ານ ${n} ✓`, shatter:'ແຕກ!', best:(n)=>`🏆 ໄປຮອດດ່ານ ${n}` },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=localStorage.getItem('orbitMuted')==='1';
+let actx=null, master=null, ambientOn=false, droneGain=null, pulseTimer=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} master=actx.createGain(); master.gain.value=muted?0:0.9; master.connect(actx.destination); } if(actx.state==='suspended')actx.resume(); return actx; }
+function startAmbient(){ const c=ac(); if(!c||ambientOn) return;
+  droneGain=c.createGain(); droneGain.gain.value=0.0; droneGain.connect(master);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380; lp.connect(droneGain);
+  [55,82.4,110].forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=(i-1)*4;
+    g.gain.value=i===0?0.4:0.2; o.connect(g); g.connect(lp); o.start(); });
+  droneGain.gain.setTargetAtTime(0.1, c.currentTime, 1.0);
+  const lfo=c.createOscillator(), lg=c.createGain(); lfo.frequency.value=0.5; lg.gain.value=0.05; lfo.connect(lg); lg.connect(droneGain.gain); lfo.start();
+  // hypnotic pulse (soft kick)
+  const kick=()=>{ if(!ambientOn) return; const n=c.currentTime; const o=c.createOscillator(), g=c.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(110,n); o.frequency.exponentialRampToValueAtTime(45,n+0.14);
+    g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.16,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.3);
+    o.connect(g); g.connect(master); o.start(n); o.stop(n+0.32); pulseTimer=setTimeout(kick, 760); };
+  pulseTimer=setTimeout(kick, 500);
+  ambientOn=true; }
+function stopAmbient(){ ambientOn=false; if(pulseTimer)clearTimeout(pulseTimer); if(droneGain&&actx) droneGain.gain.setTargetAtTime(0,actx.currentTime,0.5); }
+function zap(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime; const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter();
+  o.type='sawtooth'; f.type='bandpass'; f.frequency.value=1200; f.Q.value=3; o.frequency.setValueAtTime(1400,n); o.frequency.exponentialRampToValueAtTime(220,n+0.18);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.26,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.2);
+  o.connect(f); f.connect(g); g.connect(master); o.start(n); o.stop(n+0.22); }
+function shatterSnd(){ if(muted)return; const c=ac(); if(!c)return; const n=c.currentTime;
+  const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(160,n); o.frequency.exponentialRampToValueAtTime(48,n+0.2);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.3,n+0.01); g.gain.exponentialRampToValueAtTime(0.0001,n+0.3);
+  o.connect(g); g.connect(master); o.start(n); o.stop(n+0.32);
+  const len=c.sampleRate*0.3, b=c.createBuffer(1,len,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.4);
+  const s=c.createBufferSource(); s.buffer=b; const hf=c.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=2500;
+  const sg=c.createGain(); sg.gain.setValueAtTime(0.2,n); sg.gain.exponentialRampToValueAtTime(0.0001,n+0.3);
+  s.connect(hf); hf.connect(sg); sg.connect(master); s.start(n); s.stop(n+0.32); }
+function winChord(){ if(muted)return; const c=ac(); if(!c)return; [523.25,659.25,783.99,1046.5,1318.5,1568].forEach((f,i)=>{ const t=c.currentTime+i*0.09;
+  const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.72); }); }
+function applyMute(){ if(master) master.gain.setTargetAtTime(muted?0:0.9, actx.currentTime, 0.1); }
+
+/* ============================ Canvas ============================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), wrap=document.getElementById('wrap');
+let W=0,H=0,DPR=1, cx=0, cy=0, uscale=1;
+let maxR=44;
+function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  cx=W/2; cy=H/2; uscale=Math.min(W,H)*0.44/maxR; }
+window.addEventListener('resize',resize);
+
+/* ============================ Game ============================ */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const LAUNCH=-Math.PI/2;            // straight up
+const NEON=['#22d3ee','#a855f7','#39ff9e','#ff5db1','#ffd24a'];
+let level=1, maxLevel=parseInt(localStorage.getItem('orbitMaxLevel')||'1',10);
+let rings=[], ball={launched:false,dist:0,k:0}, phase='aim', attempts=0, score=0;
+let particles=[], gameT=0, running=false, ballSpeed=90;
+const angDist=(a,b)=>{ let d=((a-b)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI; return Math.abs(d); };
+
+function buildLevel(lv){
+  level=lv; const rng=mulberry32(4700+lv*97);
+  const n = lv<=1?2 : lv<=3?3 : Math.min(5, 3+Math.floor((lv-2)/2));
+  const gapHalf = Math.max(0.16, 0.58 - lv*0.045);
+  const baseSpeed = 0.45 + lv*0.13;
+  rings=[];
+  for(let i=0;i<n;i++){
+    const R=15+i*8;
+    let dir;
+    if(lv<=1) dir=1;                         // L1 all same direction
+    else if(lv===2) dir = (i===n-1)?-1:1;    // L2 one reversed
+    else dir = rng()<0.5?-1:1;               // L3+ random
+    const canFlip = lv>=3;                    // random mid-run direction change
+    rings.push({ R, thick:3.4, color:NEON[i%NEON.length],
+      gap:Math.random()*2*Math.PI, gapHalf:gapHalf*(i===0?1.05:1),
+      speed:baseSpeed*(0.75+rng()*0.6), dir, canFlip, flipT:2+Math.random()*3, flash:0 });
+  }
+  maxR = 15+(n-1)*8 + 6;
+  resize();
+  ball={launched:false,dist:0,k:0}; phase='aim'; particles=[];
+  document.getElementById('hint').textContent=T().tapFire;
+  renderLevelSel(); updateHUD();
+}
+
+function fire(){ if(phase!=='aim') return; ball.launched=true; ball.dist=0; ball.k=0; phase='fly'; zap();
+  document.getElementById('hint').textContent=''; }
+
+function ringSolidAt(r, angle){ return angDist(angle, r.gap) > r.gapHalf; }  // true = solid (blocked)
+
+function spawnParticles(x,y,color,count,spread){ for(let i=0;i<count;i++){ const a=Math.random()*6.2832, sp=spread*(0.4+Math.random());
+  particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.5+Math.random()*0.5,color}); } }
+
+function update(dt){
+  gameT+=dt;
+  // rings rotate + random flips
+  for(const r of rings){ r.gap += r.dir*r.speed*dt; if(r.flash>0) r.flash-=dt;
+    if(r.canFlip){ r.flipT-=dt; if(r.flipT<=0){ r.dir*=-1; r.flash=0.4; r.flipT=1.6+Math.random()*2.8; } } }
+  // ball flight
+  if(phase==='fly'){ ball.dist += ballSpeed*dt;
+    // resolve rings the ball has reached (innermost first)
+    while(ball.k<rings.length && ball.dist>=rings[ball.k].R){
+      const r=rings[ball.k];
+      if(ringSolidAt(r, LAUNCH)){ // hit solid part → shatter
+        const hx=cx+Math.cos(LAUNCH)*r.R*uscale, hy=cy+Math.sin(LAUNCH)*r.R*uscale;
+        spawnParticles(hx,hy,r.color,26,220); shatterSnd(); fail(); return;
+      }
+      ball.k++;   // passed through the gap
+    }
+    if(ball.k>=rings.length && ball.dist>maxR){ succeed(); }
+  }
+  // particles
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94; p.vy*=0.94; p.life-=dt; if(p.life<=0) particles.splice(i,1); }
+}
+function fail(){ phase='result'; attempts++; updateHUD();
+  setTimeout(()=>{ ball={launched:false,dist:0,k:0}; phase='aim'; document.getElementById('hint').textContent=T().tapFire; }, 700); }
+function succeed(){ phase='result'; score+=100*level; winChord();
+  const ex=cx+Math.cos(LAUNCH)*maxR*uscale, ey=cy+Math.sin(LAUNCH)*maxR*uscale; spawnParticles(ex,ey,'#ffd24a',36,260);
+  if(level+1>maxLevel){ maxLevel=level+1; localStorage.setItem('orbitMaxLevel',maxLevel); }
+  updateHUD();
+  const sp=document.getElementById('splash'); document.getElementById('splashText').textContent=T().clear(level);
+  document.getElementById('splashText').style.color='#39ff9e'; sp.classList.add('show');
+  setTimeout(()=>{ sp.classList.remove('show'); attempts=0; buildLevel(level+1); }, 1300); }
+
+/* ============================ Render ============================ */
+function render(){
+  ctx.clearRect(0,0,W,H); if(!rings.length) return;
+  // bg glow
+  const bg=ctx.createRadialGradient(cx,cy,10,cx,cy,Math.max(W,H)*0.6); bg.addColorStop(0,'#0d1330'); bg.addColorStop(1,'#05060f'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // aiming guide (dim line up)
+  ctx.strokeStyle='rgba(120,200,255,.12)'; ctx.lineWidth=2; ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(LAUNCH)*(maxR+2)*uscale, cy+Math.sin(LAUNCH)*(maxR+2)*uscale); ctx.stroke(); ctx.setLineDash([]);
+  // target portal at top
+  const tx=cx+Math.cos(LAUNCH)*(maxR+2)*uscale, ty=cy+Math.sin(LAUNCH)*(maxR+2)*uscale;
+  ctx.fillStyle='rgba(57,255,158,.9)'; ctx.beginPath(); ctx.moveTo(tx,ty-8); ctx.lineTo(tx-6,ty+2); ctx.lineTo(tx+6,ty+2); ctx.closePath(); ctx.fill();
+  // rings
+  ctx.lineCap='round';
+  for(const r of rings){ const Rp=r.R*uscale;
+    ctx.strokeStyle=r.color; ctx.lineWidth=r.thick*uscale*0.5; ctx.shadowColor=r.color; ctx.shadowBlur = r.flash>0? 26 : 14;
+    ctx.beginPath(); ctx.arc(cx,cy,Rp, r.gap+r.gapHalf, r.gap - r.gapHalf + 2*Math.PI); ctx.stroke();
+    // gap-edge nubs
+    ctx.shadowBlur=0;
+  }
+  ctx.shadowBlur=0;
+  // ball
+  let bx,by;
+  if(phase==='fly'){ bx=cx+Math.cos(LAUNCH)*ball.dist*uscale; by=cy+Math.sin(LAUNCH)*ball.dist*uscale; }
+  else { bx=cx; by=cy; }
+  if(phase!=='result' || ball.launched===false){
+    const br=3.2*uscale;
+    ctx.save(); ctx.shadowColor='#eafcff'; ctx.shadowBlur=20;
+    const g=ctx.createRadialGradient(bx,by,1,bx,by,br*1.4); g.addColorStop(0,'#ffffff'); g.addColorStop(0.4,'#8ef0ff'); g.addColorStop(1,'#22a7d6');
+    ctx.beginPath(); ctx.arc(bx,by,br,0,6.2832); ctx.fillStyle=g; ctx.fill(); ctx.restore();
+  }
+  // particles
+  for(const p of particles){ ctx.globalAlpha=Math.max(0,p.life*1.4); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,6.2832); ctx.fill(); }
+  ctx.globalAlpha=1;
+}
+
+/* ============================ Loop ============================ */
+let lastTs=0;
+function loop(ts){ if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05)dt=0.05;
+  if(running) update(dt); render(); requestAnimationFrame(loop); }
+
+/* ============================ HUD ============================ */
+function updateHUD(){ document.getElementById('score').textContent=score; document.getElementById('attempts').textContent=attempts; renderLevelSel(); }
+function renderLevelSel(){ const el=document.getElementById('lvSel'); el.innerHTML='';
+  const from=Math.max(1,maxLevel-7);
+  for(let i=from;i<=maxLevel;i++){ const b=document.createElement('button'); b.className='lvchip btn'+(i===level?' on':''); b.textContent=i;
+    b.addEventListener('click',()=>{ attempts=0; buildLevel(i); }); el.appendChild(b); } }
+
+/* ============================ Flow ============================ */
+function begin(){ ac(); startAmbient(); running=true;
+  document.getElementById('startModal').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  score=0; attempts=0; buildLevel(1); lucide.createIcons(); }
+
+/* ============================ Input ============================ */
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); fire(); });
+document.getElementById('btnBegin').addEventListener('click',begin);
+document.getElementById('btnRestart').addEventListener('click',()=>{ attempts=0; buildLevel(level); });
+function toggleSound(){ muted=!muted; localStorage.setItem('orbitMuted',muted?'1':'0');
+  document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; lucide.createIcons(); if(actx)applyMute(); }
+document.getElementById('btnSound').addEventListener('click',toggleSound);
+
+/* ============================ i18n / boot ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('ttl',t.title); set('sub',t.sub); set('beginT',t.begin);
+  document.getElementById('bestLine').textContent = maxLevel>1 ? t.best(maxLevel) : '';
+  document.documentElement.lang=lang==='lao'?'lo':lang; }
+applyLang(); resize();
+document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

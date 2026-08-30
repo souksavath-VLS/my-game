@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Slow Trace</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{ margin:0; padding:0; height:100%; width:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; font-family:'Nunito','Noto Sans Lao',system-ui,sans-serif; color:#3f4a34;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:none;
+    background:linear-gradient(180deg,#eaf5df 0%,#dcefce 55%,#cfe6bd 100%); }
+  *{ box-sizing:border-box; }
+  #app{ height:100%; display:flex; flex-direction:column; }
+  .btn{ transition:transform .1s, background .2s, opacity .2s, box-shadow .2s; }
+  .btn:active{ transform:scale(.94); }
+  .soft{ background:rgba(255,255,255,.72); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    box-shadow:0 4px 16px rgba(90,110,60,.16); }
+  [data-lucide]{ width:1em; height:1em; }
+  #cv{ display:block; touch-action:none; }
+  #lvSel{ scrollbar-width:none; } #lvSel::-webkit-scrollbar{ display:none; }
+  .lvchip{ flex:0 0 auto; width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px; background:rgba(255,255,255,.7); color:#5b6b45; box-shadow:0 1px 4px rgba(90,110,60,.15); }
+  .lvchip.on{ background:linear-gradient(135deg,#86c25a,#5ba33f); color:#fff; box-shadow:0 3px 10px rgba(91,163,63,.4); }
+  .modal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(60,80,40,.35); backdrop-filter:blur(5px); }
+  @keyframes rise{ from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card{ animation:rise .3s ease; }
+  @keyframes floaty{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .floaty{ animation:floaty 3s ease-in-out infinite; }
+  #splash{ position:absolute; inset:0; z-index:15; display:none; align-items:center; justify-content:center; pointer-events:none; }
+  #splash.show{ display:flex; animation:rise .3s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HUD -->
+  <div id="hud" class="px-3 pt-3 pb-1 flex items-center gap-2" style="padding-top:max(0.6rem,env(safe-area-inset-top));display:none">
+    <a href="index.html" class="soft btn w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[#5b6b45]"><i data-lucide="x"></i></a>
+    <div id="lvSel" class="flex-1 flex items-center gap-1.5 overflow-x-auto py-1"></div>
+    <button id="btnRestart" class="soft btn w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[#5b6b45]"><i data-lucide="rotate-ccw"></i></button>
+    <button id="btnSound" class="soft btn w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[#5b6b45]"><i data-lucide="volume-2"></i></button>
+  </div>
+  <!-- Calm meter -->
+  <div id="meterWrap" class="px-3 pb-1 flex items-center gap-2" style="display:none">
+    <span class="text-lg">🧘</span>
+    <div class="flex-1 h-3 rounded-full overflow-hidden" style="background:rgba(255,255,255,.55)">
+      <div id="meter" class="h-full rounded-full" style="width:0%;background:linear-gradient(90deg,#7ecb57,#f0c040)"></div>
+    </div>
+    <span id="meterLbl" class="text-xs font-bold w-16 text-right" style="color:#7a8a5a">calm</span>
+  </div>
+  <div id="wrap" class="flex-1 min-h-0 relative">
+    <canvas id="cv"></canvas>
+    <div id="splash"><div id="splashText" class="text-3xl font-extrabold" style="text-shadow:0 3px 14px rgba(255,255,255,.7)"></div></div>
+  </div>
+</div>
+
+<!-- Start -->
+<div id="startModal" class="modal">
+  <div class="card soft rounded-3xl p-6 w-full max-w-sm text-center">
+    <div class="floaty text-7xl mb-2">🐞</div>
+    <h1 class="text-3xl font-extrabold" id="ttl" style="color:#4b5a38">Slow Trace</h1>
+    <p class="text-sm mt-1 mb-4" id="sub" style="color:#6f7f52">The slower you go, the further you get.</p>
+    <div class="text-left text-sm space-y-2 mb-5" id="how" style="color:#5b6b45">
+      <div class="flex gap-2"><span>①</span><span>Press &amp; hold the <b>ladybug 🐞</b> and drag it along the path to the flower 🌸.</span></div>
+      <div class="flex gap-2"><span>②</span><span><b>Move very slowly.</b> If you rush, she stops, turns red &amp; shakes — wait or slow right down.</span></div>
+      <div class="flex gap-2"><span>③</span><span>Watch the <b>Calm Meter</b> — keep it green. Flowers bloom behind you when you're calm.</span></div>
+    </div>
+    <button id="btnBegin" class="btn w-full rounded-2xl py-3.5 font-extrabold text-lg flex items-center justify-center gap-2 text-white"
+            style="background:linear-gradient(135deg,#86c25a,#5ba33f)"><i data-lucide="play"></i><span id="beginT">Begin</span></button>
+    <div id="bestLine" class="text-xs mt-3" style="color:#7a8a5a"></div>
+  </div>
+</div>
+
+<!-- Complete (endless: shown only via splash; a rest modal for pause not needed) -->
+<script>
+/* ============================ i18n ============================ */
+const I18N={
+  en:{ title:'Slow Trace', sub:'The slower you go, the further you get.', begin:'Begin', level:'Level',
+       calm:'calm', careful:'steady…', tooFast:'Slow down…', bloom:'🌸 bloomed', reached:(n)=>`Level ${n}`,
+       clear:(n)=>`Level ${n} ✓`, best:(n)=>`🏆 Reached level ${n}` },
+  th:{ title:'เต่าทองหัดเดิน', sub:'ยิ่งช้า ยิ่งไปได้ไกล', begin:'เริ่ม', level:'ด่าน',
+       calm:'สงบ', careful:'นิ่งๆ…', tooFast:'ช้าลงหน่อย…', bloom:'🌸 บาน', reached:(n)=>`ด่าน ${n}`,
+       clear:(n)=>`ด่าน ${n} ✓`, best:(n)=>`🏆 ไปถึงด่าน ${n}` },
+  lao:{ title:'ເຕົ່າທອງຫັດຍ່າງ', sub:'ຍິ່ງຊ້າ ຍິ່ງໄປໄດ້ໄກ', begin:'ເລີ່ມ', level:'ດ່ານ',
+       calm:'ສະຫງົບ', careful:'ນິ້ງໆ…', tooFast:'ຊ້າລົງແດ່…', bloom:'🌸 ບານ', reached:(n)=>`ດ່ານ ${n}`,
+       clear:(n)=>`ດ່ານ ${n} ✓`, best:(n)=>`🏆 ໄປຮອດດ່ານ ${n}` },
+};
+let lang=localStorage.getItem('lang')||'en'; if(!I18N[lang])lang='en';
+const T=()=>I18N[lang];
+
+/* ============================ Audio ============================ */
+let muted=localStorage.getItem('slowMuted')==='1';
+let actx=null, master=null, ambientOn=false, droneGain=null, chimeTimer=null;
+function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} master=actx.createGain(); master.gain.value=muted?0:0.9; master.connect(actx.destination); } if(actx.state==='suspended')actx.resume(); return actx; }
+function startAmbient(){ const c=ac(); if(!c||ambientOn) return;
+  droneGain=c.createGain(); droneGain.gain.value=0.0; droneGain.connect(master);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=520; lp.connect(droneGain);
+  [130.81,196,261.63].forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f; o.detune.value=(i-1)*3;
+    g.gain.value=i===0?0.45:0.26; o.connect(g); g.connect(lp); o.start(); });
+  droneGain.gain.setTargetAtTime(0.07, c.currentTime, 1.2);
+  // soft wind
+  const nlen=c.sampleRate*2, nb=c.createBuffer(1,nlen,c.sampleRate), nd=nb.getChannelData(0); let last=0;
+  for(let i=0;i<nlen;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; nd[i]=last*2.2; }
+  const src=c.createBufferSource(); src.buffer=nb; src.loop=true; const wf=c.createBiquadFilter(); wf.type='lowpass'; wf.frequency.value=700;
+  const wg=c.createGain(); wg.gain.value=0.05; src.connect(wf); wf.connect(wg); wg.connect(master); src.start();
+  // gentle chimes
+  const notes=[523.25,587.33,659.25,783.99,880];
+  const ch=()=>{ if(!ambientOn) return; const n=c.currentTime; const f=notes[(Math.random()*notes.length)|0];
+    const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.07,n+0.05); g.gain.exponentialRampToValueAtTime(0.0001,n+3);
+    o.connect(g); g.connect(master); o.start(n); o.stop(n+3.2); chimeTimer=setTimeout(ch, 6000+Math.random()*7000); };
+  chimeTimer=setTimeout(ch, 3000);
+  ambientOn=true; }
+function stopAmbient(){ ambientOn=false; if(chimeTimer)clearTimeout(chimeTimer); if(droneGain&&actx) droneGain.gain.setTargetAtTime(0,actx.currentTime,0.6); }
+let lastWarn=0;
+function warnTone(){ if(muted)return; const c=ac(); if(!c)return; const now=performance.now(); if(now-lastWarn<700)return; lastWarn=now;
+  const n=c.currentTime; const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter(); o.type='sine'; f.type='lowpass'; f.frequency.value=400;
+  o.frequency.setValueAtTime(196,n); o.frequency.linearRampToValueAtTime(155,n+0.5);
+  g.gain.setValueAtTime(0.0001,n); g.gain.exponentialRampToValueAtTime(0.14,n+0.08); g.gain.exponentialRampToValueAtTime(0.0001,n+0.6);
+  o.connect(f); f.connect(g); g.connect(master); o.start(n); o.stop(n+0.62); }
+function completeChime(){ if(muted)return; const c=ac(); if(!c)return; [523.25,587.33,659.25,783.99,880,1046.5].forEach((f,i)=>{ const t=c.currentTime+i*0.12;
+  const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.24,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.42); }); }
+function applyMute(){ if(master) master.gain.setTargetAtTime(muted?0:0.9, actx.currentTime, 0.1); }
+
+/* ============================ Canvas / coords ============================ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), wrap=document.getElementById('wrap');
+let W=0,H=0,DPR=1, scale=1, offX=0, offY=0;
+function resize(){ DPR=Math.min(2,window.devicePixelRatio||1); W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  scale=Math.min(W,H)*0.94/100; offX=(W-100*scale)/2; offY=(H-100*scale)/2; }
+window.addEventListener('resize',resize);
+const vpx=(x)=>offX+x*scale, vpy=(y)=>offY+y*scale, pvx=(x)=>(x-offX)/scale, pvy=(y)=>(y-offY)/scale;
+
+/* ============================ Path generation ============================ */
+function genSerpentine(level){
+  const rows=2+Math.min(7,Math.floor((level-1)*0.7));
+  const m=15, span=100-2*m, rowGap=(100-2*m)/(rows>1?rows-1:1);
+  const wob=Math.min(6.5, 1.6+level*0.45), freq=3+level*0.5, steps=44;
+  const pts=[];
+  for(let r=0;r<rows;r++){ const y0=m+r*rowGap, ltr=r%2===0;
+    for(let k=0;k<=steps;k++){ const u=k/steps; const x=m+(ltr?u:1-u)*span;
+      const edge=(r>0&&r<rows-1)?1:0.5; const y=y0+Math.sin(u*Math.PI*freq+r)*wob*edge; pts.push([x,y]); } }
+  return pts;
+}
+function genSpiral(level){ const turns=2+level*0.28, steps=240, cx=50,cy=50, maxR=40; const pts=[];
+  for(let k=0;k<=steps;k++){ const t=k/steps, ang=t*turns*2*Math.PI, r=maxR*(1-t*0.86); pts.push([cx+Math.cos(ang)*r, cy+Math.sin(ang)*r]); }
+  return pts;
+}
+function resample(pts, spacing){
+  const out=[pts[0]]; let carry=0;
+  for(let i=0;i<pts.length-1;i++){ let [ax,ay]=pts[i],[bx,by]=pts[i+1]; let seg=Math.hypot(bx-ax,by-ay);
+    while(carry+seg>=spacing){ const need=spacing-carry; const t=need/seg; const nx=ax+(bx-ax)*t, ny=ay+(by-ay)*t; out.push([nx,ny]); ax=nx;ay=ny; seg=Math.hypot(bx-ax,by-ay); carry=0; }
+    carry+=seg; }
+  out.push(pts[pts.length-1]); return out;
+}
+
+/* ============================ State ============================ */
+let level=1, maxLevel=parseInt(localStorage.getItem('slowMaxLevel')||'1',10);
+let P=[], N=0, thr=0.05, pathW=5, li=0;
+let ball={x:0,y:0,ang:0}, grabbed=false, running=false, over=false, complete=false;
+let speedEMA=0, lastPV=null, lastMoveT=0, cooldownUntil=0, violating=false, gameT=0;
+let trail=[], flowers=[], lastFlowerLi=0;
+
+function buildLevel(lv){
+  level=lv;
+  const coarse = (lv%3===0) ? genSpiral(lv) : genSerpentine(lv);
+  P = resample(coarse, 0.6); N=P.length;
+  pathW = (lv%3===0) ? 4.2 : Math.max(3.4, 5.4-lv*0.15);
+  // max drag speed in virtual-units/ms (screen-independent). Low = must go slow; stricter each level.
+  thr = Math.max(0.004, 0.026 - lv*0.002);
+  li=0; ball={x:P[0][0], y:P[0][1], ang:pathAngle(0)};
+  grabbed=false; over=false; complete=false; violating=false; cooldownUntil=0; speedEMA=0; lastPV=null; gameT=0;
+  trail=[]; flowers=[]; lastFlowerLi=0;
+  renderLevelSel();
+}
+function pathAngle(i){ const a=P[Math.max(0,Math.floor(i)-1)], b=P[Math.min(N-1,Math.floor(i)+1)]; return Math.atan2(b[1]-a[1], b[0]-a[0]); }
+function ballPos(){ const i=Math.floor(li), f=li-i, a=P[i], b=P[Math.min(N-1,i+1)]; return { x:a[0]+(b[0]-a[0])*f, y:a[1]+(b[1]-a[1])*f }; }
+
+/* ============================ Drag / velocity ============================ */
+function projForward(px,py){ // nearest path index within a forward window
+  const i0=Math.max(0,Math.floor(li)-6), i1=Math.min(N-1,Math.floor(li)+18);
+  let best=li, bd=1e9;
+  for(let i=i0;i<=i1;i++){ const d=Math.hypot(P[i][0]-px,P[i][1]-py); if(d<bd){bd=d;best=i;} }
+  return best;
+}
+function onMove(px,py){
+  if(!grabbed||!running||over) return;
+  const now=performance.now(); const dt=Math.max(1, now-lastMoveT); lastMoveT=now;
+  const p={x:px,y:py};
+  if(lastPV){ const inst=Math.hypot(p.x-lastPV.x,p.y-lastPV.y)/dt; speedEMA=speedEMA*0.6+inst*0.4; }
+  lastPV=p;
+  const overLimit = speedEMA>thr;
+  // calm meter
+  const mv=Math.min(1, speedEMA/thr); const mEl=document.getElementById('meter');
+  mEl.style.width=(mv*100)+'%'; mEl.style.background = mv>0.85?'#e5624a' : mv>0.6?'#f0c040' : 'linear-gradient(90deg,#7ecb57,#5ba33f)';
+  document.getElementById('meterLbl').textContent = mv>0.85?T().tooFast : mv>0.6?T().careful : T().calm;
+  document.getElementById('meterLbl').style.color = mv>0.85?'#e5624a' : mv>0.6?'#c79a20' : '#6f8a4a';
+
+  if(overLimit){ if(!violating){ violating=true; warnTone(); } cooldownUntil=now+1000; return; }
+  // in cooldown? release early if very slow
+  if(now<cooldownUntil){ if(speedEMA<thr*0.3){ cooldownUntil=now; } else return; }
+  violating=false;
+  const target=projForward(px,py);
+  if(target>li){ // advance (only forward, capped by window)
+    const prevLi=li; li=Math.min(N-1, target);
+    ball=ballPos(); ball.ang=pathAngle(li);
+    // trail + flowers while calm
+    trail.push({x:ball.x,y:ball.y,life:1});
+    if(li-lastFlowerLi>14){ lastFlowerLi=li; flowers.push({x:ball.x,y:ball.y,t:0}); }
+  } else { ball=ballPos(); }
+  if(li>=N-2) doComplete();
+}
+
+function doComplete(){ if(complete)return; complete=true; running=false; grabbed=false; completeChime();
+  if(level+1>maxLevel){ maxLevel=level+1; localStorage.setItem('slowMaxLevel',maxLevel); }
+  const sp=document.getElementById('splash'); document.getElementById('splashText').textContent=T().clear(level);
+  document.getElementById('splashText').style.color='#5ba33f'; sp.classList.add('show');
+  setTimeout(()=>{ sp.classList.remove('show'); buildLevel(level+1); running=true; }, 1400);
+}
+
+/* ============================ Render ============================ */
+function drawLadybug(x,y,ang,bad,shake){
+  const s=pathW*0.62*scale, px=vpx(x)+shake.x, py=vpy(y)+shake.y;
+  ctx.save(); ctx.translate(px,py); ctx.rotate(ang+Math.PI/2);
+  // shadow
+  ctx.fillStyle='rgba(60,70,40,.18)'; ctx.beginPath(); ctx.ellipse(0,s*0.5,s*1.05,s*0.7,0,0,6.2832); ctx.fill();
+  // body
+  ctx.fillStyle = bad ? '#b52d2d' : '#e23b3b'; ctx.beginPath(); ctx.ellipse(0,0,s,s*1.2,0,0,6.2832); ctx.fill();
+  // head
+  ctx.fillStyle='#2a2a2a'; ctx.beginPath(); ctx.ellipse(0,-s*1.02,s*0.62,s*0.5,0,0,6.2832); ctx.fill();
+  // antennae
+  ctx.strokeStyle='#2a2a2a'; ctx.lineWidth=Math.max(1,s*0.14); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-s*0.3,-s*1.3); ctx.lineTo(-s*0.55,-s*1.7); ctx.moveTo(s*0.3,-s*1.3); ctx.lineTo(s*0.55,-s*1.7); ctx.stroke();
+  // center line
+  ctx.strokeStyle='#2a2a2a'; ctx.lineWidth=Math.max(1,s*0.16); ctx.beginPath(); ctx.moveTo(0,-s*0.5); ctx.lineTo(0,s*1.1); ctx.stroke();
+  // spots
+  ctx.fillStyle='#2a2a2a'; [[-s*0.45,-s*0.1],[s*0.45,-s*0.1],[-s*0.5,s*0.6],[s*0.5,s*0.6]].forEach(([sx,sy])=>{ ctx.beginPath(); ctx.arc(sx,sy,s*0.2,0,6.2832); ctx.fill(); });
+  ctx.restore();
+}
+function render(){
+  ctx.clearRect(0,0,W,H); if(!P.length) return;
+  const kidGreen='#8fbf68';
+  // path base (leaf vein)
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.lineWidth=pathW*2*scale; ctx.strokeStyle='rgba(120,150,80,.35)';
+  ctx.beginPath(); ctx.moveTo(vpx(P[0][0]),vpy(P[0][1])); for(let i=1;i<N;i++) ctx.lineTo(vpx(P[i][0]),vpy(P[i][1])); ctx.stroke();
+  ctx.lineWidth=pathW*1.5*scale; ctx.strokeStyle='#eef7e2';
+  ctx.beginPath(); ctx.moveTo(vpx(P[0][0]),vpy(P[0][1])); for(let i=1;i<N;i++) ctx.lineTo(vpx(P[i][0]),vpy(P[i][1])); ctx.stroke();
+  // center vein
+  ctx.lineWidth=Math.max(1,pathW*0.18*scale); ctx.strokeStyle='rgba(120,150,80,.5)';
+  ctx.beginPath(); ctx.moveTo(vpx(P[0][0]),vpy(P[0][1])); for(let i=1;i<N;i++) ctx.lineTo(vpx(P[i][0]),vpy(P[i][1])); ctx.stroke();
+  // progress glow (traversed part)
+  const upto=Math.floor(li);
+  ctx.lineWidth=pathW*1.5*scale; ctx.strokeStyle='rgba(140,200,100,.5)'; ctx.shadowColor='#8fd66a'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(vpx(P[0][0]),vpy(P[0][1])); for(let i=1;i<=upto;i++) ctx.lineTo(vpx(P[i][0]),vpy(P[i][1])); ctx.stroke(); ctx.shadowBlur=0;
+  // soft glowing trail behind the ladybug
+  for(const tr of trail){ ctx.globalAlpha=Math.max(0,tr.life)*0.5; ctx.fillStyle='#c7f0a0'; ctx.beginPath(); ctx.arc(vpx(tr.x),vpy(tr.y),pathW*0.5*scale,0,6.2832); ctx.fill(); }
+  ctx.globalAlpha=1;
+  // flowers
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const f of flowers){ const sc=Math.min(1,f.t*3); ctx.font=(pathW*1.2*scale*sc)+'px serif'; ctx.globalAlpha=0.9; ctx.fillText('🌸', vpx(f.x), vpy(f.y)); ctx.globalAlpha=1; }
+  // start & finish
+  const S=P[0], F=P[N-1];
+  ctx.beginPath(); ctx.arc(vpx(S[0]),vpy(S[1]),pathW*0.7*scale,0,6.2832); ctx.fillStyle='#a7d97e'; ctx.fill();
+  ctx.font=(pathW*1.5*scale)+'px serif'; ctx.fillText('🌸', vpx(F[0]),vpy(F[1]));
+  // ladybug + shake
+  const shake = violating ? {x:Math.sin(gameT*45)*3, y:Math.cos(gameT*38)*3} : {x:0,y:0};
+  const bp=ballPos(); drawLadybug(bp.x,bp.y, ball.ang, violating, shake);
+  // warning text
+  if(violating){ ctx.font='800 '+(16)+'px Nunito'; ctx.fillStyle='#c0392b'; ctx.textAlign='center';
+    ctx.fillText(T().tooFast, vpx(bp.x), vpy(bp.y)-pathW*1.6*scale-6); }
+}
+
+/* ============================ Loop ============================ */
+let lastTs=0;
+function loop(ts){ if(!lastTs)lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05)dt=0.05;
+  if(running){ gameT+=dt;
+    // decay speedEMA when idle so meter falls back to calm
+    if(performance.now()-lastMoveT>60){ speedEMA*=Math.pow(0.2,dt); const mv=Math.min(1,speedEMA/thr);
+      const mEl=document.getElementById('meter'); if(mEl){ mEl.style.width=(mv*100)+'%'; if(mv<0.6){ mEl.style.background='linear-gradient(90deg,#7ecb57,#5ba33f)'; document.getElementById('meterLbl').textContent=T().calm; document.getElementById('meterLbl').style.color='#6f8a4a'; } }
+      if(violating && performance.now()>cooldownUntil) violating=false; }
+    for(const f of flowers) f.t+=dt;
+    for(let i=trail.length-1;i>=0;i--){ trail[i].life-=dt*0.6; if(trail[i].life<=0) trail.splice(i,1); }
+  }
+  render(); requestAnimationFrame(loop);
+}
+
+/* ============================ HUD ============================ */
+function renderLevelSel(){ const el=document.getElementById('lvSel'); el.innerHTML='';
+  for(let i=1;i<=maxLevel;i++){ const b=document.createElement('button'); b.className='lvchip btn'+(i===level?' on':''); b.textContent=i;
+    b.addEventListener('click',()=>{ if(i<=maxLevel){ buildLevel(i); running=true; } }); el.appendChild(b); }
+  // ensure current visible
+  const cur=el.children[level-1]; if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
+}
+
+/* ============================ Flow ============================ */
+function begin(){ ac(); startAmbient();
+  document.getElementById('startModal').style.display='none';
+  document.getElementById('hud').style.display='flex'; document.getElementById('meterWrap').style.display='flex';
+  resize(); buildLevel(1); running=true; lucide.createIcons(); }
+
+/* ============================ Input ============================ */
+function ev(e){ const r=cv.getBoundingClientRect(); return { x:pvx(e.clientX-r.left), y:pvy(e.clientY-r.top) }; }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!running||over) return; const p=ev(e); const bp=ballPos();
+  if(Math.hypot(p.x-bp.x,p.y-bp.y) < pathW*2.4){ grabbed=true; lastPV=null; lastMoveT=performance.now(); speedEMA=0; try{cv.setPointerCapture(e.pointerId);}catch(_){}} });
+cv.addEventListener('pointermove',e=>{ if(!grabbed) return; e.preventDefault(); const p=ev(e); onMove(p.x,p.y); });
+cv.addEventListener('pointerup',()=>{ grabbed=false; lastPV=null; });
+cv.addEventListener('pointercancel',()=>{ grabbed=false; lastPV=null; });
+
+document.getElementById('btnBegin').addEventListener('click',begin);
+document.getElementById('btnRestart').addEventListener('click',()=>{ buildLevel(level); running=true; });
+function toggleSound(){ muted=!muted; localStorage.setItem('slowMuted',muted?'1':'0');
+  document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`; lucide.createIcons(); if(actx)applyMute(); }
+document.getElementById('btnSound').addEventListener('click',toggleSound);
+
+/* ============================ i18n / boot ============================ */
+function applyLang(){ const t=T(); const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('ttl',t.title); set('sub',t.sub); set('beginT',t.begin);
+  document.getElementById('bestLine').textContent = maxLevel>1 ? t.best(maxLevel) : '';
+  document.documentElement.lang=lang==='lao'?'lo':lang; }
+applyLang(); resize();
+document.getElementById('btnSound').innerHTML=`<i data-lucide="${muted?'volume-x':'volume-2'}"></i>`;
+lucide.createIcons();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

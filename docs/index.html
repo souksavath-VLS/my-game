@@ -13,6 +13,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="EQ Game">
+  <meta name="description" content="30+ ad-free brain-training games for kids ages 3-7 · works offline · English / ไทย / ລາວ. เกมฝึกสมองเด็กไม่มีโฆษณา · ເກມຝຶກສະຫມອງເດັກ">
+  <meta name="keywords" content="kids games, brain training, เกมฝึกสมองเด็ก, เกมเด็ก, ເກມເດັກ, ເກມຝຶກສະຫມອງ, educational games, no ads, offline, Lao, Thai">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="EQ Game · Brain Games for Kids">
+  <meta property="og:description" content="30+ ad-free brain games for kids ages 3-7 · offline · English / Thai / Lao">
+  <meta property="og:image" content="icon.svg">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="th_TH">
+  <meta property="og:locale:alternate" content="lo_LA">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     * {
@@ -1202,6 +1211,12 @@
       { key: 'spotDyn',    file: 'dynamic-spot.html',          icon: '👀', cat: 'skill' },
       { key: 'breath',     file: 'breathing-bubble.html',      icon: '🫧', cat: 'skill' },
       { key: 'aura',       file: 'aura-noise.html',            icon: '🎧', cat: 'skill' },
+      { key: 'mindRain',   file: 'mindful-rain.html',          icon: '🪷', cat: 'skill' },
+      { key: 'steadyMaze', file: 'steady-maze.html',           icon: '🌀', cat: 'skill' },
+      { key: 'slowTrace',  file: 'slow-trace.html',            icon: '🐞', cat: 'skill' },
+      { key: 'orbitLock',  file: 'orbit-lock.html',            icon: '🎯', cat: 'skill' },
+      { key: 'silence',    file: 'sound-wave.html',            icon: '🤫', cat: 'skill' },
+      { key: 'mosquito',   file: 'mosquito-smasher.html',      icon: '🦟', cat: 'classic' },
 
       // 🛠️ Tools
       { key: 'freeDraw', file: 'free-draw.html', icon: '🎨', cat: 'tools' },
@@ -1218,6 +1233,8 @@
       lao: {
         hdrTitle: '🎮 ເກມຝຶກສະຫມອງເດັກ',
         hdrSub: 'ສຳລັບເດັກ 3-7 ປີ · 30+ ເກມ',
+        pageTitle: 'EQ Game · ເກມຝຶກສະຫມອງເດັກ (ລາວ · ໄທ · English)',
+        metaDesc: 'ລວມ 30+ ເກມຝຶກສະຫມອງ ສຳລັບເດັກ 3-7 ປີ · ບໍ່ມີໂຄສະນາ · ຫຼິ້ນອອບລາຍໄດ້ · ຮອງຮັບພາສາ ລາວ ໄທ ອັງກິດ',
         'lbl-plays': 'ຫຼິ້ນແລ້ວ',
         'lbl-top': 'ດີສຸດ',
         'lbl-games': 'ເກມທັງໝົດ',
@@ -1288,13 +1305,15 @@
           findObject: 'ຫາສິ່ງຂອງ', humanBody: 'ຮ່າງກາຍ', solar: 'ລະບົບສຸລິຍະ',
           sound: 'ຟັງສຽງ', matchIcon: 'Match Icon', memory: 'ຈັບຄູ່ພາບ', hideSeek: 'ຊ່ອນຫາ', tower: 'ຫໍຄອຍ', maze: 'ເຂົາວົງກົດ', whack: 'ຕີໜູ', luckyAnimal: 'ສຸ່ມສັດນຳໂຊກ',
           tetris: 'ເທັດຣິສ', pacman: 'Pac-Man', snake: 'ງູ', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'ຍິງປູມເປົ້າ', piano: 'ເປຍໂນ', towerDef: 'ປ້ອງກັນຖານ', candy: 'ລູກກວາດ', platformer: 'ຜະຈົນໄພ', survival: 'ເອົາຕົວລອດ', worldbox: 'ພະເຈົ້າສ້າງໂລກ', waterSort: 'ແຍກສີນ້ຳ', spotDiff: 'ຈັບຜິດພາບ', jenga: 'ຕຶກຖະລົ່ມ', jigsaw: 'ຕໍ່ພາບ', sudoku: 'ຊູໂດກຸ', settlement: 'ສ້າງບ້ານແປງເມືອງ', mahjong: 'ໄພ່ນົກກະຈອກ', zen: 'ສວນເຊນ', traffic: 'ຈັດການຈະລາຈອນ', animalEars: 'ນັບສຽງສັດ', freeze: 'ນິ້ງຄືກ້ອນຫີນ', spotDyn: 'ຈັບຜິດພາບເຄື່ອນໄຫວ', breath: 'ຝຶກຫາຍໃຈ', aura: 'ສຽງຜ່ອນຄາຍ',
+          spaceInv: 'Space Invaders', fps: 'ຍິງປູມເປົ້າ', piano: 'ເປຍໂນ', towerDef: 'ປ້ອງກັນຖານ', candy: 'ລູກກວາດ', platformer: 'ຜະຈົນໄພ', survival: 'ເອົາຕົວລອດ', worldbox: 'ພະເຈົ້າສ້າງໂລກ', waterSort: 'ແຍກສີນ້ຳ', spotDiff: 'ຈັບຜິດພາບ', jenga: 'ຕຶກຖະລົ່ມ', jigsaw: 'ຕໍ່ພາບ', sudoku: 'ຊູໂດກຸ', settlement: 'ສ້າງບ້ານແປງເມືອງ', mahjong: 'ໄພ່ນົກກະຈອກ', zen: 'ສວນເຊນ', traffic: 'ຈັດການຈະລາຈອນ', animalEars: 'ນັບສຽງສັດ', freeze: 'ນິ້ງຄືກ້ອນຫີນ', spotDyn: 'ຈັບຜິດພາບເຄື່ອນໄຫວ', breath: 'ຝຶກຫາຍໃຈ', aura: 'ສຽງຜ່ອນຄາຍ', mindRain: 'ສາຍຝົນແຫ່ງສະມາທິ', steadyMaze: 'ເຂົາວົງກົດລາກເສັ້ນ', slowTrace: 'ເຕົ່າທອງຫັດຍ່າງ', orbitLock: 'ວົງລໍ້ສະກົດຈິດ', silence: 'ຜູ້ພິທັກຄວາມງຽບ', mosquito: 'ເກມຕົບຍຸງ',
           freeDraw: 'ແຕ້ມຮູບອິດສະຫຼະ', stickerChart: 'ສະຕິກເກີຮາງວັນ', gpsTracker: 'ຕິດຕາມ GPS', imgPdf: 'ຮູບເປັນ PDF', pdfMerge: 'ລວມ PDF', pdfSplit: 'ແຍກ PDF', pdfWord: 'PDF → Word'
         }
       },
       th: {
         hdrTitle: '🎮 เกมฝึกสมองเด็ก',
         hdrSub: 'สำหรับเด็ก 3-7 ปี · 30+ เกม',
+        pageTitle: 'EQ Game · เกมฝึกสมองเด็ก (ไทย · ลาว · English)',
+        metaDesc: 'รวม 30+ เกมฝึกสมองและสมาธิสำหรับเด็ก 3-7 ปี · ไม่มีโฆษณา · เล่นออฟไลน์ได้ · รองรับภาษาไทย ลาว อังกฤษ',
         'lbl-plays': 'เล่นแล้ว',
         'lbl-top': 'ดีที่สุด',
         'lbl-games': 'เกมทั้งหมด',
@@ -1365,13 +1384,15 @@
           findObject: 'หาสิ่งของ', humanBody: 'ร่างกาย', solar: 'ระบบสุริยะ',
           sound: 'ฟังเสียง', matchIcon: 'Match Icon', memory: 'จับคู่ภาพ', hideSeek: 'ซ่อนหา', tower: 'หอคอย', maze: 'เขาวงกต', whack: 'ตีตัวตุ่น', luckyAnimal: 'สุ่มสัตว์นำโชค',
           tetris: 'เททริส', pacman: 'Pac-Man', snake: 'งู', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'ยิงลูกโป่ง', piano: 'เปียโน', towerDef: 'ป้องกันฐาน', candy: 'แคนดี้', platformer: 'ผจญภัย', survival: 'เอาตัวรอด', worldbox: 'พระเจ้าสร้างโลก', waterSort: 'แยกสีน้ำ', spotDiff: 'จับผิดภาพ', jenga: 'ตึกถล่ม', jigsaw: 'ต่อภาพจิ๊กซอว์', sudoku: 'ซูโดกุ', settlement: 'สร้างหมู่บ้าน', mahjong: 'จับคู่ไพ่นกกระจอก', zen: 'สวนเซนญี่ปุ่น', traffic: 'จัดการจราจร', animalEars: 'นับเสียงสัตว์', freeze: 'นิ่งเหมือนหิน', spotDyn: 'จับผิดภาพเคลื่อนไหว', breath: 'ฝึกหายใจ', aura: 'เสียงผ่อนคลาย',
+          spaceInv: 'Space Invaders', fps: 'ยิงลูกโป่ง', piano: 'เปียโน', towerDef: 'ป้องกันฐาน', candy: 'แคนดี้', platformer: 'ผจญภัย', survival: 'เอาตัวรอด', worldbox: 'พระเจ้าสร้างโลก', waterSort: 'แยกสีน้ำ', spotDiff: 'จับผิดภาพ', jenga: 'ตึกถล่ม', jigsaw: 'ต่อภาพจิ๊กซอว์', sudoku: 'ซูโดกุ', settlement: 'สร้างหมู่บ้าน', mahjong: 'จับคู่ไพ่นกกระจอก', zen: 'สวนเซนญี่ปุ่น', traffic: 'จัดการจราจร', animalEars: 'นับเสียงสัตว์', freeze: 'นิ่งเหมือนหิน', spotDyn: 'จับผิดภาพเคลื่อนไหว', breath: 'ฝึกหายใจ', aura: 'เสียงผ่อนคลาย', mindRain: 'สายฝนแห่งสมาธิ', steadyMaze: 'เขาวงกตลากเส้นนิ่ง', slowTrace: 'เต่าทองหัดเดิน', orbitLock: 'วงล้อสะกดจิต', silence: 'ผู้พิทักษ์ความเงียบ', mosquito: 'เกมตบยุง',
           freeDraw: 'วาดอิสระ', stickerChart: 'สติกเกอร์รางวัล', gpsTracker: 'ติดตาม GPS', imgPdf: 'รูปเป็น PDF', pdfMerge: 'รวม PDF', pdfSplit: 'แยก PDF', pdfWord: 'PDF → Word'
         }
       },
       en: {
         hdrTitle: '🎮 Brain Games for Kids',
         hdrSub: 'Ages 3-7 · 30+ games',
+        pageTitle: 'EQ Game · Brain Games for Kids (EN · ไทย · ລາວ)',
+        metaDesc: '30+ ad-free brain-training games for kids ages 3-7 · works offline · available in English, Thai and Lao.',
         'lbl-plays': 'Plays',
         'lbl-top': 'Top Score',
         'lbl-games': 'Games',
@@ -1442,7 +1463,7 @@
           findObject: 'Find Objects', humanBody: 'Human Body', solar: 'Solar System',
           sound: 'Animal Sounds', matchIcon: 'Match Icon', memory: 'Memory Match', hideSeek: 'Hide & Seek', tower: 'Tower Stack', maze: 'Maze', whack: 'Whack-a-Mole', luckyAnimal: 'Lucky Animal',
           tetris: 'Tetris', pacman: 'Pac-Man', snake: 'Snake', slither: 'Slither',
-          spaceInv: 'Space Invaders', fps: 'Balloon Shooter', piano: 'Piano', towerDef: 'Tower Defense', candy: 'Candy Crush', platformer: 'Platformer', survival: 'Survival', worldbox: 'God Sandbox', waterSort: 'Water Sort', spotDiff: 'Spot the Difference', jenga: 'Jenga Tower', jigsaw: 'Jigsaw Puzzle', sudoku: 'Sudoku', settlement: 'Settlement Builder', mahjong: 'Mahjong Solitaire', zen: 'Zen Garden', traffic: 'Traffic Roads', animalEars: 'Animal Ears', freeze: 'Freeze & Focus', spotDyn: 'Moving Differences', breath: 'Breathing Bubble', aura: 'AuraNoise',
+          spaceInv: 'Space Invaders', fps: 'Balloon Shooter', piano: 'Piano', towerDef: 'Tower Defense', candy: 'Candy Crush', platformer: 'Platformer', survival: 'Survival', worldbox: 'God Sandbox', waterSort: 'Water Sort', spotDiff: 'Spot the Difference', jenga: 'Jenga Tower', jigsaw: 'Jigsaw Puzzle', sudoku: 'Sudoku', settlement: 'Settlement Builder', mahjong: 'Mahjong Solitaire', zen: 'Zen Garden', traffic: 'Traffic Roads', animalEars: 'Animal Ears', freeze: 'Freeze & Focus', spotDyn: 'Moving Differences', breath: 'Breathing Bubble', aura: 'AuraNoise', mindRain: 'Mindful Rain', steadyMaze: 'Steady Hand Maze', slowTrace: 'Slow Trace', orbitLock: 'Orbit Lock', silence: 'Silence Guardian', mosquito: 'Mosquito Smasher',
           freeDraw: 'Free Draw', stickerChart: 'Sticker Chart', gpsTracker: 'GPS Tracker', imgPdf: 'Image → PDF', pdfMerge: 'PDF Merge', pdfSplit: 'PDF Split', pdfWord: 'PDF → Word'
         }
       }
@@ -1451,7 +1472,14 @@
     // ===== State =====
     let lang = (() => {
       const v = localStorage.getItem('lang');
-      return (v === 'lao' || v === 'th' || v === 'en') ? v : 'lao';
+      if (v === 'lao' || v === 'th' || v === 'en') return v;   // returning user's choice wins
+      // first-time visitor: match the device language so Thai / international
+      // parents land on their own language automatically
+      const nav = ((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase();
+      if (nav.startsWith('th')) return 'th';
+      if (nav.startsWith('lo')) return 'lao';
+      if (nav.startsWith('en')) return 'en';
+      return 'en';   // unknown locale → English for the broadest international reach
     })();
 
     // ===== Read best score for a game =====
@@ -1544,6 +1572,15 @@
     function applyLang() {
       const t = I18N[lang];
       document.documentElement.lang = lang === 'lao' ? 'lo' : lang;
+      // page title + meta (SEO / social share) follow the chosen language
+      if (t.pageTitle) document.title = t.pageTitle;
+      const setMeta = (sel, val) => { const m = document.querySelector(sel); if (m && val != null) m.setAttribute('content', val); };
+      if (t.metaDesc) {
+        setMeta('meta[name="description"]', t.metaDesc);
+        setMeta('meta[property="og:title"]', t.pageTitle);
+        setMeta('meta[property="og:description"]', t.metaDesc);
+        setMeta('meta[property="og:locale"]', lang === 'lao' ? 'lo_LA' : lang === 'th' ? 'th_TH' : 'en_US');
+      }
       document.getElementById('hdr-title').textContent = t.hdrTitle;
       document.getElementById('hdr-sub').textContent = t.hdrSub;
       document.querySelectorAll('[data-i18n]').forEach(el => {
